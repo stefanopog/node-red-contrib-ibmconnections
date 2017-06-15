@@ -280,7 +280,7 @@ module.exports = function(RED) {
         });
     }
     
-    RED.nodes.registerType("ASPut", ASPut);
+    RED.nodes.registerType("ICASPut", ASPut);
 
 
     function ASGet(config) {
@@ -542,6 +542,6 @@ module.exports = function(RED) {
         });
     }
 
-    RED.nodes.registerType("ASGet", ASGet);
+    RED.nodes.registerType("ICASGet", ASGet);
 
 }

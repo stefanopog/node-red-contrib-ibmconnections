@@ -261,7 +261,7 @@ module.exports = function (RED) {
         );
     }
 
-    RED.nodes.registerType("CommunitiesGet", CommunitiesGet);
+    RED.nodes.registerType("ICCommunitiesGet", CommunitiesGet);
 
     function CommunitiesUpdate(config) {
         RED.nodes.createNode(this, config);
@@ -459,5 +459,5 @@ module.exports = function (RED) {
         );
     }
 
-    RED.nodes.registerType("CommunitiesUpdate", CommunitiesUpdate);
+    RED.nodes.registerType("ICCommunitiesUpdate", CommunitiesUpdate);
 }

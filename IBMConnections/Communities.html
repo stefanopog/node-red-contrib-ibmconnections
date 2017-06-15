@@ -1,6 +1,6 @@
 <script type="text/javascript">
     RED.nodes.registerType(
-        'CommunitiesGet', 
+        'ICCommunitiesGet',
         {
             category: "socialIBM",
             inputs: 1,
@@ -18,7 +18,7 @@
                 server: {
                             value : "",
                             required: true,
-                            type: "ICLogin"
+                            type: "ICLogin2"
                 },
                 target: {
                             value : "AllCommunities",
@@ -44,7 +44,7 @@
             oneditprepare: updateFormCommunitiesGet
         });
 
-   function updateFormCommunitiesGet() { 
+   function updateFormCommunitiesGet() {
        switch (document.querySelector("#node-input-target").value) {
            case "MyCommunities" :
                document.querySelector("#searchRow").style.display = "inline";
@@ -74,12 +74,12 @@
    }
 </script>
 
-<script type="text/x-red" data-template-name="CommunitiesGet">        
+<script type="text/x-red" data-template-name="ICCommunitiesGet">
     <div class="form-row">
         <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
         <input type="text" id="node-input-server" placeholder="Server">
     </div>
-    
+
     <div class="form-row">
         <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Search</label>
         <select id="node-input-target" onchange="updateFormCommunitiesGet()">
@@ -90,33 +90,33 @@
         </select>
         <br />
     </div>
-    
+
     <div class="form-row" id="userRow">
         <label for="node-input-userId"><i class="fa fa-odnoklassniki"></i> User</label>
         <input type="text" id="node-input-userId" placeholder="User ID (ie. toto@myorg.com OR 51689d40-e7ed-102f-87b6-86a3c2278316)"></input>
         <br />
     </div>
-    
+
     <div class="form-row" id="tagRow">
         <label for="node-input-communityTag"><i class="fa fa-tag"></i> Tag</label>
         <input type="text" id="node-input-communityTag" placeholder="tag"></input>
         <br />
-   </div>  
-    
+   </div>
+
     <div class="form-row" id="searchRow">
         <label for="node-input-searchString"><i class="fa fa-tag"></i> Search</label>
         <input type="text" id="node-input-searchString" placeholder="Well formed search string"></input>
         <br />
-   </div>  
-    
+   </div>
+
     <div class="form-row" id="communityRow">
         <label for="node-input-communityId"><i class="fa fa-users"></i> CommunityId</label>
         <input type="text" id="node-input-communityId" placeholder="ID"></input>
         <br />
-   </div>  
-   
+   </div>
+
     <br />
-    
+
     <div class="form-row">
         <hr />
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
@@ -125,7 +125,7 @@
 
  </script>
 
-<script type="text/x-red" data-help-name="CommunitiesGet">
+<script type="text/x-red" data-help-name="ICCommunitiesGet">
    <p>Retrieves a list of Communities based on selection criteria.</p>
    <p>It can retrieve:
    <ul>
@@ -171,7 +171,7 @@
 
 <script type="text/javascript">
     RED.nodes.registerType(
-        'CommunitiesUpdate', 
+        'ICCommunitiesUpdate',
         {
             category: "socialIBM",
             inputs: 1,
@@ -189,7 +189,7 @@
                 server: {
                             value : "",
                             required: true,
-                            type: "ICLogin"
+                            type: "ICLogin2"
                 },
                 target: {
                             value : "AddMember",
@@ -211,7 +211,7 @@
             oneditprepare: updateFormCommunitiesUpdate
         });
 
-   function updateFormCommunitiesUpdate() { 
+   function updateFormCommunitiesUpdate() {
        switch (document.querySelector("#node-input-target").value) {
            case "AddMember" :
                document.querySelector("#userRow").style.display = "inline";
@@ -227,12 +227,12 @@
    }
 </script>
 
-<script type="text/x-red" data-template-name="CommunitiesUpdate">        
+<script type="text/x-red" data-template-name="ICCommunitiesUpdate">
     <div class="form-row">
         <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
         <input type="text" id="node-input-server" placeholder="Server">
     </div>
-    
+
     <div class="form-row">
         <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Search</label>
         <select id="node-input-target" onchange="updateFormCommunitiesUpdate()">
@@ -241,13 +241,13 @@
         </select>
         <br />
     </div>
-    
+
     <div class="form-row" id="userRow">
         <label for="node-input-userId"><i class="fa fa-odnoklassniki"></i> UserId</label>
         <input type="text" id="node-input-userId" placeholder="ID or mail address"></input>
         <br />
     </div>
-    
+
     <div class="form-row" id="userRoleRow">
         <label for="node-input-userRole"><i class="fa fa-address-book"></i> Role</label>
         <select id="node-input-userRole">
@@ -256,15 +256,15 @@
         </select>
         <br />
     </div>
-    
+
     <div class="form-row" id="communityRow">
         <label for="node-input-communityId"><i class="fa fa-users"></i> Comm. Id</label>
         <input type="text" id="node-input-communityId" placeholder="ID"></input>
         <br />
-   </div>  
-   
+   </div>
+
     <br />
-    
+
     <div class="form-row">
         <hr />
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
@@ -273,7 +273,7 @@
 
  </script>
 
-<script type="text/x-red" data-help-name="CommunitiesUpdate">
+<script type="text/x-red" data-help-name="ICCommunitiesUpdate">
    <p>Sets different properties for a given Community</p>
 </script>
 

@@ -1,6 +1,6 @@
 <script type="text/javascript">
     RED.nodes.registerType(
-        'SimpleSearch', 
+        'ICSimpleSearch',
         {
             category: "socialIBM",
             inputs: 1,
@@ -19,7 +19,7 @@
                 server: {
                     value : "",
                     required: true,
-                    type: "ICLogin"
+                    type: "ICLogin2"
                 },
                 query: {
                     value : "",
@@ -64,11 +64,11 @@
                 mytags: {
                     value : "",
                     required: false
-                }            
+                }
             },
             oneditprepare: updateFormSearch
         });
-    
+
     function updateFormSearch() {
         $( "#node-input-sinceDate" ).datepicker({
                             showOn: "button",
@@ -95,7 +95,7 @@
         updateSinceCB();
         updateLimitCB();
     }
-    
+
     function updateSinceCB() {
 	   if (document.querySelector("#node-input-sinceCB").checked){
 	       document.querySelector("#sinceDate").style.display = "inline";
@@ -105,7 +105,7 @@
 	       document.querySelector("#untilBlock").style.display = "none";
 	   }
     }
-    
+
     function updateUntilCB() {
 	   if (document.querySelector("#node-input-untilCB").checked){
 	       document.querySelector("#untilDate").style.display = "inline";
@@ -113,7 +113,7 @@
 	       document.querySelector("#untilDate").style.display = "none";
 	   }
     }
-    
+
     function updateLimitCB() {
 	   if (document.querySelector("#node-input-limitCB").checked){
 	       document.querySelector("#maxResults").style.display = "inline";
@@ -123,17 +123,17 @@
     }
 </script>
 
-<script type="text/x-red" data-template-name="SimpleSearch">        
+<script type="text/x-red" data-template-name="ICSimpleSearch">
     <div class="form-row">
         <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
         <input type="text" id="node-input-server" placeholder="Server">
     </div>
-     
+
     <div class="form-row" id="targetRow">
         <label for="node-input-query"><i class="fa fa-tag"></i> Query</label>
         <input type="text" id="node-input-query" placeholder="Valid Connections query"></input>
     </div>
-   
+
     <div class="form-row">
         <label for="node-input-theScope"><i class="fa fa-arrow-circle-right"></i> Scope</label>
         <select id="node-input-theScope">
@@ -153,7 +153,7 @@
 	       <option value="stand-alone">StandAlonex</option>
         </select>
     </div>
-   
+
     <div class="form-row">
         <label for="node-input-sortKey"><i class="fa fa-arrow-circle-right"></i> Sort Key</label>
         <select id="node-input-sortKey">
@@ -161,17 +161,17 @@
 	       <option value="relevance">Relevance</option>
         </select>
     </div>
-   
+
     <div class="form-row">
         <label for="node-input-sortOrder"><i class="fa fa-arrow-circle-right"></i> Sort Order</label>
         <select id="node-input-sortOrder">
 	       <option value="asc">Ascending</option>
 	       <option value="desc">Descending</option>
         </select>
-        <br />    
-        <br />    
+        <br />
+        <br />
     </div>
-    
+
     <div class="form-row">
         <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="limitCB" id="node-input-limitCB" onchange="updateLimitCB()"></input>
         <label for="node-input-limitCB"><i></i> Limit Results ?</label>
@@ -179,12 +179,12 @@
     <div class="form-row" id="maxResults">
         <label for="node-input-maxResults"><i class="fa fa-list-ol"></i> Max Number</label>
         <input type="text" id="node-input-maxResults"></input>
-        <br />    
-        <br />    
+        <br />
+        <br />
     </div>
-   
-   
-   
+
+
+
     <div class="form-row">
         <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="sinceCB" id="node-input-sinceCB" onchange="updateSinceCB()"></input>
         <label for="node-input-sinceCB"><i class="fa fa-check-square-o"></i> Since ?</label>
@@ -192,10 +192,10 @@
     <div class="form-row" id="sinceDate">
         <label for="node-input-sinceDate"><i class="fa fa-calendar"></i> Date</label>
         <input type="date" id="node-input-sinceDate"></input>
-        <br />    
-        <br />    
+        <br />
+        <br />
     </div>
-   
+
     <div class="from-row" id="untilBlock">
     <div class="form-row" id="untilCB">
         <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="sinceCB" id="node-input-untilCB" onchange="updateUntilCB()"></input>
@@ -204,27 +204,27 @@
     <div class="form-row" id="untilDate">
         <label for="node-input-untilDate"><i class="fa fa-calendar"></i> Date</label>
         <input type="date" id="node-input-untilDate"></input>
-        <br />    
-        <br />    
+        <br />
+        <br />
     </div>
     </div>
-    
+
     <div class="form-row" id="tagRow">
         <label for="node-input-mytags"><i class="fa fa-tag"></i> Tags</label>
         <input type="text" id="node-input-mytags" placeholder="tags"></input>
     </div>
-    
+
     <br/>
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
         <input type="text" id="node-input-name" ></input>
     </div>
- 
+
 </script>
 
-<script type="text/x-red" data-help-name="SimpleSearch">
+<script type="text/x-red" data-help-name="ICSimpleSearch">
    <p>Performs an IBM Connection SEARCH operation.</p>
-   <p>The <b>query</b> can either be passed in the configuration panel or via the <code>msg.query</code> input. 
+   <p>The <b>query</b> can either be passed in the configuration panel or via the <code>msg.query</code> input.
     </p>
 <p>It is possible to limit the number of results returned by the query. This can be accomplished using the relevant configuration option in the Configuration Panle or by means of the <code>msg.maxResults</code> input. <br />
 <b>Note : </b><code>msg.maxResults</code> (and the equivalent value from the Configuration Panel) must be numeric. Otherwise a default of "one million" will be applied.<br />
@@ -234,7 +234,7 @@
 <b>Note : </b>the date values must be formatted as <i>dd/mm/yyyy</i>
 </p>
     <br />
-   <p><b>Returns:</b> 
+   <p><b>Returns:</b>
    It returns an array of objects, each with the following inform
    <ul>
         <li><code>id</code> : the IBM Connections unique ID for the retrievd item </li>

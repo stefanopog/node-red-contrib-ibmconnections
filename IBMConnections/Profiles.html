@@ -1,6 +1,6 @@
 <script type="text/javascript">
     RED.nodes.registerType(
-        'ProfilesGet', 
+        'ICProfilesGet',
         {
             category: "socialIBM",
             inputs: 1,
@@ -18,7 +18,7 @@
                 server: {
                             value : "",
                             required: true,
-                            type: "ICLogin"
+                            type: "ICLogin2"
                 },
                 target: {
                             value : "myself",
@@ -90,21 +90,21 @@
                break;
            case 'byTag' :
                document.querySelector("#targetRow").style.display = "none";
-               document.querySelector("#tagRow").style.display = "inline";  
+               document.querySelector("#tagRow").style.display = "inline";
                document.querySelector("#keywordRow").style.display = "none";
                document.querySelector("#syntaxRow").style.display = "none";
                document.querySelector("#linkRow").style.display = "none";
                break;
            case 'byKeyword' :
                document.querySelector("#targetRow").style.display = "none";
-               document.querySelector("#tagRow").style.display = "none";  
+               document.querySelector("#tagRow").style.display = "none";
                document.querySelector("#keywordRow").style.display = "inline";
                document.querySelector("#syntaxRow").style.display = "none";
                document.querySelector("#linkRow").style.display = "none";
               break;
            case 'syntaxSearch' :
                document.querySelector("#targetRow").style.display = "none";
-               document.querySelector("#tagRow").style.display = "none";  
+               document.querySelector("#tagRow").style.display = "none";
                document.querySelector("#keywordRow").style.display = "none";
                document.querySelector("#syntaxRow").style.display = "inline";
                document.querySelector("#linkRow").style.display = "none";
@@ -113,12 +113,12 @@
    }
 </script>
 
-<script type="text/x-red" data-template-name="ProfilesGet">        
+<script type="text/x-red" data-template-name="ICProfilesGet">
     <div class="form-row">
         <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
         <input type="text" id="node-input-server" placeholder="Server">
     </div>
-    
+
     <div class="form-row">
         <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Target</label>
         <select id="node-input-target" onchange="updateFormProfilesGet()">
@@ -133,17 +133,17 @@
         <label for="node-input-targetValue"><i class="fa fa-odnoklassniki"></i> User</label>
         <input type="text" id="node-input-targetValue" placeholder="User ID (ie. toto@myorg.com OR 51689d40-e7ed-102f-87b6-86a3c2278316)"></input>
     </div>
-    
+
     <div class="form-row" id="tagRow">
         <label for="node-input-mytags"><i class="fa fa-tag"></i> Tags</label>
         <input type="text" id="node-input-mytags" placeholder="tags"></input>
     </div>
-    
+
     <div class="form-row" id="keywordRow">
         <label for="node-input-mykeywords"><i class="fa fa-tag"></i> Keywords</label>
         <input type="text" id="node-input-mykeywords" placeholder="keywords"></input>
     </div>
-    
+
     <div class="form-row" id="syntaxRow">
         <label for="node-input-freesyntax"><i class="fa fa-tag"></i> Free Syntax</label>
         <input type="text" id="node-input-freesyntax" placeholder="syntax"></input>
@@ -151,11 +151,11 @@
 
     <br/>
     <br/>
-    
+
 
        <label><b>Output Options</b></label>
         <hr />
-      
+
 
     <table style="width: 100%">
     <tr>
@@ -211,7 +211,7 @@
     </td>
     </tr>
     </table>
-    
+
     <br/>
     <br/>
     <hr/>
@@ -220,10 +220,10 @@
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
         <input type="text" id="node-input-name" ></input>
     </div>
- 
+
 </script>
 
-<script type="text/x-red" data-help-name="ProfilesGet">
+<script type="text/x-red" data-help-name="ICProfilesGet">
    <p>Retrieves Profile informations for a given User</p>
    <p>The user can be set either by specifying the <i>mail address</i> or the <i>Uuid</i> :
    <ul>
@@ -238,14 +238,14 @@
     <p>
     A set of users can also be retrieved by <b>KEYWORD</b>: in that case, the syntax is the same as the one used by the IBM Connections user interface.
     <br>This value can be specified either in the configuration panel or using the <code>msg.keywords</code> property in the input message.
-    </p>    
+    </p>
     <p>
     A set of users can also be retrieved by using a <b>FREE SYNTAX</b>: this is very technical and requires the understanding of the IBM Connections Profiles Search API. The "Free Syntax" can contain anything that using the IBM Connections Profiles Search API can be specified after <i>/profiles/atom/search.do?</i>.
     <br>This give the possibility to build a very flexible and custom search string.
     <br>This value can be specified either in the configuration panel or using the <code>msg.freeSyntax</code> property in the input message.
-    </p>    
+    </p>
     <br/>
-   <p><i>Returns:</i> 
+   <p><i>Returns:</i>
    <ul>
         <li><code>msg.payload</code> : a JSON object built with the value for the properties that are asked in the configuration panel (uuid, name, mail, key, photo, vcard...). It is empty if an error occurs</li>
         <li><code>msg.status</code> : the statusCode from the Connections APIS or ZERO if a processing error occurred</li>

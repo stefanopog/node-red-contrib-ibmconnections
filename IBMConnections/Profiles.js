@@ -413,6 +413,6 @@ module.exports = function(RED) {
         );
     }
     
-    RED.nodes.registerType("ProfilesGet",  ProfilesGet);
+    RED.nodes.registerType("ICProfilesGet",  ProfilesGet);
     
 }

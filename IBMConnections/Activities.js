@@ -280,7 +280,7 @@ module.exports = function(RED) {
         );
     }
     
-    RED.nodes.registerType("ActivitiesNew", ActivitiesNew);
+    RED.nodes.registerType("ICActivitiesNew", ActivitiesNew);
 
     
     function ActivitiesGet(config) {      
@@ -523,7 +523,7 @@ module.exports = function(RED) {
         );
     }
     
-    RED.nodes.registerType("ActivitiesGet", ActivitiesGet);
+    RED.nodes.registerType("ICActivitiesGet", ActivitiesGet);
 
     
     
@@ -874,6 +874,6 @@ module.exports = function(RED) {
         );
     }
     
-    RED.nodes.registerType("ActivitiesUpdate", ActivitiesUpdate);
+    RED.nodes.registerType("ICActivitiesUpdate", ActivitiesUpdate);
 
 }

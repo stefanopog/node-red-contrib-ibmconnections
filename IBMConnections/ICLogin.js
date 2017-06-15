@@ -43,7 +43,7 @@ module.exports = function(RED) {
     //
     //  Exporting modules
     //
-    RED.nodes.registerType("ICLogin", ICLogin,{
+    RED.nodes.registerType("ICLogin2", ICLogin,{
                             credentials: {
 									username: {type:"text"},
 									password: {type:"password"},

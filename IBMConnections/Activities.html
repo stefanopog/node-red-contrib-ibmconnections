@@ -1,6 +1,6 @@
 <script type="text/javascript">
     RED.nodes.registerType(
-        'ActivitiesNew', 
+        'ICActivitiesNew',
         {
             category: "socialIBM",
             inputs: 1,
@@ -19,7 +19,7 @@
                 server: {
                             value : "",
                             required: true,
-                            type: "ICLogin"
+                            type: "ICLogin2"
                 },
                 communityId: {
                             value : "",
@@ -49,7 +49,7 @@
             updateComm();
             updateTemplate();
     }
-        
+
     function updateFormActivities_Comm() {
 	   if (document.querySelector("#node-input-isCommunity").checked){
 	       document.querySelector("#communityIdRow").style.display = "inline";
@@ -57,30 +57,30 @@
 	       document.querySelector("#communityIdRow").style.display = "none";
 	   }
     }
-    
+
     function updateFormActivities_Template() {
 	   if (document.querySelector("#node-input-isTemplate").checked){
 	       document.querySelector("#templateIdRow").style.display = "inline";
 	   } else {
 	       document.querySelector("#templateIdRow").style.display = "none";
-	   }        
+	   }
     }
 </script>
 
-<script type="text/x-red" data-template-name="ActivitiesNew">
+<script type="text/x-red" data-template-name="ICActivitiesNew">
     <div class="form-row">
         <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
         <input type="text" id="node-input-server" placeholder="Server">
         <br />
    </div>
-    
+
     <div class="form-row" i="activityNameRow">
         <label for="node-input-activityName"><i class="fa fa-tag"></i> Activity Name</span></label>
         <input type="text" id="node-input-activityName" ></input>
         <br />
     </div>
-    
-        
+
+
     <div class="form-row" id="isCommunityRow">
         <label for="node-input-isCommunity"><i class="fa fa-check-square"></i> In Community ?</label>
         <input type="checkbox"  name="isCommunity" id="node-input-isCommunity" onchange="updateFormActivities_Comm()"></input>
@@ -91,7 +91,7 @@
         <input type="text" id="node-input-communityId" placeholder="Community ID"></input>
         <br />
     </div>
-    
+
     <div class="form-row" id="isTemplateRow">
         <label for="node-input-isTemplate"><i class="fa fa-check-square"></i> From Template ?</label>
         <input type="checkbox" name="isTemplate" id="node-input-isTemplate" onchange="updateFormActivities_Template()"></input>
@@ -101,7 +101,7 @@
         <label for="node-input-templateId"><i class="fa fa-file"></i> Template ID</label>
         <input type="text" id="node-input-templateId" placeholder="Template ID"></input>
         <br />
-    </div>  
+    </div>
 
     <br />
     <div class="form-row">
@@ -109,11 +109,11 @@
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
         <input type="text" id="node-input-name" ></input>
     </div>
-        
-    
+
+
 </script>
 
-<script type="text/x-red" data-help-name="ActivitiesNew">
+<script type="text/x-red" data-help-name="ICActivitiesNew">
    <p>Creates a new Activity</p>
    <p>The activity may be created within a <i>Community</i> and/or based on a <i>Template</i>.</p>
    <p><i>Inputs:</i>
@@ -139,7 +139,7 @@
 
 <script type="text/javascript">
     RED.nodes.registerType(
-        'ActivitiesGet', 
+        'ICActivitiesGet',
         {
             category: "socialIBM",
             inputs: 1,
@@ -157,7 +157,7 @@
                 server: {
                             value : "",
                             required: true,
-                            type: "ICLogin"
+                            type: "ICLogin2"
                 },
                 target: {
                             value : "AllActivities",
@@ -187,7 +187,7 @@
             oneditprepare: updateFormActivitiesGet
         });
 
-   function updateFormActivitiesGet() { 
+   function updateFormActivitiesGet() {
        switch (document.querySelector("#node-input-target").value) {
            case "AllActivities" :
                document.querySelector("#communityRow").style.display = "none";
@@ -217,12 +217,12 @@
    }
 </script>
 
-<script type="text/x-red" data-template-name="ActivitiesGet">        
+<script type="text/x-red" data-template-name="ICActivitiesGet">
     <div class="form-row">
         <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
         <input type="text" id="node-input-server" placeholder="Server">
     </div>
-    
+
     <div class="form-row">
         <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Search</label>
         <select id="node-input-target" onchange="updateFormActivitiesGet()">
@@ -233,38 +233,38 @@
         </select>
         <br />
     </div>
-    
+
     <div class="form-row" id="communityRow">
         <label for="node-input-communityId"><i class="fa fa-odnoklassniki"></i> User</label>
         <input type="text" id="node-input-communityId" placeholder="Community ID"></input>
         <br />
     </div>
-    
+
     <div class="form-row" id="tagRow">
         <label for="node-input-activityTags"><i class="fa fa-tag"></i> Tags</label>
         <input type="text" id="node-input-activityTags" placeholder="tags"></input>
         <br />
-   </div>  
-    
+   </div>
+
     <div class="form-row" id="idRow">
         <label for="node-input-activityId"><i class="fa fa-tag"></i> ID</label>
         <input type="text" id="node-input-activityId" placeholder="Activity ID"></input>
         <br />
-    </div>  
-    
+    </div>
+
     <div class="form-row" id="isTemplateRow">
         <label for="node-input-isTemplate"><i class="fa fa-check-square"></i> Is Template ?</label>
         <input type="checkbox" name="isTemplate" id="node-input-isTemplate"></input>
          <br />
    </div>
-    
+
     <div class="form-row" id="isAtom">
         <label for="node-input-isAtom"><i class="fa fa-check-square"></i> Get Atom ?</label>
         <input type="checkbox" name="isAtom" id="node-input-isAtom"></input>
         <br />
     </div>
     <br />
-    
+
     <div class="form-row">
         <hr />
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
@@ -273,7 +273,7 @@
 
  </script>
 
-<script type="text/x-red" data-help-name="ActivitiesGet">
+<script type="text/x-red" data-help-name="ICActivitiesGet">
    <p>Retrieves a list of Activites based on selection criteria.</p>
    <p>It can retrieve:
    <ul>
@@ -306,7 +306,7 @@
 
 <script type="text/javascript">
     RED.nodes.registerType(
-        'ActivitiesUpdate', 
+        'ICActivitiesUpdate',
         {
             category: "socialIBM",
             inputs: 1,
@@ -329,7 +329,7 @@
                 server: {
                             value : "",
                             required: true,
-                            type: "ICLogin"
+                            type: "ICLogin2"
                 },
                 activityId: {
                             value : "",
@@ -391,8 +391,8 @@
             oneditprepare: initializeActivitiesGet
         });
 
-    
-    function updateFormActivitiesUpdate() { 
+
+    function updateFormActivitiesUpdate() {
        switch (document.querySelector("#node-input-target").value) {
            case "Section" :
                document.querySelector("#sectionTitleRow").style.display = "inline";
@@ -441,7 +441,7 @@
                break;
        }
     }
-    
+
     function updateInSection() {
 	   if (document.querySelector("#node-input-inSection").checked){
 	       document.querySelector("#sectionIdRow").style.display = "inline";
@@ -449,7 +449,7 @@
 	       document.querySelector("#sectionIdRow").style.display = "none";
 	   }
     }
-    
+
     function initializeActivitiesGet() {
         $( "#node-input-toDoDate" ).datepicker({
                             showOn: "button",
@@ -465,18 +465,18 @@
     }
 </script>
 
-<script type="text/x-red" data-template-name="ActivitiesUpdate">
+<script type="text/x-red" data-template-name="ICActivitiesUpdate">
     <div class="form-row">
         <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
         <input type="text" id="node-input-server" placeholder="Server">
     </div>
-    
+
     <div class="form-row" id="activityIdRow">
         <label for="node-input-activityId"><i class="fa fa-tag"></i> Activity Id</span></label>
         <input type="text" id="node-input-activityId" placeholder="Activity ID"></input>
     </div>
 
-    
+
     <div class="form-row">
         <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Create</label>
         <select id="node-input-target" onchange="updateFormActivitiesUpdate()">
@@ -486,7 +486,7 @@
         </select>
         <br />
     </div>
-        
+
     <div class="form-row" id="sectionTitleRow">
         <label for="node-input-sectionTitle"><i class="fa fa-institution"></i> Label</label>
         <input type="text" id="node-input-sectionTitle" placeholder="Section Name"></input>
@@ -528,26 +528,26 @@
     <div class="form-row" id="toDoDescRow">
         <label for="node-input-toDoDesc"><i class="fa fa-institution"></i> Desc</label>
         <input type="text" id="node-input-toDoDesc" placeholder="Description"></input>
-        <br />    
+        <br />
     </div>
     <div class="form-row" id="toDoDateRow">
         <label for="node-input-toDoDate"><i class="fa fa-institution"></i> Date</label>
         <input type="date" id="node-input-toDoDate"></input>
-        <br />    
+        <br />
     </div>
     <div class="form-row" id="toDoUserIdRow">
         <label for="node-input-toDoUserId"><i class="fa fa-institution"></i> User ID</label>
         <input type="text" id="node-input-toDoUserId" placeholder="User ID"></input>
-        <br />    
+        <br />
     </div>
     <div class="form-row" id="toDoUserNameRow">
         <label for="node-input-toDoUserNameR"><i class="fa fa-institution"></i> User Name</label>
         <input type="text" id="node-input-toDoUserNameR" placeholder="Name (e.g. Frank Adams)"></input>
-        <br />    
+        <br />
     </div>
 
     <br />
-       
+
     <div class="form-row" id="inSectionRow">
         <label for="node-input-inSection"><i class="fa fa-check-square"></i> Inside Section ?</label>
         <input type="checkbox"  name="inSection" id="node-input-inSection" onchange="updateInSection()"></input>
@@ -564,11 +564,11 @@
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
         <input type="text" id="node-input-name" ></input>
     </div>
-        
-    
+
+
 </script>
 
-<script type="text/x-red" data-help-name="ActivitiesUpdate">
+<script type="text/x-red" data-help-name="ICActivitiesUpdate">
    <p>Adds a Section, a Bookmark or a ToDo to an existing Activity</p>
    <p><i>Inputs:</i>
    <ul>

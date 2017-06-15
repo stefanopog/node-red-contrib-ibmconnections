@@ -330,6 +330,6 @@ module.exports = function (RED) {
         );
     }
 
-    RED.nodes.registerType("SimpleSearch", SimpleSearch);
+    RED.nodes.registerType("ICSimpleSearch", SimpleSearch);
 
 }
