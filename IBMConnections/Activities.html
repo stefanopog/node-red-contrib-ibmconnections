@@ -1,0 +1,593 @@
+<script type="text/javascript">
+    RED.nodes.registerType(
+        'ActivitiesNew', 
+        {
+            category: "social",
+            inputs: 1,
+            outputs:1,
+            icon: "ibmconnections.png",
+            color: "#FFFFFF",
+            align: "right",
+            label: function() {
+                    return this.name ||'New Activity';
+                    },
+            paletteLabel : "New Activity",
+            defaults : {
+                name: {
+                            value: ""
+                },
+                server: {
+                            value : "",
+                            required: true,
+                            type: "ICLogin"
+                },
+                communityId: {
+                            value : "",
+                            required: false
+                },
+                templateId: {
+                            value : "",
+                            required: false
+                },
+                activityName: {
+                            value: "",
+                            required: false
+                },
+                isTemplate: {
+                            value : false,
+                            required: false
+                },
+                isCommunity: {
+                            value : false,
+                            required: false
+                },
+            },
+            oneditprepare: updateFormActivitiesNew
+        });
+
+    function updateFormActivitiesNew() {
+            updateComm();
+            updateTemplate();
+    }
+        
+    function updateFormActivities_Comm() {
+	   if (document.querySelector("#node-input-isCommunity").checked){
+	       document.querySelector("#communityIdRow").style.display = "inline";
+	   } else {
+	       document.querySelector("#communityIdRow").style.display = "none";
+	   }
+    }
+    
+    function updateFormActivities_Template() {
+	   if (document.querySelector("#node-input-isTemplate").checked){
+	       document.querySelector("#templateIdRow").style.display = "inline";
+	   } else {
+	       document.querySelector("#templateIdRow").style.display = "none";
+	   }        
+    }
+</script>
+
+<script type="text/x-red" data-template-name="ActivitiesNew">
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+        <input type="text" id="node-input-server" placeholder="Server">
+        <br />
+   </div>
+    
+    <div class="form-row" i="activityNameRow">
+        <label for="node-input-activityName"><i class="fa fa-tag"></i> Activity Name</span></label>
+        <input type="text" id="node-input-activityName" ></input>
+        <br />
+    </div>
+    
+        
+    <div class="form-row" id="isCommunityRow">
+        <label for="node-input-isCommunity"><i class="fa fa-check-square"></i> In Community ?</label>
+        <input type="checkbox"  name="isCommunity" id="node-input-isCommunity" onchange="updateFormActivities_Comm()"></input>
+        <br />
+    </div>
+    <div class="form-row" id="communityIdRow">
+        <label for="node-input-communityId"><i class="fa fa-institution"></i> Community ID</label>
+        <input type="text" id="node-input-communityId" placeholder="Community ID"></input>
+        <br />
+    </div>
+    
+    <div class="form-row" id="isTemplateRow">
+        <label for="node-input-isTemplate"><i class="fa fa-check-square"></i> From Template ?</label>
+        <input type="checkbox" name="isTemplate" id="node-input-isTemplate" onchange="updateFormActivities_Template()"></input>
+        <br />
+    </div>
+    <div class="form-row" id="templateIdRow">
+        <label for="node-input-templateId"><i class="fa fa-file"></i> Template ID</label>
+        <input type="text" id="node-input-templateId" placeholder="Template ID"></input>
+        <br />
+    </div>  
+
+    <br />
+    <div class="form-row">
+        <hr />
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
+        <input type="text" id="node-input-name" ></input>
+    </div>
+        
+    
+</script>
+
+<script type="text/x-red" data-help-name="ActivitiesNew">
+   <p>Creates a new Activity</p>
+   <p>The activity may be created within a <i>Community</i> and/or based on a <i>Template</i>.</p>
+   <p><i>Inputs:</i>
+   <ul>
+   <li><code>msg.communityId</code> : if set, it contains the ID of the community in which the activity will be created. <b>NOTE : </b>the checkbox in the configuration panel needs to be set for this parameter to be taken in consideration</li>
+   <li><code>msg.templateId</code> : if set, it contains the ID of the template for the new activity. <b>NOTE : </b>the checkbox in the configuration panel needs to be set for this parameter to be taken in consideration</li>
+   <li><code>msg.activityName</code> : the Name to be given to the Activity</li>
+   </ul></p>
+   <p><i>Returns:</i>
+   <ul>
+   <li><code>msg.payalod</code>. This is an array containing one element. This element is an object with the following properties:
+   <ul>
+   <li><b>title</b> the name of the newly created activity</li>
+   <li><b>id</b> the ID of the newly created Activity</li>
+   <li><b>ref</b> the href for the <i>self</i> link</li>
+   <li><b>entry</b> the ATOM representation of the Activity</li>
+   </ul>
+   </li>
+   </ul>
+   </p>
+</script>
+
+
+<script type="text/javascript">
+    RED.nodes.registerType(
+        'ActivitiesGet', 
+        {
+            category: "social",
+            inputs: 1,
+            outputs:1,
+            icon: "ibmconnections.png",
+            color: "#FFFFFF",
+            label: function() {
+                    return this.name ||'Get Activities';
+                    },
+            paletteLabel : "Get Activities",
+            defaults : {
+                name: {
+                            value: ""
+                },
+                server: {
+                            value : "",
+                            required: true,
+                            type: "ICLogin"
+                },
+                target: {
+                            value : "AllActivities",
+                            required: true
+                },
+                communityId: {
+                            value : "",
+                            required: false
+                },
+                activityId: {
+                            value : "",
+                            required: false
+                },
+                activityTags: {
+                            value : "",
+                            required: false
+                },
+                isTemplate: {
+                            value : false,
+                            required: false
+                },
+                isAtom: {
+                            value : false,
+                            required: false
+                },
+            },
+            oneditprepare: updateFormActivitiesGet
+        });
+
+   function updateFormActivitiesGet() { 
+       switch (document.querySelector("#node-input-target").value) {
+           case "AllActivities" :
+               document.querySelector("#communityRow").style.display = "none";
+               document.querySelector("#idRow").style.display = "none";
+               document.querySelector("#tagRow").style.display = "inline";
+               document.querySelector("#isTemplateRow").style.display = "inline";
+               break;
+           case "MyActivities" :
+               document.querySelector("#communityRow").style.display = "none";
+               document.querySelector("#idRow").style.display = "none";
+               document.querySelector("#tagRow").style.display = "inline";
+               document.querySelector("#isTemplateRow").style.display = "none";
+               break;
+           case "CommActivities" :
+               document.querySelector("#communityRow").style.display = "none";
+               document.querySelector("#idRow").style.display = "none";
+               document.querySelector("#tagRow").style.display = "inline";
+               document.querySelector("#isTemplateRow").style.display = "none";
+               break;
+           case "byId" :
+               document.querySelector("#communityRow").style.display = "none";
+               document.querySelector("#idRow").style.display = "inline";
+               document.querySelector("#tagRow").style.display = "none";
+               document.querySelector("#isTemplateRow").style.display = "none";
+               break;
+       }
+   }
+</script>
+
+<script type="text/x-red" data-template-name="ActivitiesGet">        
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+        <input type="text" id="node-input-server" placeholder="Server">
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Search</label>
+        <select id="node-input-target" onchange="updateFormActivitiesGet()">
+	       <option value="MyActivities">My Activities</option>
+	       <option value="AllActivities">All Activities</option>
+	       <option value="CommActivities">Community Activities</option>
+	       <option value="byId">Search By ID</option>
+        </select>
+        <br />
+    </div>
+    
+    <div class="form-row" id="communityRow">
+        <label for="node-input-communityId"><i class="fa fa-odnoklassniki"></i> User</label>
+        <input type="text" id="node-input-communityId" placeholder="Community ID"></input>
+        <br />
+    </div>
+    
+    <div class="form-row" id="tagRow">
+        <label for="node-input-activityTags"><i class="fa fa-tag"></i> Tags</label>
+        <input type="text" id="node-input-activityTags" placeholder="tags"></input>
+        <br />
+   </div>  
+    
+    <div class="form-row" id="idRow">
+        <label for="node-input-activityId"><i class="fa fa-tag"></i> ID</label>
+        <input type="text" id="node-input-activityId" placeholder="Activity ID"></input>
+        <br />
+    </div>  
+    
+    <div class="form-row" id="isTemplateRow">
+        <label for="node-input-isTemplate"><i class="fa fa-check-square"></i> Is Template ?</label>
+        <input type="checkbox" name="isTemplate" id="node-input-isTemplate"></input>
+         <br />
+   </div>
+    
+    <div class="form-row" id="isAtom">
+        <label for="node-input-isAtom"><i class="fa fa-check-square"></i> Get Atom ?</label>
+        <input type="checkbox" name="isAtom" id="node-input-isAtom"></input>
+        <br />
+    </div>
+    <br />
+    
+    <div class="form-row">
+        <hr />
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
+        <input type="text" id="node-input-name" ></input>
+    </div>
+
+ </script>
+
+<script type="text/x-red" data-help-name="ActivitiesGet">
+   <p>Retrieves a list of Activites based on selection criteria.</p>
+   <p>It can retrieve:
+   <ul>
+   <li><b>All Public Activities (or Templates)</b>, possibly filtered by <i>tag</i></li>
+   <li><b>All User's Activities</b>, possibly filtered by <i>tag</i></li>
+   <li><b>All Community Activities</b>, possibly filtered by <i>tag</i></li>
+   <li><b>A specific Activity or Template</b> by ID</li>
+   </ul>
+   </p>
+   <p><i>Inputs:</i>
+   <ul>
+   <li><code>msg.activityId</code> : if set, it contains the ID of the Activity to be retrieved in case the selector is set to retrieve a specific Activity</li>
+   <li><code>msg.activityTags</code> : the name of a single tag used for filtering the search criteria</li>
+   </ul></p>
+   <p><i>Returns:</i>
+   <ul>
+   <li><code>msg.payalod</code>. This is an array of objects where each object has the following properties:
+   <ul>
+   <li><b>title</b> the name of the retrieved Activity/li>
+   <li><b>id</b> the ID of the retrieved Activity</li>
+   <li><b>ref</b> the href for the <i>self</i> link</li>
+   <li><b>entry</b> the ATOM representation of the retrieved Activity (in case the checkbox on the configuration panel is set accordingly)</li>
+   </ul>
+   The Array is empty in case no Activity is found.
+   </li>
+   </ul>
+   </p>
+</script>
+
+
+<script type="text/javascript">
+    RED.nodes.registerType(
+        'ActivitiesUpdate', 
+        {
+            category: "social",
+            inputs: 1,
+            outputs:1,
+            icon: "ibmconnections.png",
+            color: "#FFFFFF",
+            align: "right",
+            label: function() {
+                    return this.name ||'Update Activity';
+                    },
+            paletteLabel : "Update Activity",
+            defaults : {
+                target: {
+                            value : "Section",
+                            required: true
+                },
+                name: {
+                            value: ""
+                },
+                server: {
+                            value : "",
+                            required: true,
+                            type: "ICLogin"
+                },
+                activityId: {
+                            value : "",
+                            required: true
+                },
+                linkURL: {
+                            value : "",
+                            required: false
+                },
+                linkName: {
+                            value: "",
+                            required: false
+                },
+                linkDesc: {
+                            value : "",
+                            required: false
+                },
+                linkTitle: {
+                            value : "",
+                            required: false
+                },
+                toDoDesc: {
+                            value : "",
+                            required: false
+                },
+                toDoTitle: {
+                            value : "",
+                            required: false
+                },
+                toDoDate: {
+                            value: "",
+                            required: false
+                },
+                toDoUserId: {
+                            value : "",
+                            required: false
+                },
+                toDoUserName: {
+                            value : "",
+                            required: false
+                },
+                sectionTitle: {
+                            value: "",
+                            required: false
+                },
+                sectionDesc: {
+                            value: "",
+                            required: false
+                },
+                inSection: {
+                            value : false,
+                            required: false
+                },
+                sectionId: {
+                            value : "",
+                            required: false
+                },
+            },
+            oneditprepare: initializeActivitiesGet
+        });
+
+    
+    function updateFormActivitiesUpdate() { 
+       switch (document.querySelector("#node-input-target").value) {
+           case "Section" :
+               document.querySelector("#sectionTitleRow").style.display = "inline";
+               document.querySelector("#sectionDescRow").style.display = "inline";
+               document.querySelector("#linkURLRow").style.display = "none";
+               document.querySelector("#linkNameRow").style.display = "none";
+               document.querySelector("#linkTitleRow").style.display = "none";
+               document.querySelector("#linkDescRow").style.display = "none";
+               document.querySelector("#sectionIdRow").style.display = "none";
+               document.querySelector("#toDoTitleRow").style.display = "none";
+               document.querySelector("#toDoDescRow").style.display = "none";
+               document.querySelector("#toDoDateRow").style.display = "none";
+               document.querySelector("#toDoUserIdRow").style.display = "none";
+               document.querySelector("#toDoUserNameRow").style.display = "none";
+               document.querySelector("#inSectionRow").style.display = "none";
+               break;
+           case "Bookmark" :
+               document.querySelector("#sectionTitleRow").style.display = "none";
+               document.querySelector("#sectionDescRow").style.display = "none";
+               document.querySelector("#linkURLRow").style.display = "inline";
+               document.querySelector("#linkNameRow").style.display = "inline";
+               document.querySelector("#linkTitleRow").style.display = "inline";
+               document.querySelector("#linkDescRow").style.display = "inline";
+               document.querySelector("#toDoTitleRow").style.display = "none";
+               document.querySelector("#toDoDescRow").style.display = "none";
+               document.querySelector("#toDoDateRow").style.display = "none";
+               document.querySelector("#toDoUserIdRow").style.display = "none";
+               document.querySelector("#toDoUserNameRow").style.display = "none";
+               document.querySelector("#inSectionRow").style.display = "inline";
+               updateInSection();
+               break;
+           case "ToDo" :
+               document.querySelector("#sectionTitleRow").style.display = "none";
+               document.querySelector("#sectionDescRow").style.display = "none";
+               document.querySelector("#linkURLRow").style.display = "none";
+               document.querySelector("#linkNameRow").style.display = "none";
+               document.querySelector("#linkTitleRow").style.display = "none";
+               document.querySelector("#linkDescRow").style.display = "none";
+               document.querySelector("#toDoTitleRow").style.display = "inline";
+               document.querySelector("#toDoDescRow").style.display = "inline";
+               document.querySelector("#toDoDateRow").style.display = "inline";
+               document.querySelector("#toDoUserIdRow").style.display = "inline";
+               document.querySelector("#toDoUserNameRow").style.display = "inline";
+               document.querySelector("#inSectionRow").style.display = "inline";
+               updateInSection();
+               break;
+       }
+    }
+    
+    function updateInSection() {
+	   if (document.querySelector("#node-input-inSection").checked){
+	       document.querySelector("#sectionIdRow").style.display = "inline";
+	   } else {
+	       document.querySelector("#sectionIdRow").style.display = "none";
+	   }
+    }
+    
+    function initializeActivitiesGet() {
+        $( "#node-input-toDoDate" ).datepicker({
+                            showOn: "button",
+                            buttonImage: "icons/calendar.gif",
+                            buttonImageOnly: true,
+                            dateFormat: "dd/mm/yy",
+                            showButtonPanel: true,
+                            changeMonth: true,
+                            changeYear: true,
+                            buttonText: "Select date"
+        });
+        updateFormActivitiesUpdate();
+    }
+</script>
+
+<script type="text/x-red" data-template-name="ActivitiesUpdate">
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+        <input type="text" id="node-input-server" placeholder="Server">
+    </div>
+    
+    <div class="form-row" id="activityIdRow">
+        <label for="node-input-activityId"><i class="fa fa-tag"></i> Activity Id</span></label>
+        <input type="text" id="node-input-activityId" placeholder="Activity ID"></input>
+    </div>
+
+    
+    <div class="form-row">
+        <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Create</label>
+        <select id="node-input-target" onchange="updateFormActivitiesUpdate()">
+	       <option value="Section">Section</option>
+	       <option value="Bookmark">Bookmark</option>
+	       <option value="ToDo">To Do</option>
+        </select>
+        <br />
+    </div>
+        
+    <div class="form-row" id="sectionTitleRow">
+        <label for="node-input-sectionTitle"><i class="fa fa-institution"></i> Label</label>
+        <input type="text" id="node-input-sectionTitle" placeholder="Section Name"></input>
+        <br />
+    </div>
+    <div class="form-row" id="sectionDescRow">
+        <label for="node-input-sectionDesc"><i class="fa fa-institution"></i> Desc</label>
+        <input type="text" id="node-input-sectionDesc" placeholder="Section Description"></input>
+        <br />
+    </div>
+
+    <div class="form-row" id="linkTitleRow">
+        <label for="node-input-linkTitle"><i class="fa fa-institution"></i> Label</label>
+        <input type="text" id="node-input-linkTitle" placeholder="Label"></input>
+        <br />
+    </div>
+    <div class="form-row" id="linkDescRow">
+        <label for="node-input-linkDesc"><i class="fa fa-institution"></i> Desc</label>
+        <input type="text" id="node-input-linkDesc" placeholder="Description"></input>
+        <br />
+    </div>
+    <div class="form-row" id="linkURLRow">
+        <label for="node-input-linkURL"><i class="fa fa-institution"></i> Link URL</label>
+        <input type="text" id="node-input-linkURL" placeholder="Link URL"></input>
+        <br />
+    </div>
+    <div class="form-row" id="linkNameRow">
+        <label for="node-input-linkName"><i class="fa fa-institution"></i> Link Text</label>
+        <input type="text" id="node-input-linkName" placeholder="Link Text"></input>
+        <br />
+    </div>
+
+
+    <div class="form-row" id="toDoTitleRow">
+        <label for="node-input-toDoTitle"><i class="fa fa-institution"></i> Label</label>
+        <input type="text" id="node-input-toDoTitle" placeholder="Label"></input>
+        <br />
+    </div>
+    <div class="form-row" id="toDoDescRow">
+        <label for="node-input-toDoDesc"><i class="fa fa-institution"></i> Desc</label>
+        <input type="text" id="node-input-toDoDesc" placeholder="Description"></input>
+        <br />    
+    </div>
+    <div class="form-row" id="toDoDateRow">
+        <label for="node-input-toDoDate"><i class="fa fa-institution"></i> Date</label>
+        <input type="date" id="node-input-toDoDate"></input>
+        <br />    
+    </div>
+    <div class="form-row" id="toDoUserIdRow">
+        <label for="node-input-toDoUserId"><i class="fa fa-institution"></i> User ID</label>
+        <input type="text" id="node-input-toDoUserId" placeholder="User ID"></input>
+        <br />    
+    </div>
+    <div class="form-row" id="toDoUserNameRow">
+        <label for="node-input-toDoUserNameR"><i class="fa fa-institution"></i> User Name</label>
+        <input type="text" id="node-input-toDoUserNameR" placeholder="Name (e.g. Frank Adams)"></input>
+        <br />    
+    </div>
+
+    <br />
+       
+    <div class="form-row" id="inSectionRow">
+        <label for="node-input-inSection"><i class="fa fa-check-square"></i> Inside Section ?</label>
+        <input type="checkbox"  name="inSection" id="node-input-inSection" onchange="updateInSection()"></input>
+    </div>
+    <br />
+    <div class="form-row" id="sectionIdRow">
+        <label for="node-input-sectionId"><i class="fa fa-institution"></i> Section ID</label>
+        <input type="text" id="node-input-sectionId" placeholder="Section ID"></input>
+    </div>
+
+    <br />
+    <div class="form-row">
+        <hr />
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
+        <input type="text" id="node-input-name" ></input>
+    </div>
+        
+    
+</script>
+
+<script type="text/x-red" data-help-name="ActivitiesUpdate">
+   <p>Adds a Section, a Bookmark or a ToDo to an existing Activity</p>
+   <p><i>Inputs:</i>
+   <ul>
+   <li><code>msg.activityId</code> : if set, it contains the ID of the Activity to be modified</li>
+   <li><code>msg.sectionTitle</code> and <code>msg.sectionDesc</code> : if set, they contain the Label and the Description of the Section to be created. <b>NOTE : </b>the selector in the configuration panel needs to be set to <b>SECTION</b> for these parameters to be taken in consideration</li>
+   <li><code>msg.linkURL</code>,  <code>msg.linkName</code>,  <code>msg.linkTitle</code> and <code>msg.linkDesc</code> : if set, they contain the URL and the URL descritpion, the Label and the Description of the Bookmark to be created. <b>NOTE : </b>the selector in the configuration panel needs to be set to <b>BOOKMARK</b> for these parameters to be taken in consideration</li>
+   <li><code>msg.toDoTitle</code>,  <code>msg.toDoDesc</code>,  <code>msg.toDoUserId</code>, <code>msg.toDoUserName</code> and <code>msg.toDoDate</code> : if set, they contain the Label and the descritpion of the ToDo, the ID and Name of the user to whom this toDo is affected and the due date (format dd/mm/yyyy). <b>NOTE : </b>the selector in the configuration panel needs to be set to <b>TO DO</b> for these parameters to be taken in consideration</li>
+   <li><code>msg.sectionId</code> : in case the related checkbox is set in the configuration panel, this parameter can bring the ID of the section into which the Bookmark or the ToDo will be created</li>
+   </ul></p>
+   <p><i>Returns:</i>
+   <ul>
+   <li><code>msg.payalod</code>. This is an array containing one element. The element is an object with the following properties:
+   <ul>
+   <li><b>title</b> the name of the newly created item</li>
+   <li><b>id</b> the ID of the newly created Item</li>
+   <li><b>ref</b> the href for the <i>self</i> link</li>
+   <li><b>entry</b> the ATOM representation of the Item</li>
+   </ul>
+   </li>
+   </ul>
+   </p>
+</script>

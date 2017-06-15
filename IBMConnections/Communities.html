@@ -1,0 +1,279 @@
+<script type="text/javascript">
+    RED.nodes.registerType(
+        'CommunitiesGet', 
+        {
+            category: "social",
+            inputs: 1,
+            outputs:1,
+            icon: "ibmconnections.png",
+            color: "#FFFFFF",
+            label: function() {
+                    return this.name ||'Get Communities';
+                    },
+            paletteLabel : "Get Communities",
+            defaults : {
+                name: {
+                            value: ""
+                },
+                server: {
+                            value : "",
+                            required: true,
+                            type: "ICLogin"
+                },
+                target: {
+                            value : "AllCommunities",
+                            required: true
+                },
+                communityTag: {
+                            value : "",
+                            required: false
+                },
+                searchString: {
+                            value : "",
+                            required: false
+                },
+                communityId: {
+                            value : "",
+                            required: false
+                },
+                userId: {
+                            value : "",
+                            required: false
+                },
+            },
+            oneditprepare: updateFormCommunitiesGet
+        });
+
+   function updateFormCommunitiesGet() { 
+       switch (document.querySelector("#node-input-target").value) {
+           case "MyCommunities" :
+               document.querySelector("#searchRow").style.display = "inline";
+               document.querySelector("#tagRow").style.display = "inline";
+               document.querySelector("#userRow").style.display = "none";
+               document.querySelector("#communityRow").style.display = "none";
+               break;
+           case "AllCommunities" :
+               document.querySelector("#searchRow").style.display = "inline";
+               document.querySelector("#tagRow").style.display = "inline";
+               document.querySelector("#userRow").style.display = "none";
+               document.querySelector("#communityRow").style.display = "none";
+               break;
+           case "UserCommunities" :
+               document.querySelector("#searchRow").style.display = "inline";
+               document.querySelector("#tagRow").style.display = "inline";
+               document.querySelector("#userRow").style.display = "inline";
+               document.querySelector("#communityRow").style.display = "none";
+               break;
+           case "Members" :
+               document.querySelector("#searchRow").style.display = "none";
+               document.querySelector("#tagRow").style.display = "none";
+               document.querySelector("#userRow").style.display = "none";
+               document.querySelector("#communityRow").style.display = "inline";
+               break;
+       }
+   }
+</script>
+
+<script type="text/x-red" data-template-name="CommunitiesGet">        
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+        <input type="text" id="node-input-server" placeholder="Server">
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Search</label>
+        <select id="node-input-target" onchange="updateFormCommunitiesGet()">
+	       <option value="MyCommunities">My Communities</option>
+	       <option value="AllCommunities">All Communities</option>
+	       <option value="UserCommunities">User Communities</option>
+	       <option value="Members">Community Members</option>
+        </select>
+        <br />
+    </div>
+    
+    <div class="form-row" id="userRow">
+        <label for="node-input-userId"><i class="fa fa-odnoklassniki"></i> User</label>
+        <input type="text" id="node-input-userId" placeholder="User ID (ie. toto@myorg.com OR 51689d40-e7ed-102f-87b6-86a3c2278316)"></input>
+        <br />
+    </div>
+    
+    <div class="form-row" id="tagRow">
+        <label for="node-input-communityTag"><i class="fa fa-tag"></i> Tag</label>
+        <input type="text" id="node-input-communityTag" placeholder="tag"></input>
+        <br />
+   </div>  
+    
+    <div class="form-row" id="searchRow">
+        <label for="node-input-searchString"><i class="fa fa-tag"></i> Search</label>
+        <input type="text" id="node-input-searchString" placeholder="Well formed search string"></input>
+        <br />
+   </div>  
+    
+    <div class="form-row" id="communityRow">
+        <label for="node-input-communityId"><i class="fa fa-users"></i> CommunityId</label>
+        <input type="text" id="node-input-communityId" placeholder="ID"></input>
+        <br />
+   </div>  
+   
+    <br />
+    
+    <div class="form-row">
+        <hr />
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
+        <input type="text" id="node-input-name" ></input>
+    </div>
+
+ </script>
+
+<script type="text/x-red" data-help-name="CommunitiesGet">
+   <p>Retrieves a list of Communities based on selection criteria.</p>
+   <p>It can retrieve:
+   <ul>
+   <li><b>All Public Communities</b>, possibly filtered by <i>tag</i></li>
+   <li><b>All User's Communities</b>, possibly filtered by <i>tag</i></li>
+   <li><b>The Members of a given Community</b></li>
+   </ul>
+   </p>
+   <p><i>Inputs:</i>
+   <ul>
+   <li><code>msg.userId</code> : if set, it contains the <b>email</b> or the <b>userId</b> of a user for whom to search communities.</li>
+   <li><code>msg.communityTag</code> : the name of a <b>single tag</b> used for filtering the search criteria.</li>
+   <li><code>msg.searchString</code> : the content of a well formed search string used for filtering the search criteria.</li>
+   <li><code>msg.communityId</code> : in case <b>members of a community</b> need to be retrieved, the ID of the Community.</li>
+   </ul></p>
+   <p><i>Returns:</i>
+   <ul>
+   When a list of Communities is retrived, <li><code>msg.payload</code>. An array of objects where each object has the following propertiese:
+   <ul>
+   <li><b>title</b> the name of the retrieved Community/li>
+   <li><b>id</b> the ID of the retrieved Community</li>
+   <li><b>ref</b> the href for the <i>self</i> link</li>
+   <li><b>entry</b> the ATOM representation of the retrieved Community</li>
+   </ul>
+   The Array is empty in case no Community is found.
+   </li>
+   </ul>
+   <ul>
+    When a list of Members is retrieved, <li><code>msg.payload</code>. An array of objects where each object has the following properties:
+   <ul>
+   <li><b>name</b> the name of the retrieved person</li>
+   <li><b>userState</b>"active" or "inactive" </li>
+   <li><b>userid</b> the ID of the retrieved person (only if <code>userState = active</code>)</li>
+   <li><b>mail</b> the mail of the retrieved person (only if <code>userState = active</code>)</li>
+   <li><b>role</b> the Role (member, owner) of the retrieved person (only if <code>userState = active</code>)</li>
+   <li><b>isExternal</b> if the member is external (only if <code>userState = active</code>)</li>
+   </ul>
+   The Array is empty in case no Member is found.
+   </li>
+   </ul>
+   </p>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType(
+        'CommunitiesUpdate', 
+        {
+            category: "social",
+            inputs: 1,
+            outputs:1,
+            icon: "ibmconnections.png",
+            color: "#FFFFFF",
+            label: function() {
+                    return this.name ||'Update Communities';
+                    },
+            paletteLabel : "Update Communities",
+            defaults : {
+                name: {
+                            value: ""
+                },
+                server: {
+                            value : "",
+                            required: true,
+                            type: "ICLogin"
+                },
+                target: {
+                            value : "AddMember",
+                            required: true
+                },
+                communityId: {
+                            value : "",
+                            required: false
+                },
+                userId: {
+                            value : "",
+                            required: false
+                },
+                userRole: {
+                            value : "Member",
+                            required: false
+                },
+            },
+            oneditprepare: updateFormCommunitiesUpdate
+        });
+
+   function updateFormCommunitiesUpdate() { 
+       switch (document.querySelector("#node-input-target").value) {
+           case "AddMember" :
+               document.querySelector("#userRow").style.display = "inline";
+               document.querySelector("#communityRow").style.display = "inline";
+               document.querySelector("#userRoleRow").style.display = "inline";
+               break;
+           case "RemoveMember" :
+               document.querySelector("#userRow").style.display = "inline";
+               document.querySelector("#communityRow").style.display = "inline";
+               document.querySelector("#userRoleRow").style.display = "none";
+               break;
+       }
+   }
+</script>
+
+<script type="text/x-red" data-template-name="CommunitiesUpdate">        
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+        <input type="text" id="node-input-server" placeholder="Server">
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Search</label>
+        <select id="node-input-target" onchange="updateFormCommunitiesUpdate()">
+	       <option value="AddMember">Add Member</option>
+	       <option value="RemoveMember">Remove Member</option>
+        </select>
+        <br />
+    </div>
+    
+    <div class="form-row" id="userRow">
+        <label for="node-input-userId"><i class="fa fa-odnoklassniki"></i> UserId</label>
+        <input type="text" id="node-input-userId" placeholder="ID or mail address"></input>
+        <br />
+    </div>
+    
+    <div class="form-row" id="userRoleRow">
+        <label for="node-input-userRole"><i class="fa fa-address-book"></i> Role</label>
+        <select id="node-input-userRole">
+	       <option value="Member">Member</option>
+	       <option value="Owner">Owner</option>
+        </select>
+        <br />
+    </div>
+    
+    <div class="form-row" id="communityRow">
+        <label for="node-input-communityId"><i class="fa fa-users"></i> Comm. Id</label>
+        <input type="text" id="node-input-communityId" placeholder="ID"></input>
+        <br />
+   </div>  
+   
+    <br />
+    
+    <div class="form-row">
+        <hr />
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
+        <input type="text" id="node-input-name" ></input>
+    </div>
+
+ </script>
+
+<script type="text/x-red" data-help-name="CommunitiesUpdate">
+   <p>Sets different properties for a given Community</p>
+</script>
+

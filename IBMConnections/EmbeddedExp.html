@@ -1,0 +1,453 @@
+<script type="text/javascript">
+    RED.nodes.registerType(
+        'ASGet', 
+        {
+            category: "social",
+            inputs: 1,
+            outputs:1,
+            icon: "ibmconnections.png",
+            color: "#FFFFFF",
+            label: function() {
+                    return this.name ||'Get AS';
+                    },
+            paletteLabel : "Get AS",
+            defaults : {
+                name: {
+                    value: "",
+                    required: false
+                },
+                server: {
+                    value : "",
+                    required: true,
+                    type: "ICLogin"
+                },
+                module: {
+                    value : "All",
+                    required: true
+                },
+                target: {
+                    value : "myboard",
+                    required: true
+                },
+                userId: {
+                    value : "",
+                    required: false
+                },
+                communityId: {
+                    value : "",
+                    required: false
+                },
+                contextRoot: {
+                    value : "/connections",
+                    required: false
+                },
+                sinceDate: {
+                    value : "",
+                    required: false
+                },
+                sinceCB: {
+                    value: false,
+                    required: false
+                },
+                untilDate: {
+                    value : "",
+                    required: false
+                },
+                untilCB: {
+                    value: false,
+                    required: false
+                }
+            },
+            oneditprepare: updateFormASGet
+        });
+
+    function updateFormActStreamOut() { 
+        switch (document.querySelector("#node-input-target").value) {
+            case "person" :
+                document.querySelector("#targetRow").style.display = "inline";
+                document.querySelector("#communityRow").style.display = "none"; 
+                break;
+            case "myboard" :
+                document.querySelector("#targetRow").style.display = "none";
+                document.querySelector("#communityRow").style.display = "none"; 
+                break;
+            case "community" :
+                document.querySelector("#targetRow").style.display = "none";
+                document.querySelector("#communityRow").style.display = "inline"; 
+                break;
+        }
+    }
+    
+    function updateSinceCB() {
+	   if (document.querySelector("#node-input-sinceCB").checked){
+	       document.querySelector("#sinceDate").style.display = "inline";
+	       document.querySelector("#untilBlock").style.display = "inline";
+	   } else {
+	       document.querySelector("#sinceDate").style.display = "none";
+	       document.querySelector("#untilBlock").style.display = "none";
+	   }
+    }
+    
+    function updateUntilCB() {
+	   if (document.querySelector("#node-input-untilCB").checked){
+	       document.querySelector("#untilDate").style.display = "inline";
+	   } else {
+	       document.querySelector("#untilDate").style.display = "none";
+	   }
+    }
+    
+    function switchContextRoot2(theServer) {
+        alert('a = ' + theServer);
+        $.getJSON('credentials/ICLogin/'+theServer, function(data) {
+       alert(JSON.stringify(data, ' ', 2));
+            if (data.theServerType && (data.theServerType !== '')) {
+                if (data.theServerType === 'cloud') {
+                    document.querySelector("#contextRoot").style.display = 'none';
+                }
+            }
+        });
+        
+    }
+
+    function updateFormASGet() { 
+        $( "#node-input-sinceDate" ).datepicker({
+                            showOn: "button",
+                            buttonImage: "icons/calendar.gif",
+                            buttonImageOnly: true,
+                            dateFormat: "dd/mm/yy",
+                            showButtonPanel: true,
+                            changeMonth: true,
+                            changeYear: true,
+                            buttonText: "Select date"
+        });
+        $( "#node-input-untilDate" ).datepicker({
+                            showOn: "button",
+                            buttonImage: "icons/calendar.gif",
+                            buttonImageOnly: true,
+                            dateFormat: "dd/mm/yy",
+                            showButtonPanel: true,
+                            changeMonth: true,
+                            changeYear: true,
+                            buttonText: "Select date"
+        });
+        //$("#node-input-server").on('change', switchContextRoot(this.server));
+
+        switchContextRoot2(this.server);       
+        updateSinceCB();
+        updateFormActStreamOut();
+    }
+
+</script>
+
+<script type="text/x-red" data-template-name="ASGet">        
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+        <input type="text" id="node-input-server" onchange="switchContextRoot2(this.value)">
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-module"><i class="fa fa-arrow-circle-right"></i> Search</label>
+        <select id="node-input-module"> // onchange="updateFormASGet()">
+	       <option value="All">All</option>
+	       <option value="activities">Activities</option>
+	       <option value="blogs">Blogs</option>
+	       <option value="files">Files</option>
+	       <option value="forums">Forums</option>
+	       <option value="wikis">Wikis</option>
+	       <option value="bookmarks">Bookmarks</option>
+	       <option value="@status">Status updates</option>
+        </select>
+        <br />
+    </div>
+    <br />
+    
+    <div class="form-row">
+        <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Target</label>
+        <select id="node-input-target" onchange="updateFormActStreamOut()">
+	       <option value="myboard">My board</option>
+	       <option value="person">Someonelse's board</option>
+           <option value="community">Community board</option>
+        </select>
+    </div>
+    <div class="form-row" id="targetRow">
+        <label for="node-input-userId"><i class="fa fa-user"></i> User ID</label>
+        <input type="text" id="node-input-userId" placeholder="User ID (ie. toto@myorg.com OR 51689d40-e7ed-102f-87b6-86a3c2278316)">
+    </div>
+    <div class="form-row" id="communityRow">
+        <label for="node-input-communityId"><i class="fa fa-users"></i> Comm. ID</label>
+        <input type="text" id="node-input-communityId" placeholder="Community ID (ie. bc4597f0-e35c-4edc-8ef4-14b0cc3376e4)">
+    </div>
+       
+    <div class="form-row">
+        <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="sinceCB" id="node-input-sinceCB" onchange="updateSinceCB()"></input>
+        <label for="node-input-sinceCB"><i class="fa fa-check-square-o"></i> Since ?</label>
+    </div>
+    <div class="form-row" id="sinceDate">
+        <label for="node-input-sinceDate"><i class="fa fa-calendar"></i> Date</label>
+        <input type="date" id="node-input-sinceDate"></input>
+        <br />    
+        <br />    
+    </div>
+   
+    <div class="from-row" id="untilBlock">
+        <div class="form-row" id="untilCB">
+            <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="sinceCB" id="node-input-untilCB" onchange="updateUntilCB()"></input>
+            <label for="node-input-untilCB"><i class="fa fa-check-square-o"></i> Until ?</label>
+        </div>
+        <div class="form-row" id="untilDate">
+            <label for="node-input-untilDate"><i class="fa fa-calendar"></i> Date</label>
+            <input type="date" id="node-input-untilDate"></input>
+            <br />    
+            <br />    
+        </div>
+    </div>
+    
+    <br/>
+    <br/>
+    <div class="form-row" id="contextRoot">
+        <hr />
+        <label for="node-input-contextRoot"><i class="fa fa-tag"></i> Context Root</span></label>
+        <input type="text" id="node-input-contextRoot" placeholder="/connections"></input>
+    </div>    
+    <br/>
+    <br/>
+    
+    <div class="form-row">
+        <hr />
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
+        <input type="text" id="node-input-name" ></input>
+    </div>
+
+</script>
+
+<script type="text/x-red" data-help-name="ASGet">
+   <p>Retrieves the activity stream for the current user, for another user or for a Community, optionally filtered by application.</p>
+   <p>
+   The UserId of the target (in case <b>person</b> is selected in the configuration panel) can be either the <i>Mail address</i> or the <i>UserId</i> of a valid user. The information can be provided either in the configuration panel or via the <code>msg.userId</code> input.</p>
+   <p>
+   The CommunityId of the target (in case <b>community</b> is selected in the configuration panel) is the <i>Community UUID</i> of a valid Community. The information can be provided either in the configuration panel or via the <code>msg.communityId</code> input.</p>
+   <p>
+   The results may also be filtered by a range of dates (specified as dd/mm/yyyy).
+   <ul>
+   <li>the <i>since date</i> may be specified either in the configuration panel or by means of the <code>msg.sinceDate</code> input parameter. In case the input parameter is used, the relevant checkbox must anyway be checked in the configuration panel. No value implies <i>01/01/1970</i>.
+   </li>
+   <li>the <i>until date</i> may be specified either in the configuration panel or by means of the <code>msg.untilDate</code> input parameter. In case the input parameter is  used, the relevant checkbox must anyway be checked in the configuration panel. No value implies <i>today</i>.
+   </li>
+   </ul>
+   </p>
+   <p><i>Returns:</i>
+   <ul>
+   <li><code>msg.payload</code>. This is an array of objects where each object is the content of the retrieved item
+   The Array is empty in case no entries are found.
+   </li>
+   </ul>
+   </p>   
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType(
+        'ASPut', 
+        {
+            category: "social",
+            inputs: 1,
+            outputs:1,
+            icon: "ibmconnections.png",
+            color: "#FFFFFF",
+            align: "right",
+            label: "Post to AS",
+            paletteLabel : "Post to AS",
+            defaults : {
+                server: {
+                            value : "",
+                            required: true,
+                            type: "ICLogin"
+                },
+                target: {
+                            value : "myboard",
+                            required: true
+                },
+                contextRoot: {
+                            value : "/connections",
+                            required: false
+                },
+                userId: {
+                            value : "",
+                            required: false
+                },
+                communityId: {
+                            value : "",
+                            required: false
+                },
+                status_update: {
+                            value : "",
+                            required: false
+                },
+                isComment: {
+                            value : false,
+                            required: false
+                },
+                isEmbExp: {
+                            value : false,
+                            required: false
+                },
+                postId: {
+                            value : "",
+                            required: false
+                },
+                name: {
+                            value: ""
+                },
+
+            },
+            oneditprepare: updateFormASPutAll
+        });
+
+    function updateFormASPut() { 
+        switch (document.querySelector("#node-input-target").value) {
+            case "person" :
+                document.querySelector("#targetRow").style.display = "inline";
+                document.querySelector("#communityRow").style.display = "none"; 
+                break;
+            case "myboard" :
+                document.querySelector("#targetRow").style.display = "none";
+                document.querySelector("#communityRow").style.display = "none"; 
+                break;
+            case "community" :
+                document.querySelector("#targetRow").style.display = "none";
+                document.querySelector("#communityRow").style.display = "inline"; 
+                break;
+        }
+    }
+    
+    function updateFormIsComment() { 
+       if (document.querySelector("#node-input-isComment").checked) {
+           document.querySelector("#postRow").style.display = "inline";
+       } else {
+           document.querySelector("#postRow").style.display = "none";
+       }
+    }
+           
+    function updateFormIsEmbExp() {
+	   if (document.querySelector("#node-input-isEmbExp").checked){
+	       document.querySelector("#messageInfosRow").style.display = "none";
+	   } else {
+	       document.querySelector("#messageInfosRow").style.display = "inline";
+	   }        
+    }
+    
+    function switchContextRoot() {
+        $.getJSON('credentials/ICLogin/'+this.server, function(data) {
+       alert(JSON.stringify(data, ' ', 2));
+            if (data.theServerType && (data.theServerType !== '')) {
+                if (data.theServerType === 'cloud') {
+                    document.querySelector("#contextRoot").style.display = 'none';
+                }
+            }
+        });
+        
+    }
+    
+    function updateFormASPutAll(){ 
+        updateFormIsComment();
+        updateFormIsEmbExp();
+        updateFormASPut();
+        switchContextRoot();
+    }
+
+</script>
+
+<script type="text/x-red" data-template-name="ASPut">
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+        <input type="text" id="node-input-server" onchange="switchContextRoot()">
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Target</label>
+        <select id="node-input-target" onchange="updateFormASPut()">
+	       <option value="myboard">My board</option>
+	       <option value="person">Someonelse's board</option>
+           <option value="community">Community board</option>
+        </select>
+    </div>
+
+    <br/>
+
+    <div class="form-row" id="targetRow">
+        <label for="node-input-userId"><i class="fa fa-user"></i> User ID</label>
+        <input type="text" id="node-input-userId" placeholder="User ID (ie. toto@myorg.com OR 51689d40-e7ed-102f-87b6-86a3c2278316)">
+    </div>
+    <div class="form-row" id="communityRow">
+        <label for="node-input-communityId"><i class="fa fa-users"></i> Comm. ID</label>
+        <input type="text" id="node-input-communityId" placeholder="Community ID (ie. bc4597f0-e35c-4edc-8ef4-14b0cc3376e4)">
+    </div>
+
+    <br />
+    <br />
+   
+    <div class="form-row" id="isEmbExpRow">
+        <label for="node-input-isEmbExp"><i class="fa fa-check"></i> Emb. Exp. ?</label>
+        <input type="checkbox" name="isEmbExp" id="node-input-isEmbExp" onchange="updateFormIsEmbExp()"></input>
+        <br />
+    </div>
+
+    <div class="form-row" id="messageInfosRow">
+        <div class="form-row">
+            <br />
+            <label for="node-input-status_update"><i class="fa fa-weixin"></i> Message</label>
+            <input type="text" id="node-input-status_update" placeholder="Status update">
+        </div>
+
+        <div class="form-row">
+            <label for="node-input-isComment"><i class="fa fa-check"></i> Comment?</label>
+            <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="isComment" id="node-input-isComment" onchange="updateFormIsComment()"></input>
+        </div>
+
+        <div class="form-row" id="postRow">
+            <label for="node-input-postId"><i class="fa fa-envelope"></i> Post ID</label>
+            <input type="text" id="node-input-postId" placeholder="Post ID ">
+        </div>
+    </div>
+    
+    <br/>
+    <br/>
+    <div class="form-row">
+        <hr />
+        <label for="node-input-contextRoot"><i class="fa fa-tag"></i> Context Root</span></label>
+        <input type="text" id="node-input-contextRoot" placeholder="/connections"></input>
+    </div>    
+    <br/>
+    <br/>
+    <div class="form-row">
+        <hr />
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
+        <input type="text" id="node-input-name" ></input>
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="ASPut">
+   <p>This node is able to perform two actions:
+   <ul>
+   <li>
+   Write a message (or a comment to an existing message) to the profile board of the supplied User or of the supplied Community.
+   <br>
+   In this case, the text to be sent can be either specified in the configuration panel or via the <code>msg.payload</code> input.
+   <br>
+   In case a comment needs to be posted, the <b>ID</b> of the item for which the comment needs to be provided can be either specified in the configuration panel or via the <code>msg.postId</code> input.
+   </li>
+   <li>
+   Sends an event with an Embedded Experience to the IBM Connections (Cloud or On Premises) Activity Stream of the selected user or Community.
+   <br>
+   It accepts, in input as <code>msg.payload</code>, a JSON object containing the Payload to be sent to the IBM Connections Server. It substitues the string "<i>$$$server$$$</i>" with the actual URL of the IBM Connections Server selected as target.
+   </li>
+   </ul>
+   <p>
+   The UserId of the target (in case <b>person</b> is selected in the configuration panel) can be either the <i>Mail address</i> or the <i>UserId</i> of a valid user. The information can be provided either in the configuration panel or via the <code>msg.userId</code> input.</p>
+   <p>
+   The CommunityId of the target (in case <b>community</b> is selected in the configuration panel) is the <i>Community UUID</i> of a valid Community. The information can be provided either in the configuration panel or via the <code>msg.communityId</code> input.</p>
+   <p><b>Returns:</b></p>
+   <ul>
+       <li><code>msg.status_url</code> containing the URL of the posted event</li>
+       <li><code>msg.payload</code> containing the actual payload received from the IBM Connections server.</li>
+   </ul>
+</script>

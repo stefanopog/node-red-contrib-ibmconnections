@@ -1,0 +1,258 @@
+<script type="text/javascript">
+    RED.nodes.registerType(
+        'ProfilesGet', 
+        {
+            category: "social",
+            inputs: 1,
+            outputs:1,
+            icon: "ibmconnections.png",
+            color: "#FFFFFF",
+            label: function() {
+                    return this.name ||'Get Profiles';
+            },
+            paletteLabel : "Get Profiles",
+            defaults : {
+                name: {
+                            value: ""
+                },
+                server: {
+                            value : "",
+                            required: true,
+                            type: "ICLogin"
+                },
+                target: {
+                            value : "myself",
+                            required: true
+                },
+                targetValue: {
+                            value : "",
+                            required: false
+                },
+                mytags: {
+                            value : "",
+                            required: false
+                },
+                mykeywords: {
+                            value : "",
+                            required: false
+                },
+                freesyntax: {
+                            value : "",
+                            required: false
+                },
+                uuid: {
+                            value : false,
+                            required: false
+                },
+                key: {
+                            value : false,
+                            required: false
+                },
+                vcard: {
+                            value : false,
+                            required: false
+                },
+                mail: {
+                            value : false,
+                            required: false
+                },
+                thename: {
+                            value : false,
+                            required: false
+                },
+                photo: {
+                            value : false,
+                            required: false
+                },
+                links: {
+                            value : false,
+                            required: false
+                },
+            },
+            oneditprepare: updateFormProfilesGet
+        });
+
+   function updateFormProfilesGet() {
+       switch (document.querySelector("#node-input-target").value) {
+           case 'person' :
+	           document.querySelector("#targetRow").style.display = "inline";
+               document.querySelector("#tagRow").style.display = "none";
+               document.querySelector("#keywordRow").style.display = "none";
+               document.querySelector("#syntaxRow").style.display = "none";
+               document.querySelector("#linkRow").style.display = "inline";
+               break;
+           case 'myself' :
+               document.querySelector("#targetRow").style.display = "none";
+               document.querySelector("#tagRow").style.display = "none";
+               document.querySelector("#keywordRow").style.display = "none";
+               document.querySelector("#syntaxRow").style.display = "none";
+               document.querySelector("#linkRow").style.display = "inline";
+               break;
+           case 'byTag' :
+               document.querySelector("#targetRow").style.display = "none";
+               document.querySelector("#tagRow").style.display = "inline";  
+               document.querySelector("#keywordRow").style.display = "none";
+               document.querySelector("#syntaxRow").style.display = "none";
+               document.querySelector("#linkRow").style.display = "none";
+               break;
+           case 'byKeyword' :
+               document.querySelector("#targetRow").style.display = "none";
+               document.querySelector("#tagRow").style.display = "none";  
+               document.querySelector("#keywordRow").style.display = "inline";
+               document.querySelector("#syntaxRow").style.display = "none";
+               document.querySelector("#linkRow").style.display = "none";
+              break;
+           case 'syntaxSearch' :
+               document.querySelector("#targetRow").style.display = "none";
+               document.querySelector("#tagRow").style.display = "none";  
+               document.querySelector("#keywordRow").style.display = "none";
+               document.querySelector("#syntaxRow").style.display = "inline";
+               document.querySelector("#linkRow").style.display = "none";
+               break;
+       }
+   }
+</script>
+
+<script type="text/x-red" data-template-name="ProfilesGet">        
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+        <input type="text" id="node-input-server" placeholder="Server">
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Target</label>
+        <select id="node-input-target" onchange="updateFormProfilesGet()">
+	       <option value="myself">Me</option>
+	       <option value="person">Someone else</option>
+	       <option value="byTag">Search By Tag</option>
+	       <option value="byKeyword">Search By Keyword</option>
+	       <option value="syntaxSearch">Free Syntax</option>
+        </select>
+    </div>
+    <div style="margin-left: 20px; display: block;" class="form-row" id="targetRow">
+        <label for="node-input-targetValue"><i class="fa fa-odnoklassniki"></i> User</label>
+        <input type="text" id="node-input-targetValue" placeholder="User ID (ie. toto@myorg.com OR 51689d40-e7ed-102f-87b6-86a3c2278316)"></input>
+    </div>
+    
+    <div class="form-row" id="tagRow">
+        <label for="node-input-mytags"><i class="fa fa-tag"></i> Tags</label>
+        <input type="text" id="node-input-mytags" placeholder="tags"></input>
+    </div>
+    
+    <div class="form-row" id="keywordRow">
+        <label for="node-input-mykeywords"><i class="fa fa-tag"></i> Keywords</label>
+        <input type="text" id="node-input-mykeywords" placeholder="keywords"></input>
+    </div>
+    
+    <div class="form-row" id="syntaxRow">
+        <label for="node-input-freesyntax"><i class="fa fa-tag"></i> Free Syntax</label>
+        <input type="text" id="node-input-freesyntax" placeholder="syntax"></input>
+    </div>
+
+    <br/>
+    <br/>
+    
+
+       <label><b>Output Options</b></label>
+        <hr />
+      
+
+    <table style="width: 100%">
+    <tr>
+    <td>
+    <div class="form-row">
+        <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="uuid" id="node-input-uuid"></input>
+        <label for="node-input-uuid"><i class="fa fa-odnoklassniki"></i> userid</label>
+    </div>
+    </td>
+    <td>
+    <div class="form-row">
+        <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="key" id="node-input-key"></input>
+        <label for="node-input-key"><i class="fa fa-odnoklassniki"></i> key</label>
+    </div>
+    </td>
+    <td>
+    <div class="form-row">
+        <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="mail" id="node-input-mail"></input>
+        <label for="node-input-mail"><i class="fa fa-odnoklassniki"></i> mail</label>
+    </div>
+    </td>
+    </tr>
+    <tr>
+    <td>
+    <div class="form-row">
+        <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="thename" id="node-input-thename"></input>
+        <label for="node-input-thename"><i class="fa fa-odnoklassniki"></i> name</label>
+    </div>
+    </td>
+    <td>
+     <div class="form-row">
+       <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="photo" id="node-input-photo"></input>
+        <label for="node-input-photo"><i class="fa fa-odnoklassniki"></i> photo</label>
+    </div>
+    </td>
+    <td>
+    <div class="form-row">
+        <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="vcard" id="node-input-vcard"></input>
+        <label for="node-input-vcard" style="width: 70%;"> vCard</label>
+    </div>
+    </td>
+    </tr>
+    <tr>
+    <td>
+    <div class="form-row" id="linkRow">
+        <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="links" id="node-input-links"></input>
+        <label for="node-input-links"><i class="fa fa-odnoklassniki"></i> Linkroll</label>
+    </div>
+    </td>
+    <td>
+    </td>
+    <td>
+    </td>
+    </tr>
+    </table>
+    
+    <br/>
+    <br/>
+    <hr/>
+    <br/>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
+        <input type="text" id="node-input-name" ></input>
+    </div>
+ 
+</script>
+
+<script type="text/x-red" data-help-name="ProfilesGet">
+   <p>Retrieves Profile informations for a given User</p>
+   <p>The user can be set either by specifying the <i>mail address</i> or the <i>Uuid</i> :
+   <ul>
+        <li>in the incoming <code>msg.target</code> property</li>
+        <li>in the configuration panel</li>
+    </ul>
+    </p>
+    <p>
+    A set of users can also be retrieved by <b>TAG</b>: in that case, the comma-separated list of tags is the way in which one or more users are returned.
+    <br>This list can be specified either in the configuration panel or using the <code>msg.tags</code> property in the input message.
+    </p>
+    <p>
+    A set of users can also be retrieved by <b>KEYWORD</b>: in that case, the syntax is the same as the one used by the IBM Connections user interface.
+    <br>This value can be specified either in the configuration panel or using the <code>msg.keywords</code> property in the input message.
+    </p>    
+    <p>
+    A set of users can also be retrieved by using a <b>FREE SYNTAX</b>: this is very technical and requires the understanding of the IBM Connections Profiles Search API. The "Free Syntax" can contain anything that using the IBM Connections Profiles Search API can be specified after <i>/profiles/atom/search.do?</i>.
+    <br>This give the possibility to build a very flexible and custom search string.
+    <br>This value can be specified either in the configuration panel or using the <code>msg.freeSyntax</code> property in the input message.
+    </p>    
+    <br/>
+   <p><i>Returns:</i> 
+   <ul>
+        <li><code>msg.payload</code> : a JSON object built with the value for the properties that are asked in the configuration panel (uuid, name, mail, key, photo, vcard...). It is empty if an error occurs</li>
+        <li><code>msg.status</code> : the statusCode from the Connections APIS or ZERO if a processing error occurred</li>
+        <li><code>msg.error</code> : if an error is returned from APIs or if a processing error occurred, it is reported here. Otherwise it is empty</li>
+    </ul>
+    </p>
+    <p>
+    <b>NOTE : </b>if a search by Tag, by Keyword or "free syntax" is performed, it is always returned an <i>array</i> of objects, each of them built as previously described for <i<msg.payload</i>
+    </p>
+</script>
