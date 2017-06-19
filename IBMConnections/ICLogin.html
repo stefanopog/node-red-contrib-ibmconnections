@@ -50,8 +50,8 @@
                                 oneditcancel:editSave
 						   }
 	);
-    
-    function editSave() { 
+
+    function editSave() {
         //
         //  re-enable the "setups" otherwise the current value will not be stored
         //
@@ -61,13 +61,13 @@
             delete window.icConfigNodeIntervalId;
         }
     }
-	
+
     function editInitialize() {
         var id = this.id;
         var pathname = location.pathname;
         if (pathname.slice(-1) != "/") {
             pathname += "/";
-        }        
+        }
         var callback = location.protocol + "//" +
                        location.hostname +
                        (location.port? ":"+location.port:"")+
@@ -82,7 +82,7 @@
             $("#node-config-login").show();
             $("#node-config-input-displayName").val(value);
             $("#node-config-ic-displayName").html(value);
-        }        
+        }
         function updateICAuthButton1() {
             var v1 = $("#node-config-input-oauthId").val();
             var v2 = $("#node-config-input-oauthSecret").val();
@@ -96,7 +96,7 @@
                                                      (v1.length === 0 || v2.length === 0));
         }
         function pollCredentials() {
-            $.getJSON('credentials/ICLogin/'+id, function(data) {
+            $.getJSON('credentials/ICLogin2/'+id, function(data) {
                 if (data.displayName) {
                     $("#node-config-dialog-ok").button("enable");
                     updateLoginDisplayName(data.displayName);
@@ -114,7 +114,7 @@
         //
         //  Manage the state of the OAUTH2 Authenticate button
         //
-        $("#node-config-input-oauthId").on('change keydown paste input', 
+        $("#node-config-input-oauthId").on('change keydown paste input',
                                            updateICAuthButton1);
         $("#node-config-input-oauthSecret").on('change keydown paste input',
                                                updateICAuthButton1);
@@ -136,11 +136,11 @@
             } else {
                 myServer = $("#node-config-input-server").val()
             }
-            var url = 'ic-credentials/oauth?' + 
-                'id=' + id + '&clientId=' + oauthId + 
+            var url = 'ic-credentials/oauth?' +
+                'id=' + id + '&clientId=' + oauthId +
                 '&serverType=' + $("#node-config-input-serverType").val() +
                 '&server=' + myServer +
-                "&clientSecret=" + oauthSecret + 
+                "&clientSecret=" + oauthSecret +
                 "&callback=" + encodeURIComponent(callback);
             $(this).attr("href",url);
             window.icConfigNodeIntervalId = window.setTimeout(pollCredentials,2000);
@@ -164,8 +164,8 @@
             } else {
                 myServer = $("#node-config-input-server").val()
             }
-            var url = 'ic-credentials/basic?' + 
-                'id=' + id + '&username=' + username + 
+            var url = 'ic-credentials/basic?' +
+                'id=' + id + '&username=' + username +
                 '&serverType=' + $("#node-config-input-serverType").val() +
                 '&server=' + myServer +
                 "&password=" + password;
@@ -191,7 +191,7 @@
             $("#node-config-dialog-ok").button("disable");
         }
     };
-    
+
 	function _updateServerType(){
 		if (document.querySelector("#node-config-input-serverType").value === "cloud"){
 			document.querySelector("#cloudServer").style.display = "inline";
@@ -203,32 +203,32 @@
 			//document.querySelector("#auth-app-pwd").disabled = true;
 		}
 	};
-	
+
 	function _updateAuthType() {
         switch (document.querySelector("#node-config-input-authType").value) {
             case "oauth":
                 document.querySelector("#oauth-auth").style.display = "inline";
-                document.querySelector("#basic-auth").style.display = "none";                
+                document.querySelector("#basic-auth").style.display = "none";
                 break;
             case "basic":
                 document.querySelector("#oauth-auth").style.display = "none";
-                document.querySelector("#basic-auth").style.display = "inline";                
+                document.querySelector("#basic-auth").style.display = "inline";
                 break;
             case "app":
                 break;
         }
 	};
-    
+
 	function updateServerType(){
         if (document.querySelector("#node-config-input-displayName").value) return;
         _updateServerType();
 	};
-	
+
 	function updateAuthType() {
         if (document.querySelector("#node-config-input-displayName").value) return;
         _updateAuthType();
 	};
-    
+
 
 </script>
 
@@ -268,7 +268,7 @@
            </select>
         </div>
     </div>
-    
+
 	<div class="form-row" id="basic-auth">
         <div class="form-row">
             <label for="node-config-input-username"><i class="fa fa-user"></i> <span data-i18n="ic.label.username"></span></label>
