@@ -6,7 +6,6 @@
     "dependencies": {
         "request": "*",
         "xml2js": "*",
-        "cloudant":"*",
         "fs":"*",
         "crypto":"*"
     },
