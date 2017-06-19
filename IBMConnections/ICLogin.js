@@ -9,9 +9,8 @@ module.exports = function(RED) {
     //  Managing storage for OAUTH credentials (on BlueMix)
     //
     function _oauthCloudantDB() {
-        var process = require("process");
-        var cloudant = Cloudant({vcapServices: JSON.parse(process.env.VCAP_SERVICES)});;
-        return cloudant.use("oauth_cred");;
+        var cloudant = Cloudant({vcapServices: JSON.parse(process.env.VCAP_SERVICES)});
+        return cloudant.use("oauth_cred");
     }
     //
     //  Managing storage for OAUTH credentials (not on BlueMix)
