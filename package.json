@@ -1,12 +1,11 @@
 {
     "name": "node-red-contrib-ibmconnections",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "description": "IBM Connections NodeRed nodes",
     "main": "index.js",
     "dependencies": {
         "request": "*",
         "xml2js": "*",
-        "fs":"*",
         "crypto":"*"
     },
     "scripts": {
