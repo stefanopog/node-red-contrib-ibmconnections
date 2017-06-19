@@ -9,6 +9,7 @@ module.exports = function(RED) {
     //  Managing storage for OAUTH credentials (on BlueMix)
     //
     function _oauthCloudantDB() {
+        var process = require("process");
         var cloudant = Cloudant({vcapServices: JSON.parse(process.env.VCAP_SERVICES)});;
         return cloudant.use("oauth_cred");;
     }
@@ -24,7 +25,7 @@ module.exports = function(RED) {
     //
     function ICLogin(config) {
 		RED.nodes.createNode(this, config);
-			
+
 		this.server      = config.server;
 		this.serverType  = config.serverType;
 		this.cloudServer = config.cloudServer;
@@ -36,7 +37,7 @@ module.exports = function(RED) {
 		this.oauthId     = this.credentials.oauthId;
 		this.oauthSecret = this.credentials.oauthSecret;
 
-        this.getServer   = getServer(this.serverType, this.cloudServer, this.server);        
+        this.getServer   = getServer(this.serverType, this.cloudServer, this.server);
         //this.getContext  = getContext(this.server, this.serverType);
     }
     //
@@ -72,7 +73,7 @@ module.exports = function(RED) {
             if (data) {
                 console.log('======= data 2 ==========');
                 console.log(JSON.stringify(data, null, 2));
-            }       
+            }
         }
     }
     //
@@ -108,7 +109,7 @@ module.exports = function(RED) {
             authURL += '&callback_uri=' + callback;
             authURL += '&scope=' + server + '/connections/oauth/apps';
             authURL += '&access_type=offline';
-            authURL += '&approval_prompt=force';           
+            authURL += '&approval_prompt=force';
         }
         return authURL;
     }
@@ -176,7 +177,7 @@ module.exports = function(RED) {
                 theURL = theServer + '/profiles/oauth/atom/profileService.do';
             } else {
                 theURL = theServer + '/profiles/oauth/atom/profileService.do';
-            }            
+            }
         }
         //
         //  Fetching "serviceconfig" document
@@ -185,7 +186,7 @@ module.exports = function(RED) {
             {url: theServer + '/activities/serviceconfigs',
              method: 'GET',
              headers:{
-                //"Content-Type" : "application/atom+xml; charset=UTF-8", 
+                //"Content-Type" : "application/atom+xml; charset=UTF-8",
                 "User-Agent" : "Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0"
              },
              auth : theAuth
@@ -228,11 +229,11 @@ module.exports = function(RED) {
                         {url: theURL,
                          method: "GET",
                          headers:{
-                            "Content-Type" : "application/atom+xml", //; charset=UTF-8", 
+                            "Content-Type" : "application/atom+xml", //; charset=UTF-8",
                             "User-Agent" : "Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0"
                          },
                          auth: theAuth
-                        }, 
+                        },
                         function(err, response, body) {
                             if (err) {
                                 console.log('fetching IC profile failed _whoAmI: ' + err);
@@ -263,7 +264,7 @@ module.exports = function(RED) {
                                 }
                             });
                         }
-                    );        
+                    );
                 });
             }
         );
@@ -288,9 +289,9 @@ module.exports = function(RED) {
             //
             //	Remove trailing "slash" in case it is there
             //
-            fmtServer   = fmtServer.replace(endSlash, ""); 
+            fmtServer   = fmtServer.replace(endSlash, "");
         }
-        return fmtServer;        
+        return fmtServer;
     }
     //
     //  Get the Connections context root
@@ -300,7 +301,7 @@ module.exports = function(RED) {
         //
         //  Deal with specific W3-Connections
         //
-        if ((server.toLowerCase().indexOf("w3-connections") != -1) && 
+        if ((server.toLowerCase().indexOf("w3-connections") != -1) &&
             (serverType !== "cloud")) {
             context = "/common";
         } else {
@@ -321,7 +322,7 @@ module.exports = function(RED) {
         //
         function _cb1(err, data) {
             if (err) {
-                node.error('ICLogin/_cb1: Error Reading Credentials from storage'); 
+                node.error('ICLogin/_cb1: Error Reading Credentials from storage');
                 console.log('ICLogin/_cb1: Error Reading Credentials from storage');
                 console.log(err);
                 return;
@@ -377,8 +378,8 @@ module.exports = function(RED) {
                     //
                     var outFile = _oauthFileName(node.id);
                     console.log('ICLogin/_cb1 : Refreshing file record ' + outFile);
-                    fs.writeFile(outFile, 
-                                 JSON.stringify(node.credentials, null, 2), 
+                    fs.writeFile(outFile,
+                                 JSON.stringify(node.credentials, null, 2),
                                  function(err1, data1) {
                                    if (err1) {
                                         node.error('ICLogin/_cb1: Error Writing Credentials to storage');
@@ -389,7 +390,7 @@ module.exports = function(RED) {
                                             cb();
                                         }
                                     }
-                    });                
+                    });
                 } else {
                     //
                     //  on Bluemix
@@ -397,7 +398,7 @@ module.exports = function(RED) {
                     //
                     var credDB = _oauthCloudantDB();
                     var newRec = {
-                            credentials : node.credentials, 
+                            credentials : node.credentials,
                             _id : node.id,
                             _rev : data._rev};
                     credDB.insert(newRec, function(err1, body, header) {
@@ -411,7 +412,7 @@ module.exports = function(RED) {
                                 cb();
                             }
                         }
-                    });                
+                    });
                 }
             });
         }
@@ -428,7 +429,7 @@ module.exports = function(RED) {
             return cb(RED._("ic.error.no-refresh-token"));
         }
         //
-        //  read RefreshToekn from the temporary storage to bypass the issue of 
+        //  read RefreshToekn from the temporary storage to bypass the issue of
         //  credentials being saved ONLY on deploy
         //
         _dumpCred(credentials, 'During Refresh');
@@ -449,11 +450,11 @@ module.exports = function(RED) {
             //
             var credDB = _oauthCloudantDB();
             credDB.get(node.id, _cb1);
-        }        
+        }
     };
     //
     //  Redefine the way in which a Connections server is accessed
-    //  In this way the Basci auth or OAuth auth are isolated 
+    //  In this way the Basci auth or OAuth auth are isolated
     //  as well as the possible need to refresh the OAuth token
     //
     ICLogin.prototype.request = function(req, retries, cb) {
@@ -498,7 +499,7 @@ module.exports = function(RED) {
             if (result.statusCode === 401 && retries > 0) {
                 //
                 //  SP+
-                // 
+                //
                 console.log('***** Getting a 401 ******** ');
                 //
                 //  SP-
@@ -515,7 +516,7 @@ module.exports = function(RED) {
             } else if (result.statusCode >= 400) {
                 console.log('ICLogin/request : REQUEST WITH status > 400... Invoking callback');
                 return cb(result.statusCode + ": " + data.message, result, data);
-            } else {                
+            } else {
                 console.log('ICLogin/request : REQUEST WITH status ' + result.statusCode + '... Invoking callback');
                 return cb(err, result, data);
             }
@@ -533,7 +534,7 @@ module.exports = function(RED) {
         var crypto = require("crypto");
         var node_id = req.query.id;
         var callback = req.query.callback;
-        var server = getServer(req.query.serverType, req.query.server, req.query.server);       
+        var server = getServer(req.query.serverType, req.query.server, req.query.server);
         var csrfToken = crypto.randomBytes(18).toString('base64').replace(/\//g, '-').replace(/\+/g, '_');
         //
         //  Build authorization and token URLs
@@ -615,7 +616,7 @@ module.exports = function(RED) {
                         client_secret: credentials.oauthSecret,
                         callback_uri: credentials.callback,
                     },
-            }, 
+            },
             function(err, result, data) {
                 if (err) {
                     console.log("request error:" + err);
@@ -644,7 +645,7 @@ module.exports = function(RED) {
                 delete credentials.server;
                 RED.nodes.addCredentials(node_id, credentials);
                 _dumpCred(credentials, 'First Authorization');
-                //  
+                //
                 //  Writing credentials in persistent store
                 //
                 var isBM = process.env.VCAP_SERVICES;
@@ -657,7 +658,7 @@ module.exports = function(RED) {
                     console.log('ICLogin/callback : Refreshing file record ' + outFile);
                     fs.writeFileSync(outFile, JSON.stringify(credentials, null, 2));
                     //
-                    //  We can now get the NAME of the user in order to update the 
+                    //  We can now get the NAME of the user in order to update the
                     //  "displayName" in the UI
                     //
                     _whoAmI(node_id, credentials, theServer, res, 'oauth', serverType);
@@ -677,7 +678,7 @@ module.exports = function(RED) {
                             res.send(RED._('ICLogin/callback : Error Writing Credentials to storage : ' + err));
                         } else {
                             //
-                            //  We can now get the NAME of the user in order to update the 
+                            //  We can now get the NAME of the user in order to update the
                             //  "displayName" in the UI
                             //
                             _whoAmI(node_id, credentials, theServer, res, 'oauth', serverType);
