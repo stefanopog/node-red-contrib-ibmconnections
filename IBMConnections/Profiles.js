@@ -95,8 +95,8 @@ module.exports = function(RED) {
         
 
         function getForOther(theMsg, theURL) {
-            console.log(theURL);
-             node.login.request(
+            console.log('getForOther : with URL ' + theURL);
+            node.login.request(
                 {
                     url: theURL, 
                     method: "GET",

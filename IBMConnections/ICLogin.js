@@ -1,21 +1,20 @@
 module.exports = function(RED) {
     "use strict";
     var debug = true;
-    var crypto = require("crypto");
     var fs = require("fs");
+    var Cloudant = require("cloudant");
     var request = require("request");
     var request2 = require("request");
-    var url = require("url");
     //
-    //  Managing storage for OAUTH credentials
+    //  Managing storage for OAUTH credentials (on BlueMix)
     //
-    var Cloudant = require("cloudant");
-    var cloudant;
-    var credDB;
-    if (process.env.VCAP_SERVICES) {        
-        cloudant = Cloudant({vcapServices: JSON.parse(process.env.VCAP_SERVICES)});
-        credDB = cloudant.use("oauth_cred");
+    function _oauthCloudantDB() {
+        var cloudant = Cloudant({vcapServices: JSON.parse(process.env.VCAP_SERVICES)});;
+        return cloudant.use("oauth_cred");;
     }
+    //
+    //  Managing storage for OAUTH credentials (not on BlueMix)
+    //
     function _oauthFileName(nodeId) {
         return './' + nodeId + '_cred.json';
     }
@@ -220,6 +219,7 @@ module.exports = function(RED) {
                         console.log("Parser Error svcconfig _whoAmI : NO ENTRY found");
                         return res.send(RED._("ic.error.svcconfig-fetch-failed"));
                     }
+                    console.log('This is the instance ServiceConfig document');
                     console.log(JSON.stringify(myData, ' ', 2));
                     //
                     //  Fetch user details
@@ -392,8 +392,10 @@ module.exports = function(RED) {
                     });                
                 } else {
                     //
-                    //  Update the record
+                    //  on Bluemix
+                    //  Update the Cloudant record
                     //
+                    var credDB = _oauthCloudantDB();
                     var newRec = {
                             credentials : node.credentials, 
                             _id : node.id,
@@ -444,7 +446,8 @@ module.exports = function(RED) {
         } else {
             //
             //  on BlueMix
-            //        
+            //
+            var credDB = _oauthCloudantDB();
             credDB.get(node.id, _cb1);
         }        
     };
@@ -527,6 +530,7 @@ module.exports = function(RED) {
             res.send(400);
             return;
         }
+        var crypto = require("crypto");
         var node_id = req.query.id;
         var callback = req.query.callback;
         var server = getServer(req.query.serverType, req.query.server, req.query.server);       
@@ -667,6 +671,7 @@ module.exports = function(RED) {
                     //  so we do not need to specify it here
                     //
                     console.log('ICLogin/callback : Refreshing cloudant record ' + node_id);
+                    var credDB = _oauthCloudantDB();
                     credDB.insert(newRec, function(err, body, header) {
                         if (err) {
                             res.send(RED._('ICLogin/callback : Error Writing Credentials to storage : ' + err));
