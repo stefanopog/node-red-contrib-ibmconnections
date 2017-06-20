@@ -625,7 +625,7 @@ module.exports = function(RED) {
                     console.log("oauth error: " + data.error);
                     return res.send(RED._("ic.error.something-broke"));
                 }
-                var serverType = credentials.serverType;
+                var serverType = credentials.theServerType;
                 var creds = _getArrayCreds(serverType, data);
                 //
                 //  Build and Save the correct credentials
