@@ -228,7 +228,8 @@
    <p>The user can be set either by specifying the <i>mail address</i> or the <i>Uuid</i> :
    <ul>
         <li>in the incoming <code>msg.target</code> property</li>
-        <li>in the configuration panel</li>
+        <li>in the configuration panel.<br/>
+            Configuration panel takes precedence on the <code>msg.target</code></li>
     </ul>
     </p>
     <p>
@@ -240,15 +241,16 @@
     <br>This value can be specified either in the configuration panel or using the <code>msg.keywords</code> property in the input message.
     </p>
     <p>
-    A set of users can also be retrieved by using a <b>FREE SYNTAX</b>: this is very technical and requires the understanding of the IBM Connections Profiles Search API. The "Free Syntax" can contain anything that using the IBM Connections Profiles Search API can be specified after <i>/profiles/atom/search.do?</i>.
-    <br>This give the possibility to build a very flexible and custom search string.
-    <br>This value can be specified either in the configuration panel or using the <code>msg.freeSyntax</code> property in the input message.
+    A set of users can also be retrieved by using a <b>FREE SYNTAX</b>: this is very technical and requires the understanding of the IBM Connections Profiles Search API. <br/>
+    The "Free Syntax" can contain anything that using the IBM Connections Profiles Search API can be specified after <i>/profiles/atom/search.do?</i>.
+    <br>This gives the possibility to build a very flexible and custom search string.
+    <br>The value for this parameter can be specified either in the configuration panel or using the <code>msg.freeSyntax</code> property in the input message.
     </p>
     <br/>
    <p><i>Returns:</i>
    <ul>
         <li><code>msg.payload</code> : a JSON object built with the value for the properties that are asked in the configuration panel (uuid, name, mail, key, photo, vcard...). It is empty if an error occurs</li>
-        <li><code>msg.status</code> : the statusCode from the Connections APIS or ZERO if a processing error occurred</li>
+        <li><code>msg.status</code> : the statusCode from the Connections APIs or ZERO if a processing error occurred</li>
         <li><code>msg.error</code> : if an error is returned from APIs or if a processing error occurred, it is reported here. Otherwise it is empty</li>
     </ul>
     </p>

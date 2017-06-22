@@ -145,7 +145,7 @@
    <ul>
    When a list of Communities is retrived, <li><code>msg.payload</code>. An array of objects where each object has the following propertiese:
    <ul>
-   <li><b>title</b> the name of the retrieved Community/li>
+   <li><b>title</b> the name of the retrieved Community</li>
    <li><b>id</b> the ID of the retrieved Community</li>
    <li><b>ref</b> the href for the <i>self</i> link</li>
    <li><b>entry</b> the ATOM representation of the retrieved Community</li>
@@ -274,6 +274,19 @@
  </script>
 
 <script type="text/x-red" data-help-name="ICCommunitiesUpdate">
-   <p>Sets different properties for a given Community</p>
+  <p>This node is able to <b>Add</b> or <b>Remove</b> members from a Community</p>
+   <p><i>Inputs:</i>
+   <ul>
+   <li><code>msg.userId</code> : if set, it contains the <b>email</b> or the <b>userId</b> of the user to be added or removed from the Community.<br/>
+   The configuration panel can override or replace this value</li>
+   <li><code>msg.communityId</code> : the ID of the Community to which the member needs to be added or removed.<br/>
+   The configuration panel can override or replace this value</li>
+   </ul></p>
+   <p><i>Returns:</i>
+   <ul>
+   <li><b>msg.statusCode</b> the statusCode of the operation</li>
+   <li><b>msg.statusMessage</b> the statusMessage of the operation</li>
+   </ul>
+   </p>
 </script>
 

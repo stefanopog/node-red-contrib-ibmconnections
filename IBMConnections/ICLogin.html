@@ -56,6 +56,9 @@
         //  re-enable the "setups" otherwise the current value will not be stored
         //
         $("#setups *").prop('disabled', false);
+        //
+        //  Clean the timer
+        //
         if (window.icConfigNodeIntervalId) {
             window.clearTimeout(window.icConfigNodeIntervalId);
             delete window.icConfigNodeIntervalId;
@@ -107,7 +110,7 @@
             });
         }
         //
-        //  Create tooltip text
+        //  Create tooltip text for the OAuth callback
         //
         var tip = this._("ic.tip.redirect",{callback:callback});
         $("#node-config-ic-tooltip").html(tip);
@@ -119,6 +122,9 @@
         $("#node-config-input-oauthSecret").on('change keydown paste input',
                                                updateICAuthButton1);
         updateICAuthButton1();
+        //
+        //  Manage the state of the Basic Authenticate button
+        //
         $("#node-config-input-username").on('change keydown paste input',
                                             updateICAuthButton2);
         $("#node-config-input-password").on('change keydown paste input',
@@ -321,15 +327,20 @@
    <p>It supports:
    <ul>
    <li><b>Basic Authentication</b> : standard username/password pair</li>
-   <li><b>OAuth</b> : Key and Secret need to be provided. The interface will then guide you through the OAUTH dance to get the runtime token.<br/>
+   <li><b>OAuth<2/b> : Key and Secret need to be provided. The interface will then guide you through the OAuth2 dance to get the runtime token.<br/>
    The node supports automatic renew of an expired token. As the OAuth Token expires, the relevant <code>RefreshToekn</code> API is invoked to grab a new Token.<br/>
    </li>
    </ul>
    <p><b>Note : </b>
    <ul>
    <li>When used on Bluemix, the OAuth credentials and runtime token are stored inside a <b>Cloudant</b> databse named <b>oauth_cred</b>. <br/>
-   When used outside of Bluemix, the OAuth credentials and runtime token are stored in a file on the hard drive, under the directory where NodeRed is executed (typycally $HOME/.node-red). The name of the files is <code>nodeId</code><b>_cred.json</b>. <br/>
-   This because of a litmitation of the NodeRed runtime which only persists credentials on a explicity "Deploy". </li>
+   <b style="color:red">The <i>oauth_cred</i> database needs to be manually created before using this node with OAuth on BlueMix.</b> <br />
+   This step will be removed in the future when Node-Red will properly support persisting credentials without an explicit "Deploy" (today the OAuth RefreshToken needs to be stored somewhere 
+   automatically and without an explicit "Deploy").
+   </li>
+   <li>When used outside of Bluemix, the OAuth credentials and runtime tokens are stored in a file on the hard drive, under the directory where NodeRed is executed (typycally $HOME/.node-red). The name of the files is <code>nodeId</code><b>_cred.json</b>. <br/>
+   This step will be removed in the future when Node-Red will properly support persisting credentials without an explicit "Deploy" (today the OAuth RefreshToken needs to be stored somewhere 
+   automatically and without an explicit "Deploy").
    <li>Both for OAuth and for Basic Authentication, a login is performed by the credential node when it is created. If the login is successfull, the credentials will be stored and will not be made available anymore to the user. </li>
    </ul>
    </p>

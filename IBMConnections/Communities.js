@@ -381,78 +381,66 @@ module.exports = function (RED) {
                     }
                 }
                 //
+                //  Check if the user to be added/removed is specified
+                //
+                var userId = '';
+                if ((config.email == '') &&
+                    ((msg.userId == undefined) || (msg.userId == ''))) {
+                    //
+                    //  There is an issue
+                    //
+                    console.log("Missing UserId Information");
+                    node.status({ fill: "red", shape: "dot", text: "Missing UserId" });
+                    node.error('Missing UserId', msg);
+                    return;
+                } else {
+                    if (config.userId != '') {
+                        userId = config.userId.trim();
+                    } else {
+                        userId = msg.userId.trim();
+                    }
+                }
+                //
                 //  Initialize the display
                 //
                 node.status({fill: "blue", shape: "dot", text: "Updating..."});
                 switch (config.target) {
                     case "AddMember":
-                        if ((config.email == '') && 
-                            ((msg.userId == undefined) || (msg.userId == ''))) {
+                        var theLine = '';
+                        if (mailExp.test(userId)) {
                             //
-                            //  There is an issue
+                            //  add By Mail
                             //
-                            console.log("Missing UserId Information");
-                            node.status({fill: "red", shape: "dot", text: "Missing UserId"});
-                            node.error('Missing UserId', msg);
+                            theLine = '<email>' + userId + '</email>';
                         } else {
-                            var userId = '';
-                            if (config.userId != '') {
-                                userId = config.userId.trim();
-                            } else {
-                                userId = msg.userId.trim();
-                            }
-                            var theLine = '';
-                            if (mailExp.test(userId)) {
-                                //
-                                //  add By Mail
-                                //
-                                theLine = '<email>' + userId + '</email>';
-                            } else {
-                                //
-                                //  Retrieve by Uuid
-                                //
-                                theLine = '<snx:userid xmlns:snx="http://www.ibm.com/xmlns/prod/sn">' + userId + '</snx:userid>';
-                            }
-                            myURL += "/service/atom/community/members?communityUuid=" + communityId;
                             //
-                            // add new Member
+                            //  Retrieve by Uuid
                             //
-                            addCommunityMember(msg, myURL, config.userRole, theLine);
+                            theLine = '<snx:userid xmlns:snx="http://www.ibm.com/xmlns/prod/sn">' + userId + '</snx:userid>';
                         }
+                        myURL += "/service/atom/community/members?communityUuid=" + communityId;
+                        //
+                        // add new Member
+                        //
+                        addCommunityMember(msg, myURL, config.userRole, theLine);
                         break;
                     case "RemoveMember":
-                        if ((config.email == '') && 
-                            ((msg.userId == undefined) || (msg.userId == ''))) {
+                        myURL += "/service/atom/community/members?communityUuid=" + communityId;
+                        if (mailExp.test(userId)) {
                             //
-                            //  There is an issue
+                            //  add By Mail
                             //
-                            console.log("Missing UserId Information");
-                            node.status({fill: "red", shape: "dot", text: "Missing UserId"});
-                            node.error('Missing UserId', msg);
+                            myURL += '&email=' + userId;
                         } else {
-                            var userId = '';
-                            if (config.userId != '') {
-                                userId = config.userId.trim();
-                            } else {
-                                userId = msg.userId.trim();
-                            }
-                            myURL += "/service/atom/community/members?communityUuid=" + communityId;
-                            if (mailExp.test(userId)) {
-                                //
-                                //  add By Mail
-                                //
-                                myURL += '&email=' + userId;
-                            } else {
-                                //
-                                //  Retrieve by Uuid
-                                //
-                                myURL += '&userid=' + userId;
-                            }
                             //
-                            // remove Member
+                            //  Retrieve by Uuid
                             //
-                            removeCommunityMember(msg, myURL);
+                            myURL += '&userid=' + userId;
                         }
+                        //
+                        // remove Member
+                        //
+                        removeCommunityMember(msg, myURL);
                         break;
                 }
             }

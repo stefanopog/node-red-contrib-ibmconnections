@@ -98,8 +98,8 @@
 
     function switchContextRoot2(theServer) {
         alert('a = ' + theServer);
-        $.getJSON('credentials/ICLogin/'+theServer, function(data) {
-       alert(JSON.stringify(data, ' ', 2));
+        $.getJSON('credentials/ICLogin2/'+theServer, function(data) {
+        alert(JSON.stringify(data, ' ', 2));
             if (data.theServerType && (data.theServerType !== '')) {
                 if (data.theServerType === 'cloud') {
                     document.querySelector("#contextRoot").style.display = 'none';
@@ -237,7 +237,7 @@
    </p>
    <p><i>Returns:</i>
    <ul>
-   <li><code>msg.payload</code>. This is an array of objects where each object is the content of the retrieved item
+   <li><code>msg.payload</code>. This is an array of objects where each object is the content of the retrieved item.
    The Array is empty in case no entries are found.
    </li>
    </ul>
@@ -336,7 +336,7 @@
     }
 
     function switchContextRoot() {
-        $.getJSON('credentials/ICLogin/'+this.server, function(data) {
+        $.getJSON('credentials/ICLogin2/'+this.server, function(data) {
        alert(JSON.stringify(data, ' ', 2));
             if (data.theServerType && (data.theServerType !== '')) {
                 if (data.theServerType === 'cloud') {
@@ -429,7 +429,7 @@
    <p>This node is able to perform two actions:
    <ul>
    <li>
-   Write a message (or a comment to an existing message) to the profile board of the supplied User or of the supplied Community.
+   Writes a message (or a comment to an existing message) to the profile board of the supplied User or of the supplied Community.
    <br>
    In this case, the text to be sent can be either specified in the configuration panel or via the <code>msg.payload</code> input.
    <br>
