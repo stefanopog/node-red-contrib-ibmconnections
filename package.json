@@ -1,6 +1,6 @@
 {
     "name": "node-red-contrib-ibmconnections",
-    "version": "1.1.1",
+    "version": "1.2.0",
     "description": "IBM Connections NodeRed nodes",
     "main": "index.js",
     "dependencies": {
@@ -34,12 +34,12 @@
     ],
     "node-red": {
         "nodes": {
-            "ICLogin": "IBMConnections/ICLogin.js",
-            "Embedded Exp": "IBMConnections/EmbeddedExp.js",
-            "Profiles": "IBMConnections/Profiles.js",
-            "Activities": "IBMConnections/Activities.js",
-            "Communities": "IBMConnections/Communities.js",
-            "Search": "IBMConnections/Search.js"
+            "ICLogin2": "IBMConnections2/ICLogin2.js",
+            "Activities": "IBMConnections2/ICActivities.js",
+            "Communities": "IBMConnections2/ICCommunities.js",
+            "EmbeddedExp": "IBMConnections2/ICEmbeddedExp.js",
+            "Profiles": "IBMConnections2/ICProfiles.js",
+            "Search": "IBMConnections2/ICSearch.js"
         }
     },
     "bugs": {

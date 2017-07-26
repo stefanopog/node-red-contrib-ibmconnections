@@ -1,5 +1,5 @@
 module.exports = function(RED) {
-    function ProfilesGet(config) {      
+    function ICProfilesGet(config) {      
         RED.nodes.createNode(this,config);                
         //
         //  Global to access the custom HTTP Request object available from the
@@ -413,6 +413,6 @@ module.exports = function(RED) {
         );
     }
     
-    RED.nodes.registerType("ICProfilesGet",  ProfilesGet);
+    RED.nodes.registerType("ICProfilesGet",  ICProfilesGet);
     
 }

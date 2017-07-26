@@ -1,0 +1,352 @@
+<script type="text/javascript">
+    RED.nodes.registerType('ICLogin2',
+        {
+            category: "config",
+            inputs: 1,
+            outputs: 1,
+            icon: "ibmconnections.png",
+            color: "#FFFFFF",
+            label: function () {
+                var name = "";
+                if (this.serverType === "cloud") {
+                    name = this.cloudServer;
+                } else {
+                    name = this.server;
+                }
+                return name + ' (' + this.displayName + ')';
+            },
+            paletteLabel: "iclogin2",
+            credentials: {
+                username: { type: "text" },
+                password: { type: "password" },
+                oauthId: { type: "text" },
+                oauthSecret: { type: "password" },
+                displayName: { type: "text" },
+                theServerType: { type: "text" }
+            },
+            defaults: {
+                serverType: {
+                    value: "cloud",
+                    required: true
+                },
+                cloudServer: {
+                    value: "america",
+                    required: false
+                },
+                server: {
+                    value: "https://myserver.mydomain.com",
+                    required: false
+                },
+                authType: {
+                    value: "basic",
+                    required: true
+                },
+                displayName: {
+                    value: ""
+                }
+            },
+            oneditprepare: _ICLogin2_editInitialize,
+            oneditsave: _ICLogin2_editSave,
+            oneditcancel: _ICLogin2_editSave
+
+        }
+    );
+    function _ICLogin2_editSave() {
+        //
+        //  re-enable the "setups" otherwise the current value will not be stored
+        //
+        $("#setups *").prop('disabled', false);
+        //
+        //  Clean the timer
+        //
+        if (window.icConfigNodeIntervalId) {
+            window.clearTimeout(window.icConfigNodeIntervalId);
+            delete window.icConfigNodeIntervalId;
+        }
+    };
+
+    function _ICLogin2_editInitialize() {
+        var id = this.id;
+        var pathname = location.pathname;
+        if (pathname.slice(-1) != "/") {
+            pathname += "/";
+        }
+        var callback = location.protocol + "//" +
+            location.hostname +
+            (location.port ? ":" + location.port : "") +
+            pathname + "ic-credentials/auth/callback";
+        //
+        //  service functions
+        //
+        function updateLoginDisplayName(value) {
+            $("#setups *").prop('disabled', true);
+            $("#oauth-auth").hide();
+            $("#basic-auth").hide();
+            $("#node-config-login").show();
+            $("#node-config-input-displayName").val(value);
+            $("#node-config-ic-displayName").html(value);
+        }
+        function updateICAuthButton1() {
+            var v1 = $("#node-config-input-oauthId").val();
+            var v2 = $("#node-config-input-oauthSecret").val();
+            $("#node-config-start-oauth").toggleClass("disabled", (v1.length === 0 || v2.length === 0));
+        }
+        function updateICAuthButton2() {
+            var v1 = $("#node-config-input-username").val();
+            var v2 = $("#node-config-input-password").val();
+            $("#node-config-start-basic").toggleClass("disabled", (v1.length === 0 || v2.length === 0));
+        }
+        function pollCredentials() {
+            $.getJSON('credentials/ICLogin2/' + id, function (data) {
+                if (data.displayName) {
+                    $("#node-config-dialog-ok").button("enable");
+                    updateLoginDisplayName(data.displayName);
+                    delete window.icConfigNodeIntervalId;
+                } else {
+                    window.icConfigNodeIntervalId = window.setTimeout(pollCredentials, 2000);
+                }
+            });
+        }
+        //
+        //  Create tooltip text for the OAuth callback
+        //
+        //var tip = this._("ic.tip.redirect", { callback: callback });
+        var tip = "pippo";
+        $("#node-config-ic-tooltip").html(tip);
+        //
+        //  Manage the state of the OAUTH2 Authenticate button
+        //
+        $("#node-config-input-oauthId").on('change keydown paste input',
+            updateICAuthButton1);
+        $("#node-config-input-oauthSecret").on('change keydown paste input',
+            updateICAuthButton1);
+        updateICAuthButton1();
+        //
+        //  Manage the state of the Basic Authenticate button
+        //
+        $("#node-config-input-username").on('change keydown paste input', updateICAuthButton2);
+        $("#node-config-input-password").on('change keydown paste input', updateICAuthButton2);
+        updateICAuthButton2();
+        //
+        //  Manage the actions on the OAuth2 button
+        //
+        $("#node-config-start-oauth").mousedown(function () {
+            var oauthId = $("#node-config-input-oauthId").val();
+            var oauthSecret = $("#node-config-input-oauthSecret").val();
+            var myServer = '';
+            if ($("#node-config-input-serverType").val() === 'cloud') {
+                myServer = $("#node-config-input-cloudServer").val();
+            } else {
+                myServer = $("#node-config-input-server").val()
+            }
+            var url = 'ic-credentials/oauth?' +
+                'id=' + id + '&clientId=' + oauthId +
+                '&serverType=' + $("#node-config-input-serverType").val() +
+                '&server=' + myServer +
+                "&clientSecret=" + oauthSecret +
+                "&callback=" + encodeURIComponent(callback);
+            $(this).attr("href", url);
+            window.icConfigNodeIntervalId = window.setTimeout(pollCredentials, 2000);
+        });
+        $("#node-config-start-oauth").click(function (e) {
+            var oauthId = $("#node-config-input-oauthId").val();
+            var oauthSecret = $("#node-config-input-oauthSecret").val();
+            if (oauthId === "" || oauthSecret === "") {
+                e.preventDefault();
+            }
+        });
+        //
+        //  Manage the actions on the Basic Auth button
+        //
+        $("#node-config-start-basic").mousedown(function () {
+            var username = $("#node-config-input-username").val();
+            var password = $("#node-config-input-password").val();
+            var myServer = '';
+            if ($("#node-config-input-serverType").val() === 'cloud') {
+                myServer = $("#node-config-input-cloudServer").val();
+            } else {
+                myServer = $("#node-config-input-server").val()
+            }
+            var url = 'ic-credentials/basic?' +
+                'id=' + id + '&username=' + username +
+                '&serverType=' + $("#node-config-input-serverType").val() +
+                '&server=' + myServer +
+                "&password=" + password;
+            $(this).attr("href", url);
+            window.icConfigNodeIntervalId = window.setTimeout(pollCredentials, 2000);
+        });
+        $("#node-config-start-basic").click(function (e) {
+            var username = $("#node-config-input-username").val();
+            var password = $("#node-config-input-password").val();
+            if (username === "" || password === "") {
+                e.preventDefault();
+            }
+        });
+        _ICLogin2__updateServerType();
+        _ICLogin2__updateAuthType();
+        //
+        //  Manage the Hidden field which holds the username
+        //
+        if (this.displayName) {
+            updateLoginDisplayName(this.displayName);
+        } else {
+            $("#node-config-login").hide();
+            $("#node-config-dialog-ok").button("disable");
+        }
+    };
+
+    function _ICLogin2_updateServerType() {
+        if (document.querySelector("#node-config-input-displayName").value) return;
+        _ICLogin2__updateServerType();
+    };
+    function _ICLogin2__updateServerType() {
+        if (document.querySelector("#node-config-input-serverType").value === "cloud") {
+            document.querySelector("#cloudServer").style.display = "inline";
+            document.querySelector("#premServer").style.display = "none";
+            //document.querySelector("#auth-app-pwd").disabled = true;
+        } else {
+            document.querySelector("#cloudServer").style.display = "none";
+            document.querySelector("#premServer").style.display = "inline";
+            //document.querySelector("#auth-app-pwd").disabled = true;
+        }
+    };
+
+
+    function _ICLogin2_updateAuthType() {
+        if (document.querySelector("#node-config-input-displayName").value) return;
+        _ICLogin2__updateAuthType();
+    };
+    function _ICLogin2__updateAuthType() {
+        switch (document.querySelector("#node-config-input-authType").value) {
+            case "oauth":
+                document.querySelector("#oauth-auth").style.display = "inline";
+                document.querySelector("#basic-auth").style.display = "none";
+                break;
+            case "basic":
+                document.querySelector("#oauth-auth").style.display = "none";
+                document.querySelector("#basic-auth").style.display = "inline";
+                break;
+            case "app":
+                break;
+        }
+    };
+
+</script>
+
+<script type="text/x-red" data-template-name="ICLogin2">
+<div class="form-row" id="setups">
+    <div class="form-row">
+        <label for="node-config-input-serverType"><i class="fa fa-arrow-circle-right"></i> Type</label>
+        <select id="node-config-input-serverType" onchange="_ICLogin2_updateServerType()">
+                <option value="cloud">Cloud</option>
+                <option value="onpremises">On Premises</option>
+            </select>
+    </div>
+</div>
+
+<div class="form-row" id="cloudServer">
+    <label for="node-config-input-cloudServer"><i class="fa fa-arrow-circle-right"></i> Instance</label>
+    <select id="node-config-input-cloudServer">
+                <option value="europe">European DC</option>
+                <option value="america">North America DC</option>
+            </select>
+</div>
+
+<div class="form-row" id="premServer">
+    <label for="node-config-input-server"><i class="fa fa-server"></i> Server</label>
+    <input type="text" id="node-config-input-server" placeholder="Server">
+</div>
+
+<br />
+<br />
+
+<div class="form-row">
+    <label for="node-config-input-authType"><i class="fa fa-address-card"></i> Auth.</label>
+    <select id="node-config-input-authType" onchange="_ICLogin2_updateAuthType()">
+               <option value="basic">Basic Authentication</option>
+               <option value="oauth">OAuth 2.0</option>
+               <!-- <option value="app">Application Password</option> -->
+           </select>
+</div>
+</div>
+
+<div class="form-row" id="basic-auth">
+    <div class="form-row">
+        <label for="node-config-input-username"><i class="fa fa-user"></i> <span data-i18n="ic.label.username"></span></label>
+        <input type="text" id="node-config-input-username" data-i18n="[placeholder]ic.placeholder.username">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-password" id="pwd-label"><i class="fa fa-key"></i> <span data-i18n="ic.label.password"></span></label>
+        <input type="password" id="node-config-input-password" data-i18n="[placeholder]ic.placeholder.password">
+    </div>
+    <div class="form-row">
+        <label>&nbsp;</label>
+        <a class="btn" id="node-config-start-basic" href="#" target="_blank"><span data-i18n="ic.label.authenticate"></span></a>
+    </div>
+</div>
+
+<div class="form-row" id="oauth-auth">
+    <div class="form-row">
+        <p style="margin-top: 10px;"><b>1.</b> <span data-i18n="ic.label.create"></span></p>
+    </div>
+    <div class="form-tips" id="node-config-ic-tooltip">
+    </div>
+    <div class="form-row">
+        <p style="margin-top: 10px;"><b>2.</b> <span data-i18n="ic.label.copy"></span>:</p>
+    </div>
+    <div class="form-row">
+        <label style="margin-left: 10px; margin-right: -10px;" for="node-config-input-oauthId"><i class="fa fa-user"></i> <span data-i18n="ic.label.oauthId"></span></label>
+        <input type="password" id="node-config-input-oauthId">
+    </div>
+    <div class="form-row">
+        <label style="margin-left: 10px; margin-right: -10px;" for="node-config-input-oauthSecret"><i class="fa fa-key"></i> <span data-i18n="ic.label.oauthSecret"></span></label>
+        <input type="password" id="node-config-input-oauthSecret">
+    </div>
+    <div class="form-row">
+        <label>&nbsp;</label>
+        <a class="btn" id="node-config-start-oauth" href="#" target="_blank"><span data-i18n="ic.label.authenticate"></span></a>
+    </div>
+</div>
+
+<div id="node-config-login">
+    <div class="form-row">
+        <label><i class="fa fa-user"></i> <span data-i18n="ic.label.username"></span></label><span id="node-config-ic-displayName" class="input-xlarge uneditable-input"></span>
+    </div>
+    <input type="hidden" id="node-config-input-displayName">
+</div> </script>
+
+<script type="text/x-red" data-help-name="ICLogin2">
+<p>Log into IBM Connections.</p>
+<p>The node supports logging into IBM Connections Cloud and IBM Connections On Premises.</p>
+<p>It supports:
+    <ul>
+        <li><b>Basic Authentication</b> : standard username/password pair</li>
+        <li><b>OAuth2</b> : Key and Secret need to be provided. The interface will then guide you through the OAuth2 dance to
+            get the runtime token.<br/> The node supports automatic renew of an expired token. As the OAuth Token expires,
+            the relevant <code>RefreshToekn</code> API is invoked to grab a new Token.<br/>
+        </li>
+    </ul>
+    <p><b>Note : </b>
+        <ul>
+            <li>When used on Bluemix, the OAuth credentials and runtime token are stored inside a <b>Cloudant</b> databse named
+                <b>oauth_cred</b>. <br/>
+                <b style="color:red">The <i>oauth_cred</i> database needs to be manually created before using this node with OAuth on BlueMix.</b>
+                <br /> This step will be removed in the future when Node-Red will properly support persisting credentials
+                without an explicit"Deploy" (today the OAuth RefreshToken needs to be stored somewhere automatically and
+                without an explicit "Deploy").
+            </li>
+            <li>When used outside of Bluemix, the OAuth credentials and runtime tokens are stored in a file on the hard drive,
+                under the directory where NodeRed is executed (typycally $HOME/.node-red). The name of the files is <code>nodeId</code><b>_cred.json</b>.
+                <br/> This step will be removed in the future when Node-Red will properly support persisting credentials
+                without an explicit "Deploy" (today the OAuth RefreshToken needs to be stored somewhere automatically and
+                without an explicit "Deploy").</li>
+            <li>
+                Both for OAuth and for Basic Authentication, a login is performed by the credential node when it is created. If the login
+                is successfull, the credentials will be stored and will not be made available anymore to the user. </li>
+        </ul>
+    </p>
+</p>
+
+</script>
+
+

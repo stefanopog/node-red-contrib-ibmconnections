@@ -1,61 +1,6 @@
 module.exports = function (RED) {
-    function parseAtomEntry(entry, isAtom) {
-        var xml2js = require("xml2js");
-        var builder = new xml2js.Builder({
-            rootName: "entry"
-        });
-        var community = {};
-        if (entry.title && entry.title[0]['_']) {
-            community['title'] = entry.title[0]['_'];
-        } else if (entry.title && entry.title[0]) {
-            community['title'] = entry.title[0];
-        }
-        if (entry.id) {
-            community['id'] = entry.id[0];
-        }
-        if (entry.link) {
-            for (j = 0; j < entry.link.length; j++) {
-                var tmp = entry.link[j];
-                if (tmp['$'].rel === "self") {
-                    community['ref'] = tmp['$'].href;
-                    break;
-                }
-            }
-        }
-        if (entry['snx:communityType']) {
-            community['communityType'] = entry['snx:communityType'][0];
-        }
-        if (entry['snx:isExternal']) {
-            community['isExternal'] = entry['snx:isExternal'][0];
-        }
-        if (entry['snx:communityUuid']) {
-            community['Uuid'] = entry['snx:communityUuid'][0];
-        }
-        community['entry'] = builder.buildObject(entry);
-        community['originalentry'] = entry;
-        return community;
-    }
 
-    function parseMemberEntry(entry, isAtom) {
-        var xml2js = require("xml2js");
-        var builder = new xml2js.Builder({
-            rootName: "entry"
-        });
-        var member = {};
-
-        //console.log(JSON.stringify(entry, ' ', 2));
-        member.name = entry.contributor[0].name[0];
-        member.userState = entry.contributor[0]['snx:userState'][0]['_'];
-        if (member.userState === 'active') {
-            member.mail = entry.contributor[0].email[0];
-            member.userid = entry.contributor[0]['snx:userid'][0]['_'];
-            member.isExternal = entry.contributor[0]['snx:isExternal'][0]['_'];
-            member.role = entry['snx:role'][0]['_'];
-        }
-        return member;
-    }
-
-    function CommunitiesGet(config) {
+    function ICCommunitiesGet(config) {
         RED.nodes.createNode(this, config);
         //
         //  Global to access the custom HTTP Request object available from the
@@ -67,6 +12,62 @@ module.exports = function (RED) {
         var mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
         var xml2js = require("xml2js");
         var parser = new xml2js.Parser();
+
+        function parseAtomEntry(entry, isAtom) {
+            var xml2js = require("xml2js");
+            var builder = new xml2js.Builder({
+                rootName: "entry"
+            });
+            var community = {};
+            if (entry.title && entry.title[0]['_']) {
+                community['title'] = entry.title[0]['_'];
+            } else if (entry.title && entry.title[0]) {
+                community['title'] = entry.title[0];
+            }
+            if (entry.id) {
+                community['id'] = entry.id[0];
+            }
+            if (entry.link) {
+                for (j = 0; j < entry.link.length; j++) {
+                    var tmp = entry.link[j];
+                    if (tmp['$'].rel === "self") {
+                        community['ref'] = tmp['$'].href;
+                        break;
+                    }
+                }
+            }
+            if (entry['snx:communityType']) {
+                community['communityType'] = entry['snx:communityType'][0];
+            }
+            if (entry['snx:isExternal']) {
+                community['isExternal'] = entry['snx:isExternal'][0];
+            }
+            if (entry['snx:communityUuid']) {
+                community['Uuid'] = entry['snx:communityUuid'][0];
+            }
+            community['entry'] = builder.buildObject(entry);
+            community['originalentry'] = entry;
+            return community;
+        }
+
+        function parseMemberEntry(entry, isAtom) {
+            var xml2js = require("xml2js");
+            var builder = new xml2js.Builder({
+                rootName: "entry"
+            });
+            var member = {};
+
+            //console.log(JSON.stringify(entry, ' ', 2));
+            member.name = entry.contributor[0].name[0];
+            member.userState = entry.contributor[0]['snx:userState'][0]['_'];
+            if (member.userState === 'active') {
+                member.mail = entry.contributor[0].email[0];
+                member.userid = entry.contributor[0]['snx:userid'][0]['_'];
+                member.isExternal = entry.contributor[0]['snx:isExternal'][0]['_'];
+                member.role = entry['snx:role'][0]['_'];
+            }
+            return member;
+        }
 
         function getCommunityList(theMsg, theURL) {
             node.login.request(
@@ -261,9 +262,9 @@ module.exports = function (RED) {
         );
     }
 
-    RED.nodes.registerType("ICCommunitiesGet", CommunitiesGet);
+    RED.nodes.registerType("ICCommunitiesGet", ICCommunitiesGet);
 
-    function CommunitiesUpdate(config) {
+    function ICCommunitiesUpdate(config) {
         RED.nodes.createNode(this, config);
         //
         //  Global to access the custom HTTP Request object available from the
@@ -447,5 +448,5 @@ module.exports = function (RED) {
         );
     }
 
-    RED.nodes.registerType("ICCommunitiesUpdate", CommunitiesUpdate);
+    RED.nodes.registerType("ICCommunitiesUpdate", ICCommunitiesUpdate);
 }

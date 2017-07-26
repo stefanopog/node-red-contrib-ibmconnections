@@ -2,28 +2,30 @@ module.exports = function(RED) {
     "use strict";
     var debug = true;
     var fs = require("fs");
-    var Cloudant = require("cloudant");
     var request = require("request");
     var request2 = require("request");
     //
     //  Managing storage for OAUTH credentials (on BlueMix)
     //
-    function _oauthCloudantDB() {
+    function _ICLogin2_oauthCloudantDB() {
+        var Cloudant = require("cloudant");
         var cloudant = Cloudant({vcapServices: JSON.parse(process.env.VCAP_SERVICES)});
         return cloudant.use("oauth_cred");
     }
     //
     //  Managing storage for OAUTH credentials (not on BlueMix)
     //
-    function _oauthFileName(nodeId) {
+    function _ICLogin2_oauthFileName(nodeId) {
         return './' + nodeId + '_cred.json';
     }
 
     //
     //  Node-RED Configuration function
     //
-    function ICLogin(config) {
+    function ICLogin2(config) {
+        console.log('ICLogin2............');
 		RED.nodes.createNode(this, config);
+        console.log('ICLogin2............ created');
 
 		this.server      = config.server;
 		this.serverType  = config.serverType;
@@ -36,13 +38,13 @@ module.exports = function(RED) {
 		this.oauthId     = this.credentials.oauthId;
 		this.oauthSecret = this.credentials.oauthSecret;
 
-        this.getServer   = getServer(this.serverType, this.cloudServer, this.server);
-        //this.getContext  = getContext(this.server, this.serverType);
+        this.getServer   = _ICLogin2_getServer(this.serverType, this.cloudServer, this.server);
+        //this.getContext  = _ICLogin2_getContext(this.server, this.serverType);
     }
     //
     //  Exporting modules
     //
-    RED.nodes.registerType("ICLogin2", ICLogin,{
+    RED.nodes.registerType("ICLogin2", ICLogin2,{
                             credentials: {
 									username: {type:"text"},
 									password: {type:"password"},
@@ -57,7 +59,7 @@ module.exports = function(RED) {
     //
     //  Debugging functions
     //
-    function _dumpCallback(err, result, data) {
+    function _ICLogin2_dumpCallback(err, result, data) {
         if (debug) {
             if (err) {
                 console.log('======= ERR ==========');
@@ -78,7 +80,7 @@ module.exports = function(RED) {
     //
     //  Debugging Function
     //
-    function _dumpCred(credentials, header) {
+    function _ICLogin2_dumpCred(credentials, header) {
         if (debug) {
             console.log('******** ' + header + ' ************** ');
             console.log('Client Id : ' + credentials.oauthId);
@@ -96,7 +98,7 @@ module.exports = function(RED) {
     //
     //  Get the OAuth Authorization URL (as a function of the serverType)
     //
-    function _getAuthURL(serverType, server, clientId, callback) {
+    function _ICLogin2_getAuthURL(serverType, server, clientId, callback) {
         var authURL = '';
         if (serverType === "cloud") {
             authURL  = server + '/manage/oauth2/authorize';
@@ -115,7 +117,7 @@ module.exports = function(RED) {
     //
     //  Get the OAuth Authorization URL (as a function of the serverType)
     //
-    function _getTokenURL(serverType, server) {
+    function _ICLogin2_getTokenURL(serverType, server) {
         var tokenURL = '';
         if (serverType === "cloud") {
             tokenURL = server + '/manage/oauth2/token';
@@ -127,7 +129,7 @@ module.exports = function(RED) {
     //
     //  Get results in JSON Array format
     //
-    function _getArrayCreds(serverType, data) {
+    function _ICLogin2_getArrayCreds(serverType, data) {
         if (serverType === "cloud") {
             var aa = data.split("&");
             var creds = {};
@@ -146,7 +148,7 @@ module.exports = function(RED) {
     //
     //
     //
-    function parseServiceEntry(entry) {
+    function _ICLogin2_parseServiceEntry(entry) {
         var svc = {};
         if (entry.title && entry.title[0]['_']) {
             svc.title = entry.title[0]['_'];
@@ -162,7 +164,7 @@ module.exports = function(RED) {
     //
     //  Getting information about the logging in user
     //
-    function _whoAmI(node_id, credentials, theServer, res, authType, serverType) {
+    function _ICLogin2_whoAmI(node_id, credentials, theServer, res, authType, serverType) {
         var xml2js = require("xml2js");
         var parser = new xml2js.Parser();
         var theAuth;
@@ -213,7 +215,7 @@ module.exports = function(RED) {
                     if (result2.feed.entry) {
                         var i=0;
                         for (i = 0; i < result2.feed.entry.length; i++) {
-                            myData.push(parseServiceEntry(result2.feed.entry[i]));
+                            myData.push(_ICLogin2_parseServiceEntry(result2.feed.entry[i]));
                         }
                     } else {
                         console.log("Parser Error svcconfig _whoAmI : NO ENTRY found");
@@ -271,7 +273,7 @@ module.exports = function(RED) {
     //
     //  get full Connections server URL
     //
-    function getServer(serverType, cloudServer, server){
+    function _ICLogin2_getServer(serverType, cloudServer, server){
         var endSlash = new RegExp("/" + "+$");
         var fmtServer   = "";
         //
@@ -295,7 +297,7 @@ module.exports = function(RED) {
     //
     //  Get the Connections context root
     //
-    function getContext(server, serverType) {
+    function _ICLogin2_getContext(server, serverType) {
         var context = '';
         //
         //  Deal with specific W3-Connections
@@ -311,7 +313,7 @@ module.exports = function(RED) {
     //
     //  Redefine the process for Refreshing the OAuth 2.0 Token
     //
-    ICLogin.prototype.refreshToken = function(cb) {
+    ICLogin2.prototype.refreshToken = function(cb) {
         var credentials = this.credentials;
         var node = this;
 
@@ -330,7 +332,7 @@ module.exports = function(RED) {
             //  Refreshing the token
             //
             console.log('ICLogin/_cb1: Refreshing using refresh token : ' + data.refreshToken);
-            var tokenURL =  _getTokenURL(node.serverType, node.getServer);
+            var tokenURL =  _ICLogin2_getTokenURL(node.serverType, node.getServer);
             request.post({
                 url: tokenURL,
                 json: true,
@@ -350,7 +352,7 @@ module.exports = function(RED) {
                     node.error(RED._("ic.error.refresh-token-error",{message:data.error}));
                     return;
                 }
-                var creds = _getArrayCreds(node.serverType, data);
+                var creds = _ICLogin2_getArrayCreds(node.serverType, data);
                 //
                 //  Build and Save the correct credentials
                 //
@@ -365,7 +367,7 @@ module.exports = function(RED) {
                 //  Committing Credentials to Node-RED Credentials Store
                 //
                 RED.nodes.addCredentials(node.id, node.credentials);
-                _dumpCred(node.credentials, 'After Refresh');
+                _ICLogin2_dumpCred(node.credentials, 'After Refresh');
                 //
                 //  Bbypass the issue of NodeRed with Deploy
                 //
@@ -375,7 +377,7 @@ module.exports = function(RED) {
                     //
                     //  NOT on BlueMix
                     //
-                    var outFile = _oauthFileName(node.id);
+                    var outFile = _ICLogin2_oauthFileName(node.id);
                     console.log('ICLogin/_cb1 : Refreshing file record ' + outFile);
                     fs.writeFile(outFile,
                                  JSON.stringify(node.credentials, null, 2),
@@ -395,7 +397,7 @@ module.exports = function(RED) {
                     //  on Bluemix
                     //  Update the Cloudant record
                     //
-                    var credDB = _oauthCloudantDB();
+                    var credDB = _ICLogin2_oauthCloudantDB();
                     var newRec = {
                             credentials : node.credentials,
                             _id : node.id,
@@ -431,14 +433,14 @@ module.exports = function(RED) {
         //  read RefreshToekn from the temporary storage to bypass the issue of
         //  credentials being saved ONLY on deploy
         //
-        _dumpCred(credentials, 'During Refresh');
+        _ICLogin2_dumpCred(credentials, 'During Refresh');
         var isBM = process.env.VCAP_SERVICES;
         console.log('ICLogin/refreshToken : isBM = ', isBM);
         if (!isBM) {
             //
             //  NOT on BlueMix
             //
-            var outFile = _oauthFileName(node.id);
+            var outFile = _ICLogin2_oauthFileName(node.id);
             console.log('ICLogin/refreshToken: Reading Credentials from storage ' + outFile);
             var infos = fs.readFileSync(outFile);
             var infosJ = JSON.parse(infos.toString('utf8'));
@@ -447,7 +449,7 @@ module.exports = function(RED) {
             //
             //  on BlueMix
             //
-            var credDB = _oauthCloudantDB();
+            var credDB = _ICLogin2_oauthCloudantDB();
             credDB.get(node.id, _cb1);
         }
     };
@@ -456,7 +458,7 @@ module.exports = function(RED) {
     //  In this way the Basci auth or OAuth auth are isolated
     //  as well as the possible need to refresh the OAuth token
     //
-    ICLogin.prototype.request = function(req, retries, cb) {
+    ICLogin2.prototype.request = function(req, retries, cb) {
         var node = this;
         if (typeof retries === 'function') {
             cb = retries;
@@ -533,13 +535,13 @@ module.exports = function(RED) {
         var crypto = require("crypto");
         var node_id = req.query.id;
         var callback = req.query.callback;
-        var server = getServer(req.query.serverType, req.query.server, req.query.server);
+        var server = _ICLogin2_getServer(req.query.serverType, req.query.server, req.query.server);
         var csrfToken = crypto.randomBytes(18).toString('base64').replace(/\//g, '-').replace(/\+/g, '_');
         //
         //  Build authorization and token URLs
         //
-        var authURL = _getAuthURL(req.query.serverType, server, req.query.clientId, callback);
-        var tokenURL = _getTokenURL(req.query.serverType, server);
+        var authURL = _ICLogin2_getAuthURL(req.query.serverType, server, req.query.clientId, callback);
+        var tokenURL = _ICLogin2_getTokenURL(req.query.serverType, server);
         //
         //  set cookies
         //
@@ -626,7 +628,7 @@ module.exports = function(RED) {
                     return res.send(RED._("ic.error.something-broke"));
                 }
                 var serverType = credentials.theServerType;
-                var creds = _getArrayCreds(serverType, data);
+                var creds = _ICLogin2_getArrayCreds(serverType, data);
                 //
                 //  Build and Save the correct credentials
                 //
@@ -643,7 +645,7 @@ module.exports = function(RED) {
                 delete credentials.callback;
                 delete credentials.server;
                 RED.nodes.addCredentials(node_id, credentials);
-                _dumpCred(credentials, 'First Authorization');
+                _ICLogin2_dumpCred(credentials, 'First Authorization');
                 //
                 //  Writing credentials in persistent store
                 //
@@ -653,14 +655,14 @@ module.exports = function(RED) {
                     //
                     //  NOT on BlueMix
                     //
-                    var outFile = _oauthFileName(node_id);
+                    var outFile = _ICLogin2_oauthFileName(node_id);
                     console.log('ICLogin/callback : Refreshing file record ' + outFile);
                     fs.writeFileSync(outFile, JSON.stringify(credentials, null, 2));
                     //
                     //  We can now get the NAME of the user in order to update the
                     //  "displayName" in the UI
                     //
-                    _whoAmI(node_id, credentials, theServer, res, 'oauth', serverType);
+                    _ICLogin2_whoAmI(node_id, credentials, theServer, res, 'oauth', serverType);
                 } else {
                     //
                     //  on BlueMix
@@ -671,7 +673,7 @@ module.exports = function(RED) {
                     //  so we do not need to specify it here
                     //
                     console.log('ICLogin/callback : Refreshing cloudant record ' + node_id);
-                    var credDB = _oauthCloudantDB();
+                    var credDB = _ICLogin2_oauthCloudantDB();
                     credDB.insert(newRec, function(err, body, header) {
                         if (err) {
                             res.send(RED._('ICLogin/callback : Error Writing Credentials to storage : ' + err));
@@ -680,7 +682,7 @@ module.exports = function(RED) {
                             //  We can now get the NAME of the user in order to update the
                             //  "displayName" in the UI
                             //
-                            _whoAmI(node_id, credentials, theServer, res, 'oauth', serverType);
+                            _ICLogin2_whoAmI(node_id, credentials, theServer, res, 'oauth', serverType);
                         }
                     });
                 }
@@ -696,7 +698,7 @@ module.exports = function(RED) {
             return;
         }
         var node_id = req.query.id;
-        var server = getServer(req.query.serverType, req.query.server, req.query.server);
+        var server = _ICLogin2_getServer(req.query.serverType, req.query.server, req.query.server);
         var credentials = {
             username: req.query.username,
             password: req.query.password,
@@ -704,6 +706,6 @@ module.exports = function(RED) {
             server: server
         };
         RED.nodes.addCredentials(node_id, credentials);
-        _whoAmI(node_id, credentials, server, res, 'basic', req.query.serverType);
+        _ICLogin2_whoAmI(node_id, credentials, server, res, 'basic', req.query.serverType);
     });
 };

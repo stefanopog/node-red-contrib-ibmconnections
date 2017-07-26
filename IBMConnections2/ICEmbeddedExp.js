@@ -1,5 +1,5 @@
 module.exports = function(RED) {
-   function ASPut(config) {      
+   function ICASPut(config) {      
         RED.nodes.createNode(this,config);        
         //
         //  Global to access the custom HTTP Request object available from the
@@ -196,7 +196,7 @@ module.exports = function(RED) {
                         //
                         //  There is an issue
                         //
-                        console.log("Missing PostIds Information");
+                        console.log("Missing PostId Information");
                         node.status({fill:"red",shape:"dot",text:"Missing PostId"});
                         node.error('Missing PostId', msg);
                         return;
@@ -280,10 +280,10 @@ module.exports = function(RED) {
         });
     }
     
-    RED.nodes.registerType("ICASPut", ASPut);
+    RED.nodes.registerType("ICASPut", ICASPut);
 
 
-    function ASGet(config) {
+    function ICASGet(config) {
         RED.nodes.createNode(this, config);
         //
         //  Global to access the custom HTTP Request object available from the
@@ -542,6 +542,6 @@ module.exports = function(RED) {
         });
     }
 
-    RED.nodes.registerType("ICASGet", ASGet);
+    RED.nodes.registerType("ICASGet", ICASGet);
 
 }

@@ -1,5 +1,5 @@
 module.exports = function(RED) {    
-    function parseAtomEntry(entry, isAtom) {
+    function ICparseActivityAtomEntry(entry, isAtom) {
         var xml2js = require("xml2js");
         var builder  = new xml2js.Builder({rootName: "entry"});
         var activity = {};
@@ -18,7 +18,7 @@ module.exports = function(RED) {
         return activity;
     }
 
-    function ActivitiesNew(config) {      
+    function ICActivitiesNew(config) {      
         RED.nodes.createNode(this,config);        
         //
         //  Global to access the custom HTTP Request object available from the
@@ -156,7 +156,7 @@ module.exports = function(RED) {
                                     return;
                                 }
                                 var myData = new Array();
-                                myData.push(parseAtomEntry(result.entry, true));
+                                myData.push(ICparseActivityAtomEntry(result.entry, true));
                                 if (result.entry) {
                                     console.log(JSON.stringify(myData, null, 2));
                                     theMsg.payload = myData;
@@ -280,10 +280,10 @@ module.exports = function(RED) {
         );
     }
     
-    RED.nodes.registerType("ICActivitiesNew", ActivitiesNew);
+    RED.nodes.registerType("ICActivitiesNew", ICActivitiesNew);
 
     
-    function ActivitiesGet(config) {      
+    function ICActivitiesGet(config) {      
         RED.nodes.createNode(this,config);   
         //
         //  Global to access the custom HTTP Request object available from the
@@ -390,7 +390,7 @@ module.exports = function(RED) {
                                             processIt = true;
                                         }
                                         if (processIt) {
-                                            myData.push(parseAtomEntry(result.feed.entry[i], isAtom));   
+                                            myData.push(ICparseActivityAtomEntry(result.feed.entry[i], isAtom));   
                                         }
                                     }
                                     node.status({});
@@ -441,7 +441,7 @@ module.exports = function(RED) {
                                 var myData = new Array();
                                 if (result.entry) {
                                     //
-                                    myData.push(parseAtomEntry(result.entry, isAtom));
+                                    myData.push(ICparseActivityAtomEntry(result.entry, isAtom));
                                     node.status({});
                                 } else {
                                     console.log('No ENTRY found for URL : ' + theURL);
@@ -523,11 +523,9 @@ module.exports = function(RED) {
         );
     }
     
-    RED.nodes.registerType("ICActivitiesGet", ActivitiesGet);
-
+    RED.nodes.registerType("ICActivitiesGet", ICActivitiesGet); 
     
-    
-    function ActivitiesUpdate(config) {      
+    function ICActivitiesUpdate(config) {      
         RED.nodes.createNode(this,config);        
         //
         //  Global to access the custom HTTP Request object available from the
@@ -570,7 +568,7 @@ module.exports = function(RED) {
                                 }
                                 if (result.entry) {
                                     var myData = new Array();
-                                    myData.push(parseAtomEntry(result.entry, isAtom));
+                                    myData.push(ICparseActivityAtomEntry(result.entry, isAtom));
                                     theMsg.payload = myData;
                                     node.status({});
                                     node.send(theMsg);
@@ -874,6 +872,6 @@ module.exports = function(RED) {
         );
     }
     
-    RED.nodes.registerType("ICActivitiesUpdate", ActivitiesUpdate);
+    RED.nodes.registerType("ICActivitiesUpdate", ICActivitiesUpdate);
 
 }

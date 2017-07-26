@@ -2,7 +2,7 @@
     RED.nodes.registerType(
         'ICASGet',
         {
-            category: "socialIBM",
+            category: "IBMsocial",
             inputs: 1,
             outputs:1,
             icon: "ibmconnections.png",
@@ -97,9 +97,9 @@
     }
 
     function switchContextRoot2(theServer) {
-        alert('a = ' + theServer);
+        //alert('a = ' + theServer);
         $.getJSON('credentials/ICLogin2/'+theServer, function(data) {
-        alert(JSON.stringify(data, ' ', 2));
+        //alert(JSON.stringify(data, ' ', 2));
             if (data.theServerType && (data.theServerType !== '')) {
                 if (data.theServerType === 'cloud') {
                     document.querySelector("#contextRoot").style.display = 'none';
@@ -248,7 +248,7 @@
     RED.nodes.registerType(
         'ICASPut',
         {
-            category: "socialIBM",
+            category: "IBMsocial",
             inputs: 1,
             outputs:1,
             icon: "ibmconnections.png",
@@ -337,7 +337,7 @@
 
     function switchContextRoot() {
         $.getJSON('credentials/ICLogin2/'+this.server, function(data) {
-       alert(JSON.stringify(data, ' ', 2));
+       //alert(JSON.stringify(data, ' ', 2));
             if (data.theServerType && (data.theServerType !== '')) {
                 if (data.theServerType === 'cloud') {
                     document.querySelector("#contextRoot").style.display = 'none';

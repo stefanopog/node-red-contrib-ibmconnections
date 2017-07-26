@@ -1,5 +1,5 @@
 module.exports = function (RED) {
-    function SimpleSearch(config) {
+    function ICSimpleSearch(config) {
         RED.nodes.createNode(this, config);
         //
         //  Global to access the custom HTTP Request object available from the
@@ -330,6 +330,6 @@ module.exports = function (RED) {
         );
     }
 
-    RED.nodes.registerType("ICSimpleSearch", SimpleSearch);
+    RED.nodes.registerType("ICSimpleSearch", ICSimpleSearch);
 
 }
