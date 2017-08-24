@@ -1,37 +1,23 @@
 {
     "name": "node-red-contrib-ibmconnections",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "IBM Connections NodeRed nodes",
-    "main": "index.js",
-    "dependencies": {
-        "request": "*",
-        "xml2js": "*",
-        "crypto":"*"
-    },
+    "keywords": [
+        "ibmconnections",
+        "node-red"
+    ],
+    "main": "none",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"
     },
+    "contributors": [{
+        "name": "Stefano Pogliani"
+    }],
+    "license": "Apache-2.0",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/stefanopog/node-red-contrib-ibmconnections.git"
+        "url": "https://github.com/stefanopog/node-red-contrib-ibmconnections.git"
     },
-    "keywords": [
-        "ibmconnections",
-        "node-red",
-        "profiles",
-        "communities",
-        "activities"
-    ],
-    "author": {
-        "name": "Stefano Pogliani",
-        "email": "stefano@poglianis.net"
-    },
-    "maintainers": [
-        {
-            "name": "coccobill",
-            "email": "stefano@poglianis.net"
-        }
-    ],
     "node-red": {
         "nodes": {
             "ICLogin2": "IBMConnections2/ICLogin2.js",
@@ -42,8 +28,9 @@
             "Search": "IBMConnections2/ICSearch.js"
         }
     },
-    "bugs": {
-        "url": "https://github.com/stefanopog/node-red-contrib-ibmconnections/issues"
-    },
-    "homepage": "https://github.com/stefanopog/node-red-contrib-ibmconnections#readme"
+    "dependencies": {
+        "request": "*",
+        "xml2js": "*",
+        "crypto": "*"
+    }
 }
