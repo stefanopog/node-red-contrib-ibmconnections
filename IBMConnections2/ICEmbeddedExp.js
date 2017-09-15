@@ -44,28 +44,28 @@ module.exports = function(RED) {
                             //
                             parser.parseString(body, function (err, result) {
                                 if (err) {
-                                    node.status({fill:"red",shape:"dot",text:"Parser Error"});
-                                    node.error("Parser Error getting the AS", theMsg);
                                     console.log("ASPut : Parser Error getting profile");
                                     console.log(err);
-                                    return;
-                                }
-                                if (result.feed.entry && result.feed.entry[0]) {
-                                    node.status({fill:"green",shape:"dot",text:"mail translated"});
-                                    //
-                                    //  Now we have the person UUid
-                                    //
-                                    var newTarget = "urn:lsid:lconn.ibm.com:profiles.person:" + result.feed.entry[0].contributor[0]['snx:userid'][0];
-                                    //
-                                    //  go and fetch the AS
-                                    //
-                                    cb(theMsg, newTarget, myData, commentId);
+                                    node.status({fill:"red",shape:"dot",text:"Parser Error"});
+                                    node.error("Parser Error getting the AS", theMsg);
                                 } else {
-                                    node.status({fill:"red",shape:"dot",text:"No Entry"});
-                                    node.error('Err2', theMsg);
-                                    console.log("ASPut : Parser Error getting the AS - no ENTRY");
-                                    console.log(result);
-                                }
+                                    if (result.feed.entry && result.feed.entry[0]) {
+                                        node.status({fill:"green",shape:"dot",text:"mail translated"});
+                                        //
+                                        //  Now we have the person UUid
+                                        //
+                                        var newTarget = "urn:lsid:lconn.ibm.com:profiles.person:" + result.feed.entry[0].contributor[0]['snx:userid'][0];
+                                        //
+                                        //  go and fetch the AS
+                                        //
+                                        cb(theMsg, newTarget, myData, commentId);
+                                    } else {
+                                        console.log("ASPut : Parser Error getting the AS - no ENTRY");
+                                        console.log(result);
+                                        node.status({fill:"red",shape:"dot",text:"No Entry"});
+                                        node.error('Err2', theMsg);
+                                    }
+                               }
                             });
                         } else {
                             console.log("ASPut: GET PROFILE NOT OK (" + response.statusCode + ")");
