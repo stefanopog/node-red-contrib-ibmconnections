@@ -1,0 +1,309 @@
+<script type="text/javascript">
+    RED.nodes.registerType(
+        'ICFilesGet',
+        {
+            category: "IBMsocial",
+            inputs: 1,
+            outputs:1,
+            icon: "ibmconnections.png",
+            color: "#FFFFFF",
+            label: function() {
+                    return this.name ||'Get Files';
+            },
+            paletteLabel : "Get Files",
+            defaults : {
+                name: {
+                    value: ""
+                },
+                server: {
+                    value: "",
+                    required: true,
+                    type: "ICLogin2"
+                },
+                target: {
+                    value: "myself",
+                    required: true
+                },
+                fORf: {
+                    value: "files",
+                    required: false
+                },
+                userId: {
+                    value: "",
+                    required: false
+                },
+                personId: {
+                    value: "",
+                    required: false
+                },
+                communityId: {
+                    value: "",
+                    required: false
+                },
+                isExternal: {
+                    value: "Both",
+                    required: true
+                },
+                visibility: {
+                    value: "Both",
+                    required: true
+                },
+                myShares: {
+                    value: "none",
+                    required: true
+                },
+                otherShares: {
+                    value: "none",
+                    required: true
+                }
+            },
+            oneditprepare: updateFormFilesGetTarget
+        });
+
+    function updateFormFilesGetTarget() {
+        switch (document.querySelector("#node-input-target").value) {
+            case 'person':
+               document.querySelector("#userRow").style.display = "inline";
+               document.querySelector("#communityRow").style.display = "none";
+               document.querySelector("#sharing").style.display = "inline";
+               document.querySelector("#myShares").style.display = "none";
+               document.querySelector("#otherShares").style.display = "inline";
+               //document.querySelector("#personRow").style.display = "none";
+               break;
+            case 'myself':
+               document.querySelector("#userRow").style.display = "none";
+               document.querySelector("#communityRow").style.display = "none";
+               document.querySelector("#sharing").style.display = "inline";
+               document.querySelector("#myShares").style.display = "inline";
+               document.querySelector("#otherShares").style.display = "none";
+               //document.querySelector("#personRow").style.display = "none";
+               break;
+            case 'public':
+               document.querySelector("#userRow").style.display = "none";
+               document.querySelector("#communityRow").style.display = "none";
+               document.querySelector("#sharing").style.display = "none";
+               document.querySelector("#myShares").style.display = "none";
+               document.querySelector("#otherShares").style.display = "none";
+               //document.querySelector("#personRow").style.display = "none";
+               break;
+            case 'community':
+               document.querySelector("#userRow").style.display = "none";
+               document.querySelector("#communityRow").style.display = "inline";
+               document.querySelector("#sharing").style.display = "none";
+               document.querySelector("#myShares").style.display = "none";
+               document.querySelector("#otherShares").style.display = "none";
+               //document.querySelector("#personRow").style.display = "none";
+               break;
+        }
+    }
+
+    function updateFormFilesGetObject() {
+        //
+        //  Select FILES or  FOLDERS
+        //
+    }
+
+    function updateFormFilesGetMyShares() {
+        //
+        //  Select on change of the MyShares dropdown
+        //
+    }
+
+    function updateFormFilesGetOtherShares() {
+        //
+        //  Select on change of the otherShares dropdown
+        //
+        /*
+        switch (document.querySelector("#node-input-otherShares").value) {
+            case 'none':
+                document.querySelector("#personRow").style.display = "none";
+                break;
+            case 'with':
+                document.querySelector("#personRow").style.display = "inline";
+                break;
+            case 'by':
+                document.querySelector("#personRow").style.display = "inline";
+                break;
+        }
+        */
+    }
+
+</script>
+
+<script type="text/x-red" data-template-name="ICFilesGet">
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+        <input type="text" id="node-input-server" placeholder="Server">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-fORf"><i class="fa fa-arrow-circle-right"></i> Result</label>
+        <select id="node-input-fORf" onchange="updateFormFilesGetObject()">
+	       <option value="files">Files</option>
+	       <!-- <option value="folders">Folders</option> -->
+        </select>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Target</label>
+        <select id="node-input-target" onchange="updateFormFilesGetTarget()">
+	       <option value="myself">Me</option>
+	       <option value="person">Someone else</option>
+	       <option value="public">Public</option>
+	       <option value="community">Community</option>
+        </select>
+        <div class="form-row" id="userRow">
+            <br/>
+            <label for="node-input-userId"><i class="fa fa-user"></i> User ID</label>
+            <input type="text" id="node-input-userId" placeholder="User ID (ie. toto@myorg.com OR 51689d40-e7ed-102f-87b6-86a3c2278316)">
+        </div>
+    
+        <div class="form-row" id="communityRow">
+            <br/>
+            <label for="node-input-communityId"><i class="fa fa-users"></i> Comm. ID</label>
+            <input type="text" id="node-input-communityId" placeholder="Community ID (ie. bc4597f0-e35c-4edc-8ef4-14b0cc3376e4)">
+        </div>
+    </div>
+
+
+    <div id="sharing">
+            <br />
+            <br />
+            <label><b>Shares</b></label>
+            <hr />
+            <div class="form-row" id="myShares">
+                <label for="node-input-myShares"><i class="fa fa-arrow-circle-right"></i> Shared...</label>
+                <select id="node-input-myShares" onchange="updateFormFilesGetMyShares()">
+                    <option value="none">all</option>
+                    <option value="withMe">with me</option>
+                    <option value="byMe">by me</option>
+                </select>
+            </div>
+        
+            <div class="form-row" id="otherShares">
+                <label for="node-input-otherShares"><i class="fa fa-arrow-circle-right"></i> Shared...</label>
+                <select id="node-input-otherShares" onchange="updateFormFilesGetOtherShares()">
+                    <option value="none">all</option>
+                    <option value="with">with</option>
+                    <option value="by">by</option>
+                </select>
+            </div>
+            <!---
+            <div class="form-row" id="personRow">
+                <br/>
+                <label for="node-input-personId"><i class="fa fa-user"></i> User ID</label>
+                <input type="text" id="node-input-personId" placeholder="Other User ID (ie. toto@myorg.com OR 51689d40-e7ed-102f-87b6-86a3c2278316)">
+            </div>
+            -->
+    </div>
+
+    <br />
+    <br />
+    <label><b>Filters</b></label>
+    <hr />
+
+    <div class="form-row" id="externalRow">
+        <label for="node-input-isExternal"><i class="fa fa-tag"></i> External</label>
+        <select id="node-input-isExternal">
+            <option value="Only">Only</option>
+            <option value="None">No</option>
+            <option value="Both">Both</option>
+        </select>
+     </div>
+
+     <div class="form-row" id="visibilityRow">
+        <label for="node-input-visibility"><i class="fa fa-tag"></i> Visibility</label>
+        <select id="node-input-visibility">
+            <option value="public">Public</option>
+            <option value="private">Private</option>
+            <option value="Both">Both</option>
+        </select>
+     </div>
+
+    <br/>
+    <br/>
+
+    <br/>
+    <br/>
+    <hr/>
+    <br/>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
+        <input type="text" id="node-input-name" ></input>
+    </div>
+
+</script>
+
+<script type="text/x-red" data-help-name="ICFilesGet">
+   <p>Retrieves Files informations for a given User or Community of the Public files</p>
+   <p>The user can be set by specifying the <i>Uuid</i> :
+    <ul>
+         <li>in the incoming <code>msg.userId</code> property</li>
+         <li>in the configuration panel.<br/>
+             Configuration panel takes precedence on the <code>msg.userId</code></li>
+     </ul>
+     </p>
+     <p>The Community can be set by specifying its <i>Uuid</i> :
+        <ul>
+             <li>in the incoming <code>msg.communityId</code> property</li>
+             <li>in the configuration panel.<br/>
+                 Configuration panel takes precedence on the <code>msg.communityId</code></li>
+         </ul>
+    </p>
+    <p>
+    </p>
+    <br/>
+   <p><i>Returns:</i>
+    An array of results is returned within the <code>msg.payload</code> property. Each element in the array contains the following information:
+   <ul>
+        <li><code>name</code></li>
+        <li><code>id</code></li>
+        <li><code>version</code></li>
+        <li><code>libraryId</code></li>
+        <li><code>libraryType</code></li>
+        <li><code>visibility</code></li>
+        <li><code>description</code>
+        <li><code>external</code></li>
+        <li><code>size</code></li>
+        <li><code>type</code></li>
+        <li><code>tags</code></li>. An array of tags.
+        <li><code>social</code>
+            <ul>
+                <li><code>likes</code></li>
+                <li><code>comments</code></li>
+                <li><code>share</code></li>
+                <li><code>downloads</code></li>
+                <li><code>anon_downloads</code></li>
+            </ul>
+        </li>
+        <li><code>links</code>
+            <ul>
+                <li><code>href</code></li>
+                <li><code>view</code></li>
+                <li><code>download</code></li>
+                <li><code>thumnail</code></li>
+            </ul>
+        </li>
+        <li><code>dates</code>
+            <ul>
+                <li><code>published</code></li>
+                <li><code>updated</code></li>
+                <li><code>created</code></li>
+                <li><code>modified</code></li>
+            </ul>
+        </li>
+        <li><code>author</code>
+            <ul>
+                    <li><code>name</code></li>
+                    <li><code>id</code></li>
+            </ul>
+        </li>
+        <li><code>modifier</code>
+            <ul>
+                    <li><code>name</code></li>
+                    <li><code>id</code></li>
+            </ul>
+        </li>
+    </ul>
+    </p>
+</script>

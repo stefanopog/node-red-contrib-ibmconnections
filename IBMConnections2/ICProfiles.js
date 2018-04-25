@@ -9,18 +9,56 @@ module.exports = function(RED) {
 		var node = this;
 
         var mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+        const jsdom = require("jsdom");
+        const { JSDOM } = jsdom;
         var xml2js = require("xml2js");
         var parser = new xml2js.Parser();
         var builder  = new xml2js.Builder({rootName: "content"});
+        var async = require("async");
+        var asyncTasks = [];
         var server = "";
+        var globalError = false;
         
+        function _dummyCallback(err, item) {
+            console.log('DUMMY CALLBACK ' + item);
+        }
+
+        function _beforeSend(theMsg) {
+            console.log('_beforeSend: need to process ' + asyncTasks.length + ' async tasks...');
+            //
+            //  This is where the MAGIC of Async happens
+            //
+            if (asyncTasks.length > 0) {
+                async.parallel(asyncTasks, function(err, results) {
+                                                //
+                                                // All tasks are done now
+                                                //  We can return
+                                                //
+                                                node.send(theMsg);
+                                                console.log("_beforeSend : ready to send final information....");
+                                            }
+                );                  
+            } else {
+                //
+                //  Nothing asynchronous to do
+                //  We can return immediatealy
+                //
+                node.send(theMsg);
+            }
+        }
         function _getUserDetail(record) {
             var person = {};
             var tmp = '';
             //
             //  This function retrieves the photo "sp_XX:div" from the VCARD
             //
-            var kk = (function (a) { return a[Object.keys(a)[1]]})(record.content[0]);
+            var kk = (function (a) { return a[Object.keys(a)[1]];})(record.content[0]);
+
+            //console.log(JSON.stringify(kk, ' ', 2));
+
+            const dom = new JSDOM(builder.buildObject(kk));
+            //console.log(dom.window.document.querySelector("div.title").textContent);
+            //console.log(dom.window.document.querySelector("img.photo").src);
             
             tmp = record.id[0];
             if (config.vcard) person['vcard'] = builder.buildObject(record.content[0]);
@@ -28,9 +66,23 @@ module.exports = function(RED) {
             if (config.uuid) person['userid'] = record.contributor[0]['snx:userid'][0];
             if (config.mail) person['mail'] = record.contributor[0]['email'][0];
             if (config.thename) person['name'] = record.contributor[0]['name'][0];
+            if (config.title) person['title'] = dom.window.document.querySelector("div.title").textContent;
             try {
-                //if (config.photo) person['photo'] = record.content[0]['sp_0:div'][0]['span'][0]['div'][0]['img'][0]['$'].src;
-                if (config.photo) person['photo'] = kk[0]['span'][0]['div'][0]['img'][0]['$'].src;
+                let tmp = dom.window.document.querySelector("img.photo").src;
+                tmp = tmp.split('&')[0];
+                if (config.photo) {
+                    //person['photo'] = kk[0]['span'][0]['div'][0]['img'][0]['$'].src;
+                    person['photo'] = tmp;
+                }
+                if (config.photoBytes) {
+                    //
+                    //  We will deal ASYNCHRONOUSLY with downloading each photo
+                    //
+                    asyncTasks.push(function(_dummyCallback) {
+                                        _getPhotoBytes(person, tmp, _dummyCallback);
+                                    }
+                    );
+                }
             } catch (err) {
                 console.log('error trying to get Photo for user ' + person['name'] + '. Error is ' + err.message);
                 console.log(record.content[0]);
@@ -59,10 +111,10 @@ module.exports = function(RED) {
                         console.log("error getting information for MY profile !", error);
                         node.status({fill:"red",shape:"dot",text:"No Profile Info"});
                         node.error(error.toString(), theMsg);
+                        globalError = true;
                     } else {
                         if (response.statusCode >= 200 && response.statusCode < 300) {
                             console.log("GET OK (" + response.statusCode + ")");
-                            console.log(body);
                             //
                             //	Have the node to emit the URL of the newly created event
                             //
@@ -71,6 +123,7 @@ module.exports = function(RED) {
                                     console.log(err);
                                     node.status({fill:"red",shape:"dot",text:"Parser Error"});
                                     node.error("getForMe: Parser Error", theMsg);
+                                    globalError = true;
                                     return;
                                 }
                                 if (result.service.workspace[0].collection[0]['snx:userid'][0]) {
@@ -78,8 +131,13 @@ module.exports = function(RED) {
                                                 server + '/profiles/atom/profile.do?userid=' + result.service.workspace[0].collection[0]['snx:userid'][0]);
                                 } else {
                                     console.log('getForMe: Missing <ENTRY> element : ' + result);
-                                    node.status({fill:"red",shape:"dot",text:"No Entry "});
-                                    node.error('getForMe: Missing <ENTRY> element', theMsg);
+                                    theMsg.payload = {};
+                                    node.status({fill:"yellow",shape:"dot",text:"No Entry "});
+                                    //
+                                    //  We can directly send the result as we will not deal with additional callbacks because we are in
+                                    //  a logical error situation
+                                    //
+                                    node.send(theMsg);
                                }
                             });
                         } else {
@@ -87,12 +145,12 @@ module.exports = function(RED) {
                             console.log(body);
                             node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
                             node.error(response.statusCode + ' : ' + response.statusMessage, theMsg);
+                            globalError = true;
                         }
                     }
                 }
             ); // end http.post 
         }
-        
 
         function getForOther(theMsg, theURL) {
             console.log('getForOther : with URL ' + theURL);
@@ -108,10 +166,10 @@ module.exports = function(RED) {
                         console.log("error getting information for profile : " + theURL + " - " + error);
                         node.status({fill:"red",shape:"dot",text:"No Profile Info"});
                         node.error(error.toString(), theMsg);
+                        globalError = true;
                     } else {
                         if (response.statusCode >= 200 && response.statusCode < 300) {
                             console.log("GET OK (" + response.statusCode + ")");
-                            console.log(body);
                             //
                             //	Have the node to emit the URL of the newly created event
                             //
@@ -120,6 +178,7 @@ module.exports = function(RED) {
                                     console.log(err);
                                     node.status({fill:"red",shape:"dot",text:"Parser Error"});
                                     node.error("getForOther: Parser Error", theMsg);
+                                    globalError = true;
                                     return;
                                 }
                                 if (result.feed.entry) {
@@ -127,24 +186,31 @@ module.exports = function(RED) {
                                     if (config.links) {
                                         //
                                         //  Fetch Linkroll
-                                        //  Since this is another REST call, the task to 
-                                        //  return control to the flow is left to the 
-                                        //  function that will be invoked (and, thus, to
-                                        //  its callback function)
                                         //
-                                        _getProfileLinks(theMsg, theMsg.payload);
+                                        asyncTasks.push(function(_dummyCallback) {
+                                                            _getProfileLinks(theMsg, _dummyCallback);
+                                                        });
+                                        _beforeSend(theMsg);
                                     } else {
                                         //
                                         //  Safely return node results as no other action 
                                         //  is required
                                         //
                                         node.status({});
-                                        node.send(theMsg);
+                                        //
+                                        //  Before SEND, we need to verify if there are asynchronous things to be done ....
+                                        //
+                                        _beforeSend(theMsg);
                                     }
                                 } else {
                                     console.log('getForOther: Missing <ENTRY> element : ' + result);
-                                    node.status({fill:"red",shape:"dot",text:"No Entry "});
-                                    node.error('getForOther: Missing <ENTRY> element', theMsg);
+                                    node.status({fill:"yellow",shape:"dot",text:"No Entry "});
+                                    theMsg.payload = {};
+                                    //
+                                    //  We can directly send the result as we will not deal with additional callbacks because we are in
+                                    //  a logical error situation
+                                    //
+                                    node.send(theMsg);
                                }
                             });
                         } else {
@@ -152,6 +218,7 @@ module.exports = function(RED) {
                             console.log(body);
                             node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
                             node.error(response.statusCode + ' : ' + response.body, theMsg);
+                            globalError = true;
                         }
                     }
                 }
@@ -159,7 +226,8 @@ module.exports = function(RED) {
         }
 
         function getByParams(theMsg, theURL) {
-             node.login.request(
+            console.log('getByParams : with URL ' + theURL);
+            node.login.request(
                 {
                     url: theURL, 
                     method: "GET",
@@ -170,10 +238,10 @@ module.exports = function(RED) {
                         console.log("error getting information by PARAMS : " + theURL + " - " + error);
                         node.status({fill:"red",shape:"dot",text:"No Profile Info"});
                         node.error('No Profile Info', theMsg);
+                        globalError = true;
                     } else {
                         if (response.statusCode >= 200 && response.statusCode < 300) {
                             console.log("GET OK (" + response.statusCode + ")");
-                            console.log(body);
                             //
                             //	Have the node to emit the URL of the newly created event
                             //
@@ -182,58 +250,60 @@ module.exports = function(RED) {
                                     console.log(err);
                                     node.status({fill:"red",shape:"dot",text:"Parser Error"});
                                     node.error("getByParams: Parser Error", theMsg);
+                                    globalError = true;
                                     return;
                                 }
                                 if (result.feed.entry) {
-                                    //
                                     var myData = new Array();
                                     for (i=0; i < result.feed.entry.length; i++) {
                                         myData.push(_getUserDetail(result.feed.entry[i]));
                                     }
                                     theMsg.payload = myData;
                                     node.status({});
-                                    node.send(theMsg);
+                                    //
+                                    //  Before SEND, we need to verify if there are asynchronous things to be done ....
+                                    //
+                                    _beforeSend(theMsg);
                                 } else {
                                     console.log('getByParams: Missing <ENTRY> element : ' + result);
-                                    node.error('getByParams: Missing <ENTRY> element', theMsg);
-                                    node.status({fill:"red",shape:"dot",text:"No Entry "});
-                               }
+                                    theMsg.payload = {};
+                                    node.status({fill:"yellow",shape:"dot",text:"No Entry "});
+                                    //
+                                    //  We can directly send the result as we will not deal with additional callbacks because we are in
+                                    //  a logical error situation
+                                    //
+                                    node.send(theMsg);
+                                }
                             });
                         } else {
                             console.log("getByParams: GET PROFILE NOT OK (" + response.statusCode + ")");
                             console.log(body);
                             node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
                             node.error(response.statusCode + ' : ' + response.body, theMsg);
+                            globalError = true;
                         }
                     }
                 }
             ); 
         }
 
-        //
-        //  The following method must be called as the last one of a chain since it performs 
-        //  the closing operations and the transfer to the flow
-        //  When an error is found, it does NOT return an error to the flow. 
-        //  It simples signals with a YELLOW DOT and DOES NOT fill the payload.linkroll 
-        //  property
-        //
-        function _getProfileLinks(theMsg, data) {
+        function _getProfileLinks(theMsg, callback) {
             var theURL = server + '/profiles';
             if (node.login.authType === "oauth") theURL += '/oauth';
-            theURL += '/atom/profileExtension.do?key=' + data.key + '&extensionId=profileLinks';
+            theURL += '/atom/profileExtension.do?key=' + theMsg.payload.key + '&extensionId=profileLinks';
+            console.log('_getProfileLinks : with URL ' + theURL);
             node.login.request(
                 {
                     url: theURL,
                     method: "GET"
                 },
-                function(error,response,body) {
+                function(error, response, body) {
                     if (error) {
-                        console.log("error getting profileLinks for profile : " + theURL + " - " + error);
+                        console.log("error getting profileLinks for : " + theURL + " - " + error);
                         node.status({fill:"yellow",shape:"dot",text:"No Profile Info"});
                     } else {
                         if (response.statusCode == 200) {
-                            console.log("GET OK (" + response.statusCode + ")");
-                            console.log(body);
+                            console.log("_getProfileLinks GET OK (" + response.statusCode + ")");
                             parser.parseString(body, function (err, result) {
                                 if (err) {
                                     console.log(err);
@@ -260,7 +330,37 @@ module.exports = function(RED) {
                             node.status({fill:"yellow",shape:"dot",text:" _getProfileLinks " + response.statusMessage});
                         }
                     }
-                    node.send(theMsg);
+                    callback(null, theURL);
+                }
+            ); 
+        }
+        
+        function _getPhotoBytes(theMsg, theURL, callback) {
+            console.log('_getPhotoBytes : with URL ' + theURL);
+            node.login.request(
+                {
+                    url: theURL,
+                    method: "GET"
+                },
+                function(error, response, body) {
+                    if (error) {
+                        console.log("error getting photoBytes : " + theURL + " - " + error);
+                        node.status({fill:"yellow",shape:"dot",text:"No photoBytes Info"});
+                    } else {
+                        if (response.statusCode == 200) {
+                            console.log("_getPhotoBytes: GET OK (" + response.statusCode + ")");
+                            theMsg['photoBytes'] = body;
+                            //
+                            //  Return control to the flow
+                            //
+                            node.status({});
+                        } else {
+                            console.log("_getPhotoBytes: GET PHOTOBYTES NOT OK (" + response.statusCode + ")");
+                            console.log(body);
+                            node.status({fill:"yellow",shape:"dot",text:" _getPhotoBytes " + response.statusMessage});
+                        }
+                    }
+                    callback(null, theURL);
                 }
             ); 
         }
@@ -275,6 +375,11 @@ module.exports = function(RED) {
                 //
                 server   =  serverConfig.getServer;
                 node.status({fill:"blue",shape:"dot",text:"Retrieving..."});
+                //
+                //  Prepare for callbacks
+                //
+                asyncTasks = [];
+                gloablError = false;
                 switch (config.target) {
                     case "byKeyword" :
                         if ((config.mykeywords === '') && 
@@ -285,6 +390,7 @@ module.exports = function(RED) {
                             console.log("Missing Keywords Information");
                             node.status({fill:"red",shape:"dot",text:"Missing Keywords"});
                             node.error('Missing Keywords', msg);
+                            globalError = true;
                          } else {
                             var theKeywords = '';
                             if (config.mykeywords !== '') {
@@ -310,6 +416,7 @@ module.exports = function(RED) {
                             console.log("Missing Tags Information");
                             node.status({fill:"red",shape:"dot",text:"Missing Tags"});
                             node.error('Missing Tags', msg);
+                            globalError = true;
                          } else {
                             var theTags = '';
                             if (config.mytags !== '') {
@@ -336,6 +443,7 @@ module.exports = function(RED) {
                             console.log("Missing Free Syntax Information");
                             node.status({fill:"red",shape:"dot",text:"Missing Syntax"});
                             node.error('Missing Syntax', msg);
+                            globalError = true;
                          } else {
                             var freeSyntax = '';
                             if (config.freesyntax !== '') {
@@ -345,7 +453,7 @@ module.exports = function(RED) {
                             } 
                             myURL = server  + '/profiles';
                             if (node.login.authType === "oauth") myURL += "/oauth";
-                            myURL += '/atom/search.do?"' + freeSyntax + '"';
+                            myURL += '/atom/search.do?' + freeSyntax;
                             console.log(myURL);
                             //
                             // get Profile By Tags
@@ -377,6 +485,7 @@ module.exports = function(RED) {
                             console.log("Missing Target Information");
                             node.status({fill:"red",shape:"dot",text:"Missing Target"});
                             node.error('Missing Target', msg);
+                            globalError = true;
                          } else {
                             var mailAddr = '';
                             if (config.targetValue !== '') {
@@ -415,4 +524,4 @@ module.exports = function(RED) {
     
     RED.nodes.registerType("ICProfilesGet",  ICProfilesGet);
     
-}
+};

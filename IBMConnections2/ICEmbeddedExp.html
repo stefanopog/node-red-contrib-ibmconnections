@@ -112,7 +112,7 @@
     function updateFormASGet() {
         $( "#node-input-sinceDate" ).datepicker({
                             showOn: "button",
-                            buttonImage: "icons/calendar.gif",
+                            buttonImage: "./icons/node-red-contrib-ibmconnections/calendar.gif",
                             buttonImageOnly: true,
                             dateFormat: "dd/mm/yy",
                             showButtonPanel: true,
@@ -122,7 +122,7 @@
         });
         $( "#node-input-untilDate" ).datepicker({
                             showOn: "button",
-                            buttonImage: "icons/calendar.gif",
+                            buttonImage: "./icons/node-red-contrib-ibmconnections/calendar.gif",
                             buttonImageOnly: true,
                             dateFormat: "dd/mm/yy",
                             showButtonPanel: true,
@@ -335,8 +335,8 @@
 	   }
     }
 
-    function switchContextRoot() {
-        $.getJSON('credentials/ICLogin2/'+this.server, function(data) {
+    function switchContextRoot(theServer) {
+        $.getJSON('credentials/ICLogin2/'+theServer, function(data) {
        //alert(JSON.stringify(data, ' ', 2));
             if (data.theServerType && (data.theServerType !== '')) {
                 if (data.theServerType === 'cloud') {
@@ -351,7 +351,7 @@
         updateFormIsComment();
         updateFormIsEmbExp();
         updateFormASPut();
-        switchContextRoot();
+        switchContextRoot(this.server);
     }
 
 </script>
@@ -359,7 +359,7 @@
 <script type="text/x-red" data-template-name="ICASPut">
     <div class="form-row">
         <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
-        <input type="text" id="node-input-server" onchange="switchContextRoot()">
+        <input type="text" id="node-input-server" onchange="switchContextRoot(this.value)">
     </div>
 
     <div class="form-row">

@@ -152,69 +152,112 @@
             paletteLabel : "Get Activities",
             defaults : {
                 name: {
-                            value: ""
+                    value: ""
                 },
                 server: {
-                            value : "",
-                            required: true,
-                            type: "ICLogin2"
+                    value : "",
+                    required: true,
+                    type: "ICLogin2"
                 },
                 target: {
-                            value : "AllActivities",
-                            required: true
+                    value : "AllActivities",
+                    required: true
+                },
+                todos: {
+                    value : "createdByUserId",
+                    required: false
+                },
+                completedToDo: {
+                    value : "yes",
+                    required: false
+                },
+                meOrOther: {
+                    value : "me",
+                    required: false
+                },
+                otherPersonId: {
+                    value : "",
+                    required : false
                 },
                 communityId: {
-                            value : "",
-                            required: false
+                    value : "",
+                    required: false
                 },
                 activityId: {
-                            value : "",
-                            required: false
+                    value : "",
+                    required: false
                 },
                 activityTags: {
-                            value : "",
-                            required: false
+                    value : "",
+                    required: false
                 },
                 isTemplate: {
-                            value : false,
-                            required: false
+                    value : false,
+                    required: false
                 },
                 isAtom: {
-                            value : false,
-                            required: false
+                    value : false,
+                    required: false
                 },
             },
-            oneditprepare: updateFormActivitiesGet
+            oneditprepare: prepareActivitiesGet
         });
 
-   function updateFormActivitiesGet() {
-       switch (document.querySelector("#node-input-target").value) {
+    function prepareActivitiesGet() {
+        updateFormActivitiesGet();
+        document.querySelector("#otherRow").style.display = "none";
+        
+    }    
+    function updateFormActivitiesGet() {
+        switch (document.querySelector("#node-input-target").value) {
            case "AllActivities" :
                document.querySelector("#communityRow").style.display = "none";
                document.querySelector("#idRow").style.display = "none";
                document.querySelector("#tagRow").style.display = "inline";
                document.querySelector("#isTemplateRow").style.display = "inline";
+               document.querySelector("#todo-row").style.display = "none";
                break;
            case "MyActivities" :
                document.querySelector("#communityRow").style.display = "none";
                document.querySelector("#idRow").style.display = "none";
                document.querySelector("#tagRow").style.display = "inline";
                document.querySelector("#isTemplateRow").style.display = "none";
+               document.querySelector("#todo-row").style.display = "none";
                break;
            case "CommActivities" :
-               document.querySelector("#communityRow").style.display = "none";
+               document.querySelector("#communityRow").style.display = "inline";
                document.querySelector("#idRow").style.display = "none";
                document.querySelector("#tagRow").style.display = "inline";
                document.querySelector("#isTemplateRow").style.display = "none";
+               document.querySelector("#todo-row").style.display = "none";
                break;
-           case "byId" :
+            case "byId" :
                document.querySelector("#communityRow").style.display = "none";
                document.querySelector("#idRow").style.display = "inline";
                document.querySelector("#tagRow").style.display = "none";
                document.querySelector("#isTemplateRow").style.display = "none";
+               document.querySelector("#todo-row").style.display = "none";
+               break;
+            case "ToDos" :
+               document.querySelector("#communityRow").style.display = "none";
+               document.querySelector("#idRow").style.display = "none";
+               document.querySelector("#tagRow").style.display = "none";
+               document.querySelector("#isTemplateRow").style.display = "none";
+               document.querySelector("#todo-row").style.display = "inline";
                break;
        }
    }
+
+   function updateToDosMeOrOther() {
+        switch (document.querySelector("#node-input-meOrOther").value) {
+            case "me" :
+                document.querySelector("#otherRow").style.display = "none";
+                break;
+            case "somebodyElse" :
+                document.querySelector("#otherRow").style.display = "inline";
+                break;
+    }
+}
 </script>
 
 <script type="text/x-red" data-template-name="ICActivitiesGet">
@@ -230,12 +273,43 @@
 	       <option value="AllActivities">All Activities</option>
 	       <option value="CommActivities">Community Activities</option>
 	       <option value="byId">Search By ID</option>
+	       <option value="ToDos">To Dos</option>
         </select>
         <br />
     </div>
 
+    <div class="form-row" id="todo-row">
+        <label for="node-input-completedToDo"><i class="fa fa-arrow-circle-right"></i> Select</label>
+        <select id="node-input-completedToDo">
+            <option value="yes">All</option>
+            <option value="only">Completed Only</option>
+            <option value="no">Uncompleted</option>
+        </select>
+        <div class="form-row" id="createdOrAssignedRow">
+                <label for="node-input-todos"></label>
+                <select id="node-input-todos">
+                <option value="createdByUserId">Created By</option>
+                <option value="assignedToUserid">Assigned To</option>
+            </select>
+        </div>
+        <div class="form-row" id="MeOrOtherRow">
+                <label for="node-input-meOrOther"></label>
+                <select id="node-input-meOrOther" onchange="updateToDosMeOrOther()">
+                <option value="me">Me</option>
+                <option value="somebodyElse">Somebody else...</option>
+            </select>
+        </div>
+        <br />
+        <div class="form-row" id="otherRow">
+            <label for="node-input-otherPersonId"><i class="fa fa-user"></i> Person ID</label>
+            <input type="text" id="node-input-otherPersonId" placeholder="Person ID"></input>
+            <br />
+        </div>
+        <br />
+    </div>
+
     <div class="form-row" id="communityRow">
-        <label for="node-input-communityId"><i class="fa fa-odnoklassniki"></i> User</label>
+        <label for="node-input-communityId"><i class="fa fa-odnoklassniki"></i> Community</label>
         <input type="text" id="node-input-communityId" placeholder="Community ID"></input>
         <br />
     </div>
@@ -281,12 +355,15 @@
    <li><b>All User's Activities</b>, possibly filtered by <i>tag</i></li>
    <li><b>All Community Activities</b>, possibly filtered by <i>tag</i></li>
    <li><b>A specific Activity or Template</b> by ID</li>
+   <li><b>The TO DOs</b> for the current user ("me") or for another user identitied by her UUID<br />
+TO DOs can be retrieved for the <bold>"Assigned To"</bold> and <bold>"Created By"</bold> categories</li>
    </ul>
    </p>
    <p><i>Inputs:</i>
    <ul>
    <li><code>msg.activityId</code> : if set, it contains the ID of the Activity to be retrieved in case the selector is set to retrieve a specific Activity</li>
    <li><code>msg.activityTags</code> : the name of a single tag used for filtering the search criteria</li>
+   <li><code>msg.otherPersonId</code> : if set, it contains the UUID of the person for which the TO DOs are to be retrieved if different than "me"</li>
    </ul></p>
    <p><i>Returns:</i>
    <ul>
@@ -295,6 +372,8 @@
    <li><b>title</b> the name of the retrieved Activity/li>
    <li><b>id</b> the ID of the retrieved Activity</li>
    <li><b>ref</b> the href for the <i>self</i> link</li>
+   <li><b>assignedTo</b>. This object is only returned for <b>TO DOs</b> when the retrieved TO DO is actually assigned to somebody. <br/>
+    In case it is present, the <b>assignedTo.name</b> and <b>assignedTo.id</b> properties are set and contain the Name and the UUID of the person whom the TO DO has been assigned to.</li>
    <li><b>entry</b> the ATOM representation of the retrieved Activity (in case the checkbox on the configuration panel is set accordingly)</li>
    </ul>
    The Array is empty in case no Activity is found.

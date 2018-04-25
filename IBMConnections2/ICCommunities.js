@@ -449,4 +449,4 @@ module.exports = function (RED) {
     }
 
     RED.nodes.registerType("ICCommunitiesUpdate", ICCommunitiesUpdate);
-}
+};

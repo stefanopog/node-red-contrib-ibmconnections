@@ -1,6 +1,6 @@
 {
     "name": "node-red-contrib-ibmconnections",
-    "version": "1.2.2",
+    "version": "1.3.0",
     "description": "IBM Connections NodeRed nodes",
     "keywords": [
         "ibmconnections",
@@ -25,12 +25,15 @@
             "Communities": "IBMConnections2/ICCommunities.js",
             "EmbeddedExp": "IBMConnections2/ICEmbeddedExp.js",
             "Profiles": "IBMConnections2/ICProfiles.js",
+            "Files": "IBMConnections2/ICFiles.js",
             "Search": "IBMConnections2/ICSearch.js"
         }
     },
     "dependencies": {
         "request": "*",
         "xml2js": "*",
-        "crypto": "*"
+        "jsdom": "*",
+        "crypto": "*",
+        "async": "*"
     }
 }

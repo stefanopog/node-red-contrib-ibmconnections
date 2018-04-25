@@ -3,8 +3,56 @@ module.exports = function(RED) {
         var xml2js = require("xml2js");
         var builder  = new xml2js.Builder({rootName: "entry"});
         var activity = {};
+        var isActivity = true;
+
+        function __checkSchemeValue(entry, scheme, value) {
+            var result = false;
+            for (j=0; j < entry.category.length; j++) {
+                let tmp = entry.category[j];
+                if (tmp['$'].scheme === scheme) {
+                    if (tmp['$'].term === value) {
+                        result = true;
+                        break;
+                    }
+                }
+            }
+            return result;
+        }
+        //
+        //  Check if this ENTRY is an ACTIVITY or a TODO
+        //
+        isActivity = !__checkSchemeValue(entry, "http://www.ibm.com/xmlns/prod/sn/type", "todo");
+        //
+        //  Start Processing
+        //
         activity['title'] = entry.title[0]['_'];
-        activity['id'] = entry['snx:activity'][0];
+        if (isActivity) {
+            //
+            //  This is an Activity
+            //
+            activity['id'] = entry['snx:activity'][0];
+        } else {
+            //
+            //  this is a TO DO
+            //
+            activity['id'] = entry['id'][0];
+            activity['updated'] = entry['updated'][0];
+            activity['activityId'] = entry['snx:activity'][0];
+            activity['completed']  = __checkSchemeValue(entry, "http://www.ibm.com/xmlns/prod/sn/flags", "completed");
+            if (entry['author'][0] !== undefined) {
+                activity['author'] = {};
+                activity['author'].id = entry['author'][0]['snx:userid'][0];
+                activity['author'].name = entry['author'][0]['name'][0];
+            }
+            if (entry['snx:assignedto'] !== undefined) {
+                activity['assignedTo'] = {};
+                activity['assignedTo'].id = entry['snx:assignedto'][0]['$']['userid'];
+                activity['assignedTo'].name = entry['snx:assignedto'][0]['$']['name'];
+            }
+            if (entry['snx:duedate'] !== undefined) {
+                activity['dueDate'] = entry['snx:duedate'][0];
+            }
+        }
         for (j=0; j < entry.link.length; j++ ) {
             var tmp = entry.link[j];
             if (tmp['$'].rel === "self") {
@@ -504,11 +552,11 @@ module.exports = function(RED) {
                             //  There is an issue
                             //
                             console.log("Missing Activity UUid Information");
-                            node.status({fill:"red",shape:"dot",text:"Missing UUid"});
+                            node.status({fill:"red",shape:"dot",text:"Missing Activity UUid"});
                             node.error('Missing Activity Uuid', msg);
                             return;
                         } else {
-                            var theId = '';
+                            let theId = '';
                             if (config.activityId !== '') {
                                 theId = config.activityId.trim();
                             } else {
@@ -517,6 +565,36 @@ module.exports = function(RED) {
                             myURL += theId;
                             getActivity(msg, myURL, config.isAtom);
                         }
+                        break;
+                    case "ToDos" :
+                        myURL = server + "/activities/service/atom2/todos?" + config.todos + "=";
+                        if (config.meOrOther === "me") {
+                            myURL += serverConfig.userId;
+                        } else {
+                            if ((config.otherPersonId === '') &&
+                                ((msg.otherPersonId === undefined) || (msg.otherPersonId === ''))) {
+                                //
+                                //  There is an issue
+                                //
+                                console.log("Missing Person ID Information");
+                                node.status({ fill: "red", shape: "dot", text: "Missing Person ID" });
+                                node.error('Missing Person ID', msg);
+                                return;
+                            } else {
+                                let theId = '';
+                                if (config.otherPersonId !== '') {
+                                    theId = config.otherPersonId.trim();
+                                } else {
+                                    theId = msg.otherPersonId.trim();
+                                }
+                                myURL += theId;
+                            }
+                        }
+                        //
+                        //  Adding SORTING and COmpletedToDos
+                        //
+                        myURL += "&sortfields=duedate&sortorder=0&completedTodos=" + config.completedToDo;
+                        getActivityList(msg, myURL, config.isAtom, false);
                         break;
                 }
             }
@@ -874,4 +952,4 @@ module.exports = function(RED) {
     
     RED.nodes.registerType("ICActivitiesUpdate", ICActivitiesUpdate);
 
-}
+};

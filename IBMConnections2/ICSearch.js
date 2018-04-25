@@ -38,8 +38,8 @@ module.exports = function (RED) {
                     bb = fromMsg;
                 }
                 bb = bb.replace(datePattern, '$3-$2-$1');
+                return new Date(bb);
             }
-            return new Date(bb);
         }
 
         function _getDateConstraints(sinceDate, untilDate) {
@@ -332,4 +332,4 @@ module.exports = function (RED) {
 
     RED.nodes.registerType("ICSimpleSearch", ICSimpleSearch);
 
-}
+};
