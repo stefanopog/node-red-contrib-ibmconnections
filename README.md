@@ -14,6 +14,7 @@ This package will add 6 new nodes into your node-red palette :
 - The **Get AS** node
 - The **Post to AS** node
 - The **Get Profiles** node
+- The **Get Files** node
 - The **New Activity** node
 - The **Get Activities** node
 - The **Update Activity** node
@@ -32,7 +33,14 @@ This node let you push some text (with or without an embedded experience) into t
 
 ## The Get Profiles node
 
-This node retrieves the information from the profile of an IBM Connections user
+This node retrieves the information from the profile of an IBM Connections user.
+This node now allows retrieving also the photo associated to the user.
+
+
+## The Get Files node
+
+This node retrieves the files for the current user, for another user, for a community or the public files.
+It is possible to retrieve files SharedWith and/or SharedBy
 
 
 ## The New Activity node
