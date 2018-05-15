@@ -159,8 +159,9 @@
    <li><b>name</b> the name of the retrieved person</li>
    <li><b>userState</b>"active" or "inactive" </li>
    <li><b>userid</b> the ID of the retrieved person (only if <code>userState = active</code>)</li>
-   <li><b>mail</b> the mail of the retrieved person (only if <code>userState = active</code>)</li>
+   <li><b>mail</b> the mail of the retrieved person (only if <code>userState = active</code>) - set to <code>UNDEFINED@UNDEFINED.COM</code> in case it cannot be retrieved</li>
    <li><b>role</b> the Role (member, owner) of the retrieved person (only if <code>userState = active</code>)</li>
+   <li><b>orgId</b> the organization Id of the retrieved person (only if <code>userState = active</code>)</li>
    <li><b>isExternal</b> if the member is external (only if <code>userState = active</code>)</li>
    </ul>
    The Array is empty in case no Member is found.

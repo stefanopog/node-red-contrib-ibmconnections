@@ -66,7 +66,13 @@ module.exports = function(RED) {
             if (config.uuid) person['userid'] = record.contributor[0]['snx:userid'][0];
             if (config.mail) person['mail'] = record.contributor[0]['email'][0];
             if (config.thename) person['name'] = record.contributor[0]['name'][0];
-            if (config.title) person['title'] = dom.window.document.querySelector("div.title").textContent;
+            if (config.title) {
+                if (dom.window.document.querySelector("div.title").textContent) {
+                    person['title'] = dom.window.document.querySelector("div.title").textContent;
+                } else {
+                    person['title'] = 'UNDEFINED';
+                }
+            }
             try {
                 let tmp = dom.window.document.querySelector("img.photo").src;
                 tmp = tmp.split('&')[0];

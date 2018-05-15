@@ -61,10 +61,15 @@ module.exports = function (RED) {
             member.name = entry.contributor[0].name[0];
             member.userState = entry.contributor[0]['snx:userState'][0]['_'];
             if (member.userState === 'active') {
-                member.mail = entry.contributor[0].email[0];
+                if (entry.contributor[0].email) {
+                    member.mail = entry.contributor[0].email[0];
+                } else {
+                    member.mail = "UNDEFINED@UNDEFINED.COM";
+                }
                 member.userid = entry.contributor[0]['snx:userid'][0]['_'];
                 member.isExternal = entry.contributor[0]['snx:isExternal'][0]['_'];
                 member.role = entry['snx:role'][0]['_'];
+                member.orgId = entry['snx:orgId'][0]['_'];
             }
             return member;
         }
