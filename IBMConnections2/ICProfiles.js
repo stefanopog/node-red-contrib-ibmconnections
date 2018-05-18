@@ -56,7 +56,7 @@ module.exports = function(RED) {
 
             //console.log(JSON.stringify(kk, ' ', 2));
 
-            const dom = new JSDOM(builder.buildObject(kk));
+            const dom = new JSDOM(builder.buildObject(kk[0]));
             //console.log(dom.window.document.querySelector("div.title").textContent);
             //console.log(dom.window.document.querySelector("img.photo").src);
             
