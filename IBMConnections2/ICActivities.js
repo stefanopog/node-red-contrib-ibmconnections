@@ -66,6 +66,74 @@ module.exports = function(RED) {
         return activity;
     }
 
+    function ICparseActivityAtomEntry2(entry, isAtom) {
+        var result = {};
+ 
+        //
+        //  Start Processing
+        //
+        result.activityId = entry['snx:activity'][0];
+        result.entryId = entry['id'][0];
+        result.published = entry['published'][0];
+        result.updated = entry['updated'][0];
+        result.title = entry['title'][0]['_'];
+        result.content = entry.content[0]['_'];
+        result.author = {};
+        result.author.name = entry.author[0].name[0];
+        result.author.userId = entry.author[0]['snx:userid'][0];
+        result.contributors = [];
+        for (let k= 0; k < entry.contributor.length; k++) {
+            result.contributors[k] = {};
+            result.contributors[k].name = entry.contributor[k].name[0];
+            result.contributors[k].userId = entry.contributor[k]['snx:userid'][0];
+        }
+        result.categories = [];
+        for (let k = 0; k < entry.category.length; k++) {
+            result.categories[k] = {};
+            result.categories[k].term = entry.category[k]['$'].term;
+            result.categories[k].label = entry.category[k]['$'].label;
+            result.categories[k].scheme = entry.category[k]['$'].scheme;
+        }
+        result.links = [];
+        for (let k = 0; k < entry.link.length; k++) {
+            result.links[k] = {};
+            result.links[k].rel = entry.link[k]['$'].rel;
+            result.links[k].type = entry.link[k]['$'].type;
+            result.links[k].href = entry.link[k]['$'].href;
+        }
+        result.fields = [];
+        for (let k = 0; k < entry['snx:field'].length; k++) {
+            let field = entry['snx:field'][k];
+            result.fields[k] = {};
+            result.fields[k].name = field['$'].name;
+            result.fields[k].type = field['$'].type;
+            switch (result.fields[k].type) {
+                case 'file':
+                    result.fields[k].links = [];
+                    for (let j=0; j < field.link.length; j++) {
+                        result.fields[k].links[j] = {};
+                        result.fields[k].links[j].rel = field.link[j]['$'].rel;
+                        result.fields[k].links[j].type = field.link[j]['$'].type;
+                        result.fields[k].links[j].href = field.link[j]['$'].href;
+                        result.fields[k].links[j].length = field.link[j]['$'].length;
+                        result.fields[k].links[j].size = field.link[j]['$'].size;
+                    }
+                    break;
+                case 'text':
+                    result.fields[k].summary = field.summary[0]['_'].trim();
+                    break;
+                case 'date':
+                    result.fields[k].date = field['_'].trim();
+                    break;
+                case 'person':
+                    result.fields[k].personName = field.name[0];
+                    result.fields[k].userId = field['snx:userid'][0];
+                    break;
+            }
+        }
+        return result;
+    }
+   
     function ICActivitiesNew(config) {      
         RED.nodes.createNode(this,config);        
         //
@@ -461,16 +529,65 @@ module.exports = function(RED) {
         }
 
         function getActivity(theMsg, theURL, isAtom) {
-             node.login.request(
+            node.login.request(
+               {
+                   url: theURL, 
+                   method: "GET",
+                   headers:{"Content-Type" : "application/atom+xml; charset=UTF-8"}
+               },
+               function(error,response,body) {
+                   console.log('getActivity: executing on ' + theURL);
+                   if (error) {
+                       console.log("getActivity : error getting information for Actvity !");
+                       node.status({fill:"red",shape:"dot",text:"No Activity"});
+                       node.error(error.toString(), theMsg);
+                       return;
+                   } else {
+                       if (response.statusCode >= 200 && response.statusCode < 300) {
+                           //
+                           //	Have the node to emit the URL of the newly created event
+                           //
+                           parser.parseString(body, function (err, result) {
+                               if (err) {
+                                   console.log(err);
+                                   node.status({fill:"red",shape:"dot",text:"Parser Error"});
+                                   node.error("Parser Error getActivity", theMsg);
+                                   return;
+                               }
+                               var myData = new Array();
+                               if (result.entry) {
+                                   //
+                                   myData.push(ICparseActivityAtomEntry(result.entry, isAtom));
+                                   node.status({});
+                               } else {
+                                   console.log('No ENTRY found for URL : ' + theURL);
+                                   node.status({fill:"red",shape:"dot",text:"No Entry "});
+                               }
+                               theMsg.payload = myData;
+                               node.send(theMsg);
+                           });
+                       } else {
+                           console.log("GET ACTIVITY  NOT OK (" + response.statusCode + ")");
+                           console.log(body);
+                           node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
+                           node.error(response.statusCode + ' : ' + response.bidy, theMsg);
+                       }
+                   }
+               }
+           );           
+        }
+
+        function getEntry(theMsg, theURL, isAtom) {
+            node.login.request(
                 {
                     url: theURL, 
                     method: "GET",
                     headers:{"Content-Type" : "application/atom+xml; charset=UTF-8"}
                 },
                 function(error,response,body) {
-                    console.log('getActivity: executing on ' + theURL);
+                    console.log('getEntry: executing on ' + theURL);
                     if (error) {
-                        console.log("getActivity : error getting information for Actvity !");
+                        console.log("getEntry : error getting information for Actvity Entry!");
                         node.status({fill:"red",shape:"dot",text:"No Activity"});
                         node.error(error.toString(), theMsg);
                         return;
@@ -483,23 +600,21 @@ module.exports = function(RED) {
                                 if (err) {
                                     console.log(err);
                                     node.status({fill:"red",shape:"dot",text:"Parser Error"});
-                                    node.error("Parser Error getActivity", theMsg);
+                                    node.error("Parser Error getEntry", theMsg);
                                     return;
                                 }
-                                var myData = new Array();
                                 if (result.entry) {
-                                    //
-                                    myData.push(ICparseActivityAtomEntry(result.entry, isAtom));
+                                    theMsg.payload = ICparseActivityAtomEntry2(result.entry, isAtom);
                                     node.status({});
                                 } else {
                                     console.log('No ENTRY found for URL : ' + theURL);
+                                    theMsg.payload = {};
                                     node.status({fill:"red",shape:"dot",text:"No Entry "});
                                 }
-                                theMsg.payload = myData;
                                 node.send(theMsg);
                             });
                         } else {
-                            console.log("GET ACTIVITY  NOT OK (" + response.statusCode + ")");
+                            console.log("GET ENTRY  NOT OK (" + response.statusCode + ")");
                             console.log(body);
                             node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
                             node.error(response.statusCode + ' : ' + response.bidy, theMsg);
@@ -508,7 +623,7 @@ module.exports = function(RED) {
                 }
             );           
         }
-        
+  
         this.on( 
             'input', 
             function(msg) {
@@ -564,6 +679,28 @@ module.exports = function(RED) {
                             }
                             myURL += theId;
                             getActivity(msg, myURL, config.isAtom);
+                        }
+                        break;
+                    case "byEntry" :
+                        myURL = server + "/activities/service/atom2/activitynode?activityNodeUuid=";
+                        if ((config.activityId === '') && 
+                            ((msg.activityId === undefined) || (msg.activityId === ''))) {
+                            //
+                            //  There is an issue
+                            //
+                            console.log("Missing Entry UUid Information");
+                            node.status({fill:"red",shape:"dot",text:"Missing Activity UUid"});
+                            node.error('Missing Entry Uuid', msg);
+                            return;
+                        } else {
+                            let theId = '';
+                            if (config.activityId !== '') {
+                                theId = config.activityId.trim();
+                            } else {
+                                theId = msg.activityId.trim();
+                            }
+                            myURL += theId;
+                            getEntry(msg, myURL, config.isAtom);
                         }
                         break;
                     case "ToDos" :
