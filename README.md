@@ -55,7 +55,8 @@ This node let you retrieve the information for one or more Activities based on t
 
 ## The Update Activity node
 
-This node let you add a Section, a Bookmark or a ToDO to an existing Activity
+This node let you add a Section, a Bookmark or a ToDO to an existing Activity.
+**NEW !** It also allows you to move an entry from one section to another.
 
 
 ## The New Activity node

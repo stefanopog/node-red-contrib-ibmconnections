@@ -1,10 +1,12 @@
 module.exports = function(RED) {    
     function ICparseActivityAtomEntry(entry, isAtom) {
         var xml2js = require("xml2js");
+        var parser = new xml2js.Parser();
         var builder  = new xml2js.Builder({rootName: "entry"});
-        var activity = {};
+            var activity = {};
         var isActivity = true;
 
+        //console.log(JSON.stringify(entry, ' ', 2));
         function __checkSchemeValue(entry, scheme, value) {
             var result = false;
             for (j=0; j < entry.category.length; j++) {
@@ -25,61 +27,172 @@ module.exports = function(RED) {
         //
         //  Start Processing
         //
-        activity['title'] = entry.title[0]['_'];
+        activity.title = entry.title[0]['_'];
+        activity.id = entry.id[0].replace('urn:lsid:ibm.com:oa:', '');
+        activity.updated = entry.updated[0];
+        //activity.published = entry.published[0];
         if (isActivity) {
             //
             //  This is an Activity
             //
-            activity['id'] = entry['snx:activity'][0];
+            activity.authors = [];
+            for (let k=0; k < entry.author.length; k++) {
+                let tmp = {};
+                tmp.name = entry.author[k].name[0];
+                tmp.id = entry.author[k]['snx:userid'][0];
+                activity.authors.push(tmp);
+            }
+            activity.contributors = [];
+            for (let k=0; k < entry.contributor.length; k++) {
+                let tmp = {};
+                tmp.name = entry.contributor[k].name[0];
+                tmp.id = entry.contributor[k]['snx:userid'][0];
+                activity.contributors.push(tmp);
+            }
+            if (entry["snx:communityUuid"]) {
+                activity.communityUuid = entry["snx:communityUuid"][0];
+            } else {
+                activity.communityUuid = null;
+            }
+            activity.links = [];
+            for (let k=0; k < entry.link.length; k++) {
+                let tmp = {};
+                tmp.rel = entry.link[k]['$'].rel;
+                tmp.type = entry.link[k]['$'].type;
+                tmp.href = entry.link[k]['$'].href;
+                if (entry.link[k]['$'].title) {
+                    tmp.title = entry.link[k]['$'].title;
+                } else {
+                    tmp.title = null;
+                }
+                activity.links.push(tmp);
+            }
+            //
+            //  Now split the categories
+            //
+            activity.entries = [];
+            activity.todos = [];
+            activity.sections = [];
+            if (entry.entry) {
+                for (let k=0; k < entry.entry.length; k++){
+                    for (let x=0; x < entry.entry[k].category.length; x++) {
+                        if ((entry.entry[k].category[x]['$'].scheme === 'http://www.ibm.com/xmlns/prod/sn/type') && (entry.entry[k].category[x]['$'].term === 'entry')) {
+                            let tmp = ICparseActivityAtomEntry2(entry.entry[k], isAtom);
+                            activity.entries.push(tmp);                            
+                        }
+                        if ((entry.entry[k].category[x]['$'].scheme === 'http://www.ibm.com/xmlns/prod/sn/type') && (entry.entry[k].category[x]['$'].term === 'section')) {
+                            let tmp = {};
+                            tmp.activityId    = entry.entry[k]['snx:activity'][0].replace('urn:lsid:ibm.com:oa:', '');
+                            tmp.sectionId     = entry.entry[k].id[0].replace('urn:lsid:ibm.com:oa:', '');
+                            tmp.published     = entry.entry[k].published[0];
+                            tmp.updated       = entry.entry[k].updated[0];
+                            tmp.title         = entry.entry[k].title[0]['_'];
+                            tmp.content       = entry.entry[k].content[0]['_'];
+                            tmp.author        = {};
+                            tmp.author.name   = entry.entry[k].author[0].name[0];
+                            tmp.author.userId = entry.entry[k].author[0]['snx:userid'][0];
+                            tmp.contributors = [];
+                            for (let y= 0; y < entry.entry[k].contributor.length; y++) {
+                                tmp.contributors[y] = {};
+                                tmp.contributors[y].name = entry.entry[k].contributor[y].name[0];
+                                tmp.contributors[y].userId = entry.entry[k].contributor[y]['snx:userid'][0];
+                            }
+                            tmp.categories = [];
+                            for (let y = 0; y < entry.entry[k].category.length; y++) {
+                                tmp.categories[y] = {};
+                                tmp.categories[y].term = entry.entry[k].category[y]['$'].term;
+                                tmp.categories[y].label = entry.entry[k].category[y]['$'].label;
+                                tmp.categories[y].scheme = entry.entry[k].category[y]['$'].scheme;
+                            }
+                            tmp.links = [];
+                            for (let y = 0; y < entry.entry[k].link.length; y++) {
+                                tmp.links[y] = {};
+                                tmp.links[y].rel = entry.entry[k].link[y]['$'].rel;
+                                tmp.links[y].type = entry.entry[k].link[y]['$'].type;
+                                tmp.links[y].href = entry.entry[k].link[y]['$'].href;
+                            }
+                            tmp.position = entry.entry[k]['snx:position'][0];
+                            activity.sections.push(tmp);
+                        }
+                        if ((entry.entry[k].category[x]['$'].scheme === 'http://www.ibm.com/xmlns/prod/sn/type') && (entry.entry[k].category[x]['$'].term === 'todo')) {
+                            let tmp = {};
+                            tmp.activityId = entry.entry[k]['snx:activity'][0].replace('urn:lsid:ibm.com:oa:', '');
+                            tmp.completed  = __checkSchemeValue(entry.entry[k], "http://www.ibm.com/xmlns/prod/sn/flags", "completed");
+                            if (entry.entry[k].author[0] !== undefined) {
+                                tmp.author = {};
+                                tmp.author.id = entry.entry[k].author[0]['snx:userid'][0];
+                                tmp.author.name = entry.entry[k].author[0].name[0];
+                            }
+                            if (entry.entry[k]['snx:assignedto'] !== undefined) {
+                                tmp.assignedTo = {};
+                                tmp.assignedTo.id = entry.entry[k]['snx:assignedto'][0]['$'].userid;
+                                tmp.assignedTo.name = entry.entry[k]['snx:assignedto'][0]['$'].name;
+                            }
+                            if (entry.entry[k]['snx:duedate'] !== undefined) {
+                                tmp.dueDate = entry.entry[k]['snx:duedate'][0];
+                            }
+                            tmp.position = entry.entry[k]['snx:position'][0];
+                            activity.todos.push(tmp);
+                        }
+                    }    
+                }
+            }
         } else {
             //
             //  this is a TO DO
             //
-            activity['id'] = entry['id'][0];
-            activity['updated'] = entry['updated'][0];
-            activity['activityId'] = entry['snx:activity'][0];
-            activity['completed']  = __checkSchemeValue(entry, "http://www.ibm.com/xmlns/prod/sn/flags", "completed");
-            if (entry['author'][0] !== undefined) {
-                activity['author'] = {};
-                activity['author'].id = entry['author'][0]['snx:userid'][0];
-                activity['author'].name = entry['author'][0]['name'][0];
+            activity.activityId = entry['snx:activity'][0].replace('urn:lsid:ibm.com:oa:', '');
+            activity.completed  = __checkSchemeValue(entry, "http://www.ibm.com/xmlns/prod/sn/flags", "completed");
+            if (entry.author[0] !== undefined) {
+                activity.author = {};
+                activity.author.id = entry.author[0]['snx:userid'][0];
+                activity.author.name = entry.author[0].name[0];
             }
             if (entry['snx:assignedto'] !== undefined) {
-                activity['assignedTo'] = {};
-                activity['assignedTo'].id = entry['snx:assignedto'][0]['$']['userid'];
-                activity['assignedTo'].name = entry['snx:assignedto'][0]['$']['name'];
+                activity.assignedTo = {};
+                activity.assignedTo.id = entry['snx:assignedto'][0]['$'].userid;
+                activity.assignedTo.name = entry['snx:assignedto'][0]['$'].name;
             }
             if (entry['snx:duedate'] !== undefined) {
-                activity['dueDate'] = entry['snx:duedate'][0];
+                activity.dueDate = entry['snx:duedate'][0];
             }
+            if (entry['snx:position']) entry.position = entry['snx:position'][0];
         }
         for (j=0; j < entry.link.length; j++ ) {
             var tmp = entry.link[j];
             if (tmp['$'].rel === "self") {
-                activity['ref'] =  tmp['$'].href; 
+                activity.ref =  tmp['$'].href; 
                 break;
             }
         }
         if (isAtom) {
-            activity['entry'] = builder.buildObject(entry);
+            activity.entry = builder.buildObject(entry);
         }
         return activity;
     }
 
     function ICparseActivityAtomEntry2(entry, isAtom) {
+        var xml2js = require("xml2js");
+        var parser = new xml2js.Parser();
+        var builder  = new xml2js.Builder({rootName: "entry"});
         var result = {};
- 
+
+        console.log(JSON.stringify(entry, ' ', 2));
         //
         //  Start Processing
         //
-        result.activityId = entry['snx:activity'][0];
-        result.entryId = entry['id'][0];
-        result.published = entry['published'][0];
-        result.updated = entry['updated'][0];
-        result.title = entry['title'][0]['_'];
-        result.content = entry.content[0]['_'];
-        result.author = {};
-        result.author.name = entry.author[0].name[0];
+        result.activityId    = entry['snx:activity'][0].replace('urn:lsid:ibm.com:oa:', '');
+        result.entryId       = entry.id[0].replace('urn:lsid:ibm.com:oa:', '');
+        result.published     = entry.published[0];
+        result.updated       = entry.updated[0];
+        result.title         = entry.title[0]['_'];
+        if (entry.content) {
+            result.content   = entry.content[0]['_'];
+        } else {
+            result.content   = '';
+        }
+        result.author        = {};
+        result.author.name   = entry.author[0].name[0];
         result.author.userId = entry.author[0]['snx:userid'][0];
         result.contributors = [];
         for (let k= 0; k < entry.contributor.length; k++) {
@@ -101,39 +214,304 @@ module.exports = function(RED) {
             result.links[k].type = entry.link[k]['$'].type;
             result.links[k].href = entry.link[k]['$'].href;
         }
-        result.fields = [];
-        for (let k = 0; k < entry['snx:field'].length; k++) {
-            let field = entry['snx:field'][k];
-            result.fields[k] = {};
-            result.fields[k].name = field['$'].name;
-            result.fields[k].type = field['$'].type;
-            switch (result.fields[k].type) {
-                case 'file':
-                    result.fields[k].links = [];
-                    for (let j=0; j < field.link.length; j++) {
-                        result.fields[k].links[j] = {};
-                        result.fields[k].links[j].rel = field.link[j]['$'].rel;
-                        result.fields[k].links[j].type = field.link[j]['$'].type;
-                        result.fields[k].links[j].href = field.link[j]['$'].href;
-                        result.fields[k].links[j].length = field.link[j]['$'].length;
-                        result.fields[k].links[j].size = field.link[j]['$'].size;
-                    }
-                    break;
-                case 'text':
-                    result.fields[k].summary = field.summary[0]['_'].trim();
-                    break;
-                case 'date':
-                    result.fields[k].date = field['_'].trim();
-                    break;
-                case 'person':
-                    result.fields[k].personName = field.name[0];
-                    result.fields[k].userId = field['snx:userid'][0];
-                    break;
-            }
+        if (entry['thr:in-reply-to']) {
+            result.inReplyTo = {};
+            result.inReplyTo.ref = entry['thr:in-reply-to'][0]['$'].ref;
+            result.inReplyTo.href = entry['thr:in-reply-to'][0]['$'].href;
+            result.inReplyTo.type = entry['thr:in-reply-to'][0]['$'].type;
+            result.inReplyTo.source = entry['thr:in-reply-to'][0]['$'].source;
+        }
+        if (entry['snx:field']) {
+            result.fields = [];
+            for (let k = 0; k < entry['snx:field'].length; k++) {
+                let field = entry['snx:field'][k];
+                result.fields[k] = {};
+                result.fields[k].name = field['$'].name;
+                result.fields[k].type = field['$'].type;
+                result.fields[k].fieldId   = field['$'].fid;
+                switch (result.fields[k].type) {
+                    case 'file':
+                        result.fields[k].links = [];
+                        for (let j=0; j < field.link.length; j++) {
+                            result.fields[k].links[j] = {};
+                            result.fields[k].links[j].rel = field.link[j]['$'].rel;
+                            result.fields[k].links[j].type = field.link[j]['$'].type;
+                            result.fields[k].links[j].href = field.link[j]['$'].href;
+                            result.fields[k].links[j].length = field.link[j]['$'].length;
+                            result.fields[k].links[j].size = field.link[j]['$'].size;
+                        }
+                        break;
+                    case 'text':
+                        result.fields[k].summary = field.summary[0]['_'].trim();
+                        break;
+                    case 'date':
+                        result.fields[k].date = field['_'].trim();
+                        break;
+                    case 'person':
+                        result.fields[k].personName = field.name[0];
+                        result.fields[k].userId = field['snx:userid'][0];
+                        break;
+                }
+            }    
+        } else {
+            result.fields = null;
+        }
+        if (entry['snx:position']) result.position = entry['snx:position'][0];
+        if (isAtom) {
+            result.entry = builder.buildObject(entry);
         }
         return result;
     }
-   
+
+    function getActivity(node, parser, theMsg, theURL, isAtom, callback, params) {
+        node.login.request(
+           {
+               url: theURL, 
+               method: "GET",
+               headers:{"Content-Type" : "application/atom+xml; charset=UTF-8"}
+           },
+           function(error,response,body) {
+               console.log('getActivity: executing on ' + theURL);
+               if (error) {
+                   console.log("getActivity : error getting information for Actvity !");
+                   node.status({fill:"red",shape:"dot",text:"No Activity"});
+                   node.error(error.toString(), theMsg);
+                   return;
+               } else {
+                   if (response.statusCode >= 200 && response.statusCode < 300) {
+                       //
+                       //	Have the node to emit the URL of the newly created event
+                       //
+                       parser.parseString(body, function (err, result) {
+                           if (err) {
+                               console.log(err);
+                               node.status({fill:"red",shape:"dot",text:"Parser Error"});
+                               node.error("Parser Error getActivity", theMsg);
+                               return;
+                           }
+                           var myData = new Array();
+                           if (result.feed) {
+                               myData.push(ICparseActivityAtomEntry(result.feed, isAtom));
+                               node.status({fill:"green", shape:"dot", text:"Activity Retrieved"});
+                               theMsg.payload = myData;
+                               if (callback) {
+                                   callback(node, theMsg, result.feed, params);
+                               } else {
+                                   //
+                                   //  The processing ends here.
+                                   //
+                                   node.send(theMsg);
+                               }
+                           } else {
+                               console.log('No ENTRY found for URL : ' + theURL);
+                               node.status({ fill: "red", shape: "dot", text: "No Entry " });
+                               node.error('No ENTRY found for URL : ' + theURL, theMsg);
+                           }
+                       });
+                   } else {
+                       console.log("GET ACTIVITY  NOT OK (" + response.statusCode + ")");
+                       console.log(body);
+                       node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
+                       node.error(response.statusCode + ' : ' + response.bidy, theMsg);
+                   }
+               }
+           }
+       );           
+    }
+
+    function getEntry(node, parser, theMsg, theURL, isAtom, callback, params) {
+        node.login.request(
+            {
+                url: theURL, 
+                method: "GET",
+                headers:{"Content-Type" : "application/atom+xml; charset=UTF-8"}
+            },
+            function(error,response,body) {
+                console.log('getEntry: executing on ' + theURL);
+                if (error) {
+                    console.log("getEntry : error getting information for Actvity Entry!");
+                    node.status({fill:"red",shape:"dot",text:"No Activity"});
+                    node.error(error.toString(), theMsg);
+                    return;
+                } else {
+                    if (response.statusCode >= 200 && response.statusCode < 300) {
+                        //
+                        //	Have the node to emit the URL of the newly created event
+                        //
+                        parser.parseString(body, function (err, result) {
+                            if (err) {
+                                console.log(err);
+                                node.status({fill:"red", shape:"dot", text:"Parser Error"});
+                                return;
+                            }
+                            if (result.entry) {
+                                theMsg.payload = ICparseActivityAtomEntry2(result.entry, isAtom);
+                                node.status({fill:"green", shape:"dot", text:"Entry found"});
+                                if (callback) {
+                                    callback(theMsg, params);
+                                } else {
+                                    //
+                                    //  The processing ends here.
+                                    //
+                                    node.send(theMsg);
+                                }
+                            } else {
+                                console.log('getEntry : No ENTRY found for URL : ' + theURL);
+                                theMsg.payload = {};
+                                node.status({fill:"red",shape:"dot",text:"No Entry "});
+                                node.error('getEntry : No ENTRY found for URL : ' + theURL, theMsg);
+                                return;
+                            }
+                        });
+                    } else {
+                        console.log("GET ENTRY : NOT OK (" + response.statusCode + ")");
+                        console.log(body);
+                        node.status({fill:"red", shape:"dot", text:"Err3 " + response.statusMessage});
+                        node.error(response.statusCode + ' : ' + response.bidy, theMsg);
+                        return;
+                    }
+                }
+            }
+        );           
+    }
+        
+    function updateActivity(node, parser, theMsg, theURL, payload, isAtom, isPut) {
+        var method = "POST";
+
+        if (isPut) method = "PUT";
+        node.status({fill:"blue", shape:"dot", text:"Updating..."});
+        node.login.request(
+           {
+               url: theURL, 
+               method: method,
+               body : payload,
+               headers:{"Content-Type" : "application/atom+xml; charset=UTF-8"}
+           },
+           function(error, response, body) {
+               console.log('updateActivity: executing on ' + theURL);
+               console.log('updateActivity: posting body ' + payload);
+               if (error) {
+                   console.log("updateActivity : error updating the Actvity !");
+                   node.status({fill:"red",shape:"dot",text:"No Activity"});
+                   node.error(error.toString(), theMsg);
+                   return;
+               } else {
+                   if (response.statusCode >= 200 && response.statusCode < 300) {
+                       //
+                       //	Have the node to emit the URL of the newly created event
+                       //
+                       parser.parseString(body, function (err, result) {
+                           if (err) {
+                               console.log(err);
+                               node.status({fill:"red",shape:"dot",text:"Parser Error"});
+                               node.error("updateActivity: Parser Error", theMsg);
+                               return;
+                           }
+                           if (result.entry) {
+                               var myData = new Array();
+                               myData.push(ICparseActivityAtomEntry2(result.entry, isAtom));
+                               theMsg.payload = myData;
+                               node.status({fill:"green", shape:"dot", text:"Activity Succesfully updated"});
+                               node.send(theMsg);
+                           } else {
+                               console.log('updateActivity: No ENTRY found for URL : ' + theURL);
+                               node.status({fill:"red",shape:"dot",text:"No Entry "});
+                               node.error('updateActivity: Missing <ENTRY>', theMsg);
+                          }
+                       });
+                   } else {
+                       console.log("UPDATE ACTIVITY  NOT OK (" + response.statusCode + ")");
+                       console.log(body);
+                       node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
+                       node.error(response.statusCode + ' : ' + response.body, theMsg);
+                   }
+               }
+           }
+       );           
+    }
+    
+    function _moveEntry(node, theMsg, feed, params) {
+        var xml2js = require("xml2js");
+        var parser = new xml2js.Parser();
+        var builder  = new xml2js.Builder({rootName: "entry"});
+            //
+        //  is the Entry inside the Activity ?
+        //
+        var activity = theMsg.payload[0];
+        var entryPosition = -1;
+        var sectionPosition = - 1;
+        if (activity.entries) {
+            for (let k = 0; k < activity.entries.length; k++) {
+                if (params.entry === activity.entries[k].entryId) {
+                    entryPosition = k;
+                    break;
+                }
+            }
+            if (entryPosition === -1) {
+                //
+                //  Entry not part of the Activity
+                //
+                console.log("Move Entry  NOT OK. Entry " + params.entry + " not part of Acctivity !" );
+                console.log(body);
+                node.status({fill:"red",shape:"dot",text:"Move Entry  NOT OK. Entry " + params.entry + " not part of Acctivity !"});
+                node.error("Move Entry  NOT OK. Entry " + params.entry + " not part of Acctivity !", theMsg);
+            } else {
+                //
+                //  Check if the Section is in the activity
+                //
+                if (activity.sections) {
+                    for (let k=0; k < activity.sections.length; k++) {
+                        if ((params.section === activity.sections[k].sectionId) || (params.section === activity.sections[k].title)) {
+                            sectionPosition = k;
+                            break;
+                        }
+                    }
+                    if (sectionPosition === -1) {
+                        //
+                        //  Section not part of the Activity
+                        //
+                        console.log("Move Entry NOT OK. Section " + params.section + " not part of Acctivity !" );
+                        console.log(body);
+                        node.status({fill:"red",shape:"dot",text:"Move Entry  NOT OK. Section " + params.section + " not part of Acctivity !"});
+                        node.error("Move Entry  NOT OK. Section " + params.section + " not part of Acctivity !", theMsg);
+                    } else {
+                        //
+                        //  everything seems OK.
+                        //  We need to build the target XML document
+                        //
+                        feed.entry[entryPosition]['thr:in-reply-to'][0]['$'].ref = 'urn:lsid:ibm.com:oa:' + activity.sections[sectionPosition].sectionId;
+                        for (let j=0; j < activity.sections[sectionPosition].links.length; j++) {
+                            if (activity.sections[sectionPosition].links[j].rel === "edit") {
+                                feed.entry[entryPosition]['thr:in-reply-to'][0]['$'].href = activity.sections[sectionPosition].links[j].href;
+                                break;
+                            }
+                        }
+                        var myURL = params.server + "/activities/service/atom2/activitynode?activityNodeUuid=" + params.entry;
+                        var newEntry = builder.buildObject(feed.entry[entryPosition]);
+                        newEntry = newEntry.replace('<entry>', '<entry xmlns="http://www.w3.org/2005/Atom" xmlns:app="http://www.w3.org/2007/app" xmlns:snx="http://www.ibm.com/xmlns/prod/sn" xmlns:os="http://a9.com/-/spec/opensearch/1.1/" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:thr="http://purl.org/syndication/thread/1.0">');
+                        updateActivity(node, parser, theMsg, myURL, newEntry, params.isAtom, true);
+                    }
+                } else {
+                    //
+                    //  There must be some SECTIONS !!!
+                    //
+                    console.log("Move Entry NOT OK. Section " + params.section + " not part of Acctivity !" );
+                    console.log(body);
+                    node.status({fill:"red",shape:"dot",text:"Move Entry  NOT OK. Section " + params.section + " not part of Acctivity !"});
+                    node.error("Move Entry  NOT OK. Section " + params.section + " not part of Acctivity !", theMsg);
+            }
+            }
+        } else {
+            //
+            //  There must be some ENTRIES !!!
+            //
+            console.log("Move Entry  NOT OK. Entry " + params.entry + " not part of Acctivity !" );
+            console.log(body);
+            node.status({fill:"red",shape:"dot",text:"Move Entry  NOT OK. Entry " + params.entry + " not part of Acctivity !"});
+            node.error("Move Entry  NOT OK. Entry " + params.entry + " not part of Acctivity !", theMsg);
+        }
+    }
+
     function ICActivitiesNew(config) {      
         RED.nodes.createNode(this,config);        
         //
@@ -410,59 +788,6 @@ module.exports = function(RED) {
  
         var xml2js   = require("xml2js");
         var parser   = new xml2js.Parser();
-        
-        function getUserActivities(theMsg, theURL, isAtom, isCommunity) {
-            //
-            //  to get the list of MyActivities as it appears on the 
-            //  Connections UI, we need to retrieve the userid of the person.
-            //  the quickest way is to shoot a first request on the following URL
-            //      /activities/service/atom2/activities
-            //  and to process the <author> item to fetch the <snx:userid> information
-            //
-            //  We then pass the userid as a parameter to the call
-            //
-             node.login.request(
-                {
-                    url: theURL, 
-                    method: "GET",
-                    headers:{"Content-Type" : "application/atom+xml; charset=UTF-8"}
-                },
-                function(error,response,body) {
-                    console.log('getUserActivities: executing on ' + theURL);
-                    if (error) {
-                        console.log("getUserActivities: error getting information for ActvityList !");
-                        node.status({fill:"red",shape:"dot",text:"No ActivityList"});
-                        node.error(error.toString(), theMsg);
-                    } else {
-                        if (response.statusCode >= 200 && response.statusCode < 300) {
-                            //
-                            //	Have the node to emit the URL of the newly created event
-                            //
-                            parser.parseString(body, function (err, result) {
-                                if (err) {
-                                    console.log(err);
-                                    node.status({fill:"red",shape:"dot",text:"Parser Error"});
-                                    node.error("Parser Error getUserActivities", theMsg);
-                                    return;
-                                }
-                                var prefix = "?";
-                                if (theURL.search("tag=") != -1) prefix = "&";
-                                getActivityList(theMsg, 
-                                                theURL + prefix + "userid=" + result.feed.author[0]['snx:userid'][0], 
-                                                isAtom, isCommunity);
-                            });
-                        } else {
-                            console.log("getUserActivities: GET ACTIVITYLIST  NOT OK (" + response.statusCode + ")");
-                            console.log(theURL);
-                            console.log(body);
-                            node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
-                            node.error(response.statusCode + ' : ' + response.body, theMsg);
-                            return;
-                        }
-                    }
-                }
-            );           
-        }
 
         function getActivityList(theMsg, theURL, isAtom, isCommunity) {
              node.login.request(
@@ -509,7 +834,7 @@ module.exports = function(RED) {
                                             myData.push(ICparseActivityAtomEntry(result.feed.entry[i], isAtom));   
                                         }
                                     }
-                                    node.status({});
+                                    node.status({fill:"green",shape:"dot",text:"Activities retrieved"});
                                 } else {
                                     console.log('getActivityList: No ENTRY found for URL : ' + theURL);
                                     node.status({fill:"red",shape:"dot",text:"No Entry "});
@@ -522,102 +847,6 @@ module.exports = function(RED) {
                             console.log(body);
                             node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
                             node.error(response.statusCode + ' : ' + response.body, theMsg);
-                        }
-                    }
-                }
-            );           
-        }
-
-        function getActivity(theMsg, theURL, isAtom) {
-            node.login.request(
-               {
-                   url: theURL, 
-                   method: "GET",
-                   headers:{"Content-Type" : "application/atom+xml; charset=UTF-8"}
-               },
-               function(error,response,body) {
-                   console.log('getActivity: executing on ' + theURL);
-                   if (error) {
-                       console.log("getActivity : error getting information for Actvity !");
-                       node.status({fill:"red",shape:"dot",text:"No Activity"});
-                       node.error(error.toString(), theMsg);
-                       return;
-                   } else {
-                       if (response.statusCode >= 200 && response.statusCode < 300) {
-                           //
-                           //	Have the node to emit the URL of the newly created event
-                           //
-                           parser.parseString(body, function (err, result) {
-                               if (err) {
-                                   console.log(err);
-                                   node.status({fill:"red",shape:"dot",text:"Parser Error"});
-                                   node.error("Parser Error getActivity", theMsg);
-                                   return;
-                               }
-                               var myData = new Array();
-                               if (result.entry) {
-                                   //
-                                   myData.push(ICparseActivityAtomEntry(result.entry, isAtom));
-                                   node.status({});
-                               } else {
-                                   console.log('No ENTRY found for URL : ' + theURL);
-                                   node.status({fill:"red",shape:"dot",text:"No Entry "});
-                               }
-                               theMsg.payload = myData;
-                               node.send(theMsg);
-                           });
-                       } else {
-                           console.log("GET ACTIVITY  NOT OK (" + response.statusCode + ")");
-                           console.log(body);
-                           node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
-                           node.error(response.statusCode + ' : ' + response.bidy, theMsg);
-                       }
-                   }
-               }
-           );           
-        }
-
-        function getEntry(theMsg, theURL, isAtom) {
-            node.login.request(
-                {
-                    url: theURL, 
-                    method: "GET",
-                    headers:{"Content-Type" : "application/atom+xml; charset=UTF-8"}
-                },
-                function(error,response,body) {
-                    console.log('getEntry: executing on ' + theURL);
-                    if (error) {
-                        console.log("getEntry : error getting information for Actvity Entry!");
-                        node.status({fill:"red",shape:"dot",text:"No Activity"});
-                        node.error(error.toString(), theMsg);
-                        return;
-                    } else {
-                        if (response.statusCode >= 200 && response.statusCode < 300) {
-                            //
-                            //	Have the node to emit the URL of the newly created event
-                            //
-                            parser.parseString(body, function (err, result) {
-                                if (err) {
-                                    console.log(err);
-                                    node.status({fill:"red",shape:"dot",text:"Parser Error"});
-                                    node.error("Parser Error getEntry", theMsg);
-                                    return;
-                                }
-                                if (result.entry) {
-                                    theMsg.payload = ICparseActivityAtomEntry2(result.entry, isAtom);
-                                    node.status({});
-                                } else {
-                                    console.log('No ENTRY found for URL : ' + theURL);
-                                    theMsg.payload = {};
-                                    node.status({fill:"red",shape:"dot",text:"No Entry "});
-                                }
-                                node.send(theMsg);
-                            });
-                        } else {
-                            console.log("GET ENTRY  NOT OK (" + response.statusCode + ")");
-                            console.log(body);
-                            node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
-                            node.error(response.statusCode + ' : ' + response.bidy, theMsg);
                         }
                     }
                 }
@@ -660,7 +889,8 @@ module.exports = function(RED) {
                         getActivityList(msg, myURL, config.isAtom, true);
                         break;
                     case "byId" :
-                        myURL = server + "/activities/service/atom2/activitynode?activityNodeUuid=";
+                        myURL = server + "/activities/service/atom2/activity?activityUuid=";
+                        //myURL = server + "/activities/service/atom2/activitynode?activityNodeUuid=";
                         if ((config.activityId === '') && 
                             ((msg.activityId === undefined) || (msg.activityId === ''))) {
                             //
@@ -678,13 +908,13 @@ module.exports = function(RED) {
                                 theId = msg.activityId.trim();
                             }
                             myURL += theId;
-                            getActivity(msg, myURL, config.isAtom);
+                            getActivity(node, parser, msg, myURL, config.isAtom, null, null);
                         }
                         break;
                     case "byEntry" :
                         myURL = server + "/activities/service/atom2/activitynode?activityNodeUuid=";
-                        if ((config.activityId === '') && 
-                            ((msg.activityId === undefined) || (msg.activityId === ''))) {
+                        if ((config.entryId === '') && 
+                            ((msg.entryId === undefined) || (msg.entryId === ''))) {
                             //
                             //  There is an issue
                             //
@@ -694,13 +924,13 @@ module.exports = function(RED) {
                             return;
                         } else {
                             let theId = '';
-                            if (config.activityId !== '') {
-                                theId = config.activityId.trim();
+                            if (config.entryId !== '') {
+                                theId = config.entryId.trim();
                             } else {
-                                theId = msg.activityId.trim();
+                                theId = msg.entryId.trim();
                             }
                             myURL += theId;
-                            getEntry(msg, myURL, config.isAtom);
+                            getEntry(node, parser, msg, myURL, config.isAtom, null, null);
                         }
                         break;
                     case "ToDos" :
@@ -751,59 +981,7 @@ module.exports = function(RED) {
 
         var xml2js   = require("xml2js");
         var parser   = new xml2js.Parser();
-        
-        function updateActivity(theMsg, theURL, payload, isAtom) {
-             node.status({fill:"blue",shape:"dot",text:"Updating..."});
-             node.login.request(
-                {
-                    url: theURL, 
-                    method: "POST",
-                    body : payload,
-                    headers:{"Content-Type" : "application/atom+xml; charset=UTF-8"}
-                },
-                function(error, response, body) {
-                    console.log('updateActivity: executing on ' + theURL);
-                    console.log('updateActivity: posting body ' + payload);
-                    if (error) {
-                        console.log("updateActivity : error updating the Actvity !");
-                        node.status({fill:"red",shape:"dot",text:"No Activity"});
-                        node.error(error.toString(), theMsg);
-                        return;
-                    } else {
-                        if (response.statusCode >= 200 && response.statusCode < 300) {
-                            //
-                            //	Have the node to emit the URL of the newly created event
-                            //
-                            parser.parseString(body, function (err, result) {
-                                if (err) {
-                                    console.log(err);
-                                    node.status({fill:"red",shape:"dot",text:"Parser Error"});
-                                    node.error("Parser Error updteActivity", theMsg);
-                                    return;
-                                }
-                                if (result.entry) {
-                                    var myData = new Array();
-                                    myData.push(ICparseActivityAtomEntry(result.entry, isAtom));
-                                    theMsg.payload = myData;
-                                    node.status({});
-                                    node.send(theMsg);
-                                } else {
-                                    console.log('updateActivity: No ENTRY found for URL : ' + theURL);
-                                    node.status({fill:"red",shape:"dot",text:"No Entry "});
-                                    node.error('Missing <ENTRY>', theMsg);
-                               }
-                            });
-                        } else {
-                            console.log("UPDATE ACTIVITY  NOT OK (" + response.statusCode + ")");
-                            console.log(body);
-                            node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
-                            node.error(response.statusCode + ' : ' + response.body, theMsg);
-                        }
-                    }
-                }
-            );           
-        }
-        
+
         this.on(
             'input', 
             function(msg) {
@@ -820,9 +998,9 @@ module.exports = function(RED) {
                     //
                     //  There is an issue
                     //
-                    console.log("Missing ActivityID Information");
-                    node.status({fill:"red",shape:"dot",text:"Missing ActivityId"});
-                    node.error('Missing ActivityID', msg);
+                    console.log("updateActivity: Missing ActivityID Information");
+                    node.status({fill:"red",shape:"dot",text:"updateActivity: Missing ActivityId"});
+                    node.error('updateActivity: Missing ActivityID', msg);
                     return;
                 }
                 if (config.activityId !== '') {
@@ -831,6 +1009,57 @@ module.exports = function(RED) {
                     activityId = msg.activityId.trim();
                 }
                 switch (config.target) {
+                    case "Reparent" :
+                        //
+                        //  Getting Title of the Section (this is a Mandatory argument)
+                        //
+                        var sectionId2 = '';
+                        if ((config.sectionId2 === '') && 
+                            ((msg.sectionId2 === undefined) || (msg.sectionId2 === ''))) {
+                            //
+                            //  There is an issue
+                            //
+                            console.log("updateActivity: Missing Section Name/ID Information");
+                            node.status({fill:"red", shape:"dot", text:"updateActivity: Missing Section Name/ID"});
+                            node.error('updateActivity: Missing Section Name/ID', msg);
+                            return;
+                        } else {
+                            if (config.sectionId2 !== '') {
+                                sectionId2 = config.sectionId2.trim();
+                            } else {
+                                sectionId2 = msg.sectionId2.trim();
+                            }
+                        }
+                        //
+                        //  Getting Entry Id (this is a Mandatory argument)
+                        //
+                        var entryId2 = '';
+                        if ((config.entryId2 === '') && 
+                            ((msg.entryId2 === undefined) || (msg.entryId2 === ''))) {
+                            //
+                            //  There is an issue
+                            //
+                            console.log("updateActivity: Missing Entry ID Information");
+                            node.status({fill:"red", shape:"dot", text:"updateActivity: Missing Entry ID"});
+                            node.error('updateActivity: Missing Entry ID', msg);
+                            return;
+                        } else {
+                            if (config.entryId2 !== '') {
+                                entryId2 = config.entryId2.trim();
+                            } else {
+                                entryId2 = msg.entryId2.trim();
+                            }
+                        }
+                        myURL = server + "/activities/service/atom2/activity?activityUuid=" + activityId;
+                        let params = {
+                            section: sectionId2,
+                            activity : activityId,
+                            entry : entryId2,
+                            server : server,
+                            isAtom : config.isAtom
+                        };
+                        getActivity(node, parser, msg, myURL, config.isAtom, _moveEntry, params); 
+                        break;
                     case "Section" :
                         //
                         //  Getting Title of the Section (this is a Mandatory argument)
@@ -880,7 +1109,7 @@ module.exports = function(RED) {
                         //  create the Section
                         //
                         myURL = server + "/activities/service/atom2/activity?activityUuid=" + activityId;
-                        updateActivity(msg, myURL, newEntry, true);
+                        updateActivity(node, parser, msg, myURL, newEntry, config.isAtom, false);
                         break;
                     case "Bookmark" :
                         var containerId = '';
@@ -979,7 +1208,7 @@ module.exports = function(RED) {
                         //  create the Section
                         //
                         myURL = server + "/activities/service/atom2/activity?activityUuid=" + activityId;
-                        updateActivity(msg, myURL, newEntry, true);
+                        updateActivity(node, parser, msg, myURL, newEntry, config.isAtom, false);
                         break;
                     case "ToDo" :
                         containerId = '';
@@ -1080,7 +1309,7 @@ module.exports = function(RED) {
                         //  create the Section
                         //
                         myURL = server + "/activities/service/atom2/activity?activityUuid=" + activityId;
-                        updateActivity(msg, myURL, newEntry, true);
+                        updateActivity(node, parser, msg, myURL, newEntry, config.isAtom, false);
                         break;
                 }                    
             }

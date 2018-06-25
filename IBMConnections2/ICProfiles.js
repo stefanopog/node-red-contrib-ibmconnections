@@ -359,7 +359,7 @@ module.exports = function(RED) {
                             //
                             //  Return control to the flow
                             //
-                            node.status({});
+                            node.status({fill:"green",shape:"dot",text:" _getPhotoBytes OK"});
                         } else {
                             console.log("_getPhotoBytes: GET PHOTOBYTES NOT OK (" + response.statusCode + ")");
                             console.log(body);
