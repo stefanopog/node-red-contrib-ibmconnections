@@ -312,7 +312,7 @@ module.exports = function(RED) {
                        console.log("GET ACTIVITY  NOT OK (" + response.statusCode + ")");
                        console.log(body);
                        node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
-                       node.error(response.statusCode + ' : ' + response.bidy, theMsg);
+                       node.error(response.statusCode + ' : ' + response.body, theMsg);
                    }
                }
            }
@@ -367,7 +367,7 @@ module.exports = function(RED) {
                         console.log("GET ENTRY : NOT OK (" + response.statusCode + ")");
                         console.log(body);
                         node.status({fill:"red", shape:"dot", text:"Err3 " + response.statusMessage});
-                        node.error(response.statusCode + ' : ' + response.bidy, theMsg);
+                        node.error(response.statusCode + ' : ' + response.body, theMsg);
                         return;
                     }
                 }
