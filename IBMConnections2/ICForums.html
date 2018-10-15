@@ -1,0 +1,364 @@
+<script type="text/javascript">
+    RED.nodes.registerType(
+        'ICForumsGet',
+        {
+            category: "IBMsocial",
+            inputs: 1,
+            outputs:1,
+            icon: "ibmconnections.png",
+            color: "#FFFFFF",
+            label: function() {
+                    return this.name ||'Get Forums';
+                    },
+            paletteLabel : "Get Forums",
+            defaults : {
+                name: {
+                    value: ""
+                },
+                server: {
+                    value : "",
+                    required: true,
+                    type: "ICLogin2"
+                },
+                target: {
+                    value : "CommunityForums",
+                    required: true
+                },
+                commOrForum: {
+                    value : "Community",
+                    required: false
+                },
+                answerOrNot: {
+                    value: "topics",
+                    required: false
+                },
+                communityId: {
+                    value : "",
+                    required: false
+                },
+                forumId: {
+                    value : "",
+                    required: false
+                },
+                forumTopicId: {
+                    value : "",
+                    required: false
+                },
+                forumTopicOp: {
+                    value : "get",
+                    required: false
+                },
+                forumReplyId: {
+                    value : "",
+                    required: false
+                },
+                forumReplyOp: {
+                    value : "get",
+                    required: false
+                },
+                query: {
+                    value : "",
+                    required: false
+                },
+                forumTags: {
+                    value : "",
+                    required: false
+                },
+                sortBy: {
+                    value: 'none',
+                    required: false
+                },
+                isAtom: {
+                    value : false,
+                    required: false
+                },
+            },
+            oneditprepare: prepareForumsGet
+        });
+
+    function prepareForumsGet() {
+        updateFormForumsGet();
+    }
+    function updateFormCommOrForum() {
+        if ((document.querySelector("#node-input-target").value === "ForumTopics")) {
+            //
+            //  Topics are available both for Communities and for Forums
+            //
+            if (!document.querySelector('#node-input-commOrForum') || (document.querySelector('#node-input-commOrForum').value === 'Community')) {
+                document.querySelector("#communityRow").style.display = "inline";
+                document.querySelector("#forumRow").style.display = "none";
+            } else {
+                document.querySelector("#communityRow").style.display = "none";
+                document.querySelector("#forumRow").style.display = "inline";
+            }
+        }
+    } 
+    function updateFormTopicOperation() {
+        
+    }
+    function updateFormReplyOperation() {
+        
+    }
+    function updateFormForumsGet() {
+        switch (document.querySelector("#node-input-target").value) {
+           case "CommunityForums" :
+                document.querySelector("#communityRow").style.display = "inline";
+                document.querySelector("#forumRow").style.display = "none";
+                document.querySelector("#forumTopicRow").style.display = "none";
+                document.querySelector("#forumTopicOperationRow").style.display = "none";
+                document.querySelector("#forumReplyRow").style.display = "none";
+                document.querySelector("#forumReplyOperationRow").style.display = "none";
+                document.querySelector("#queryRow").style.display = "none";
+                document.querySelector("#tagRow").style.display = "inline";
+                document.querySelector("#communityOrForum").style.display = "none";
+                document.querySelector("#answeredRow").style.display = "none";
+                document.querySelector("#sortByRow").style.display = "none";
+                break;
+            case "ForumDetails" :
+                document.querySelector("#communityRow").style.display = "none";
+                document.querySelector("#forumRow").style.display = "inline";
+                document.querySelector("#forumTopicRow").style.display = "none";
+                document.querySelector("#forumTopicOperationRow").style.display = "none";
+                document.querySelector("#forumReplyRow").style.display = "none";
+                document.querySelector("#forumReplyOperationRow").style.display = "none";
+                document.querySelector("#queryRow").style.display = "none";
+                document.querySelector("#tagRow").style.display = "none";
+                document.querySelector("#communityOrForum").style.display = "none";
+                document.querySelector("#answeredRow").style.display = "none";
+                document.querySelector("#sortByRow").style.display = "none";
+                break;
+            case "ForumTopics" :
+                updateFormCommOrForum();
+                document.querySelector("#forumTopicRow").style.display = "none";
+                document.querySelector("#forumTopicOperationRow").style.display = "none";
+                document.querySelector("#forumReplyRow").style.display = "none";
+                document.querySelector("#forumReplyOperationRow").style.display = "none";
+                document.querySelector("#queryRow").style.display = "none";
+                document.querySelector("#tagRow").style.display = "none";
+                document.querySelector("#communityOrForum").style.display = "inline";
+                document.querySelector("#answeredRow").style.display = "inline";
+                document.querySelector("#sortByRow").style.display = "inline";
+                break;
+            case "ForumEntries" :
+                document.querySelector("#communityRow").style.display = "none";
+                document.querySelector("#forumRow").style.display = "inline";
+                document.querySelector("#forumTopicRow").style.display = "none";
+                document.querySelector("#forumTopicOperationRow").style.display = "none";
+                document.querySelector("#forumReplyRow").style.display = "none";
+                document.querySelector("#forumReplyOperationRow").style.display = "none";
+                document.querySelector("#queryRow").style.display = "none";
+                document.querySelector("#tagRow").style.display = "none";
+                document.querySelector("#communityOrForum").style.display = "none";
+                document.querySelector("#answeredRow").style.display = "none";
+                document.querySelector("#sortByRow").style.display = "none";
+                break;
+            case "OneForumTopic" :
+                document.querySelector("#communityRow").style.display = "none";
+                document.querySelector("#forumRow").style.display = "none";
+                document.querySelector("#forumTopicRow").style.display = "inline";
+                document.querySelector("#forumTopicOperationRow").style.display = "inline";
+                document.querySelector("#forumReplyRow").style.display = "none";
+                document.querySelector("#forumReplyOperationRow").style.display = "none";
+                document.querySelector("#queryRow").style.display = "none";
+                document.querySelector("#tagRow").style.display = "none";
+                document.querySelector("#communityOrForum").style.display = "none";
+                document.querySelector("#answeredRow").style.display = "none";
+                document.querySelector("#sortByRow").style.display = "none";
+                break;
+            case "OneForumReply" :
+                document.querySelector("#communityRow").style.display = "none";
+                document.querySelector("#forumRow").style.display = "none";
+                document.querySelector("#forumTopicRow").style.display = "none";
+                document.querySelector("#forumTopicOperationRow").style.display = "none";
+                document.querySelector("#forumReplyRow").style.display = "inline";
+                document.querySelector("#forumReplyOperationRow").style.display = "inline";
+                document.querySelector("#queryRow").style.display = "none";
+                document.querySelector("#tagRow").style.display = "none";
+                document.querySelector("#communityOrForum").style.display = "none";
+                document.querySelector("#answeredRow").style.display = "none";
+                document.querySelector("#sortByRow").style.display = "none";
+                break;
+            case "Search" :
+                document.querySelector("#communityRow").style.display = "none";
+                document.querySelector("#forumRow").style.display = "inline";
+                document.querySelector("#forumTopicRow").style.display = "none";
+                document.querySelector("#forumTopicOperationRow").style.display = "none";
+                document.querySelector("#forumReplyRow").style.display = "none";
+                document.querySelector("#forumReplyOperationRow").style.display = "none";
+                document.querySelector("#queryRow").style.display = "inline";
+                document.querySelector("#tagRow").style.display = "inline";
+                document.querySelector("#communityOrForum").style.display = "none";
+                document.querySelector("#answeredRow").style.display = "inline";
+                document.querySelector("#sortByRow").style.display = "inline";
+                break;
+       };
+   }
+</script>
+
+<script type="text/x-red" data-template-name="ICForumsGet">
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+        <input type="text" id="node-input-server" placeholder="Server">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Search</label>
+        <select id="node-input-target" onchange="updateFormForumsGet()">
+	       <option value="CommunityForums">Forums in a Community</option>
+	       <option value="ForumDetails">Forum Details</option>
+	       <option value="ForumTopics">Forum Topics</option>
+	       <option value="ForumEntries">Forum Entries</option>
+	       <option value="OneForumTopic">One Forum Topic</option>
+	       <option value="OneForumReply">One Forum Reply</option>
+	       <option value="Search">Search Community Forum</option>
+           <option value="fromMSG">-- from msg.IC_targetOp</option>
+        </select>
+        <br />
+    </div>
+
+
+    <div class="form-row" id="communityOrForum">
+        <label for="node-input-commOrForum"><i class="fa fa-arrow-circle-right"></i> Target</label>
+        <select id="node-input-commOrForum" onchange="updateFormCommOrForum()">
+	       <option value="Community">in all Forums of a Community</option>
+	       <option value="Forum">in a specific Forum</option>
+           <option value="fromMSG">-- from msg.IC_communityOrForum</option>
+        </select>
+        <br />
+    </div>
+
+    <div class="form-row" id="forumRow">
+        <label for="node-input-forumId"><i class="fa fa-tag"></i> ForumID</label>
+        <input type="text" id="node-input-forumId" placeholder="Forum ID"></input>
+        <br />
+    </div>
+
+    <div class="form-row" id="forumTopicRow">
+        <label for="node-input-forumTopicId"><i class="fa fa-envelope"></i> TopicID</label>
+        <input type="text" id="node-input-forumTopicId" placeholder="Topic ID"></input>
+        <br />
+    </div>
+
+    <div class="form-row" id="forumTopicOperationRow">
+        <label for="node-input-forumTopicOp"><i class="fa fa-tasks"></i> Operation</label>
+        <select id="node-input-forumTopicOp" onchange="updateFormTopicOperation()">
+            <option value="get">Get</option>
+            <option value="getReplies">Get Replies</option>
+	        <option value="like">Like</option>
+	        <option value="unlike">Unlike</option>
+	        <option value="fromMSG">-- from msg.IC_forumTopicOp</option>
+        </select>
+        <br />
+    </div>
+
+    <div class="form-row" id="forumReplyRow">
+        <label for="node-input-forumReplyId"><i class="fa fa-reply"></i> ReplyID</label>
+        <input type="text" id="node-input-forumReplyId" placeholder="Reply ID"></input>
+        <br />
+    </div>
+
+    <div class="form-row" id="forumReplyOperationRow">
+        <label for="node-input-forumReplyOp"><i class="fa fa-tasks"></i> Operation</label>
+        <select id="node-input-forumReplyOp" onchange="updateFormReplyOperation()">
+            <option value="get">Get</option>
+	        <option value="like">Like</option>
+	        <option value="unlike">Unlike</option>
+	        <option value="accept">Accept</option>
+	        <option value="reject">Reject</option>
+	        <option value="fromMSG">-- from msg.IC_forumReplyOp</option>
+        </select>
+        <br />
+    </div>
+
+    <div class="form-row" id="communityRow">
+        <label for="node-input-communityId"><i class="fa fa-odnoklassniki"></i> Community</label>
+        <input type="text" id="node-input-communityId" placeholder="Community ID"></input>
+        <br />
+    </div>
+
+
+    <div class="form-row" id="answeredRow">
+        <label for="node-input-answerOrNot"><i class="fa fa-filter"></i> Filter</label>
+        <select id="node-input-answerOrNot" onchange="updateFormCommOrForum()">
+            <option value="topics">all topics</option>
+	        <option value="allquestions">all questions</option>
+	        <option value="questions">not answered questions</option>
+            <option value="answeredquestions">answered questions</option>
+	        <option value="fromMSG">-- from msg.IC_answerOrNot</option>
+        </select>
+        <br />
+    </div>
+
+    <div class="form-row" id="queryRow">
+        <label for="node-input-query"><i class="fa fa-search-plus"></i> Query String</label>
+        <input type="text" id="node-input-query" placeholder="Query String..."></input>
+        <br />
+    </div>
+
+    <div class="form-row" id="tagRow">
+        <label for="node-input-forumTags"><i class="fa fa-tags"></i> Tags</label>
+        <input type="text" id="node-input-forumTags" placeholder="tags"></input>
+        <br />
+    </div>
+
+    <div class="form-row" id="sortByRow">
+        <label for="node-input-sortBy"><i class="fa fa-sort"></i> Sort By</label>
+        <select id="node-input-sortBy" onchange="updateFormCommOrForum()">
+            <option value="none">Not sorted</option>
+	        <option value="totalRecommendations">Total Rcommendations</option>
+	        <option value="recommendations">recommendations</option>
+        </select>
+        <br />
+    </div>
+
+    <div class="form-row" id="isAtom">
+        <label for="node-input-isAtom"><i class="fa fa-check-square"></i> Get Atom ?</label>
+        <input type="checkbox" name="isAtom" id="node-input-isAtom"></input>
+        <br />
+    </div>
+    <br />
+
+    <div class="form-row">
+        <hr />
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
+        <input type="text" id="node-input-name" ></input>
+    </div>
+
+ </script>
+
+<script type="text/x-red" data-help-name="ICForumsGet">
+   <p>Retrieves a list of Activites based on selection criteria.</p>
+   <p>It can retrieve:
+   <ul>
+   <li><b>All Public Activities (or Templates)</b>, possibly filtered by <i>tag</i></li>
+   <li><b>All User's Activities</b>, possibly filtered by <i>tag</i></li>
+   <li><b>All Community Activities</b>, possibly filtered by <i>tag</i></li>
+   <li><b>A specific Activity or Template</b> by ID</li>
+   <li><b>A specific activity Entry</b> by ID</li>
+   <li><b>The TO DOs</b> for the current user ("me") or for another user identitied by her UUID<br />
+TO DOs can be retrieved for the <bold>"Assigned To"</bold> and <bold>"Created By"</bold> categories</li>
+   </ul>
+   </p>
+   <p><i>Inputs:</i>
+   <ul>
+    <li><code>msg.activityId</code> : if set, it contains the ID of the Activity to be retrieved in case the selector is set to retrieve a specific Activity</li>
+    <li><code>msg.entryId</code> : if set, it contains the ID of the Activity <b>entry</b> to be retrieved in case the selector is set to retrieve a specific Entry</li>
+    <li><code>msg.forumTags</code> : the name of a single tag used for filtering the search criteria</li>
+   <li><code>msg.otherPersonId</code> : if set, it contains the UUID of the person for which the TO DOs are to be retrieved if different than "me"</li>
+   </ul></p>
+   <p><i>Returns:</i>
+   <ul>
+   <li><code>msg.payalod</code>. This is an array of objects where each object has the following properties:
+   <ul>
+   <li><b>title</b> the name of the retrieved Activity/li>
+   <li><b>id</b> the ID of the retrieved Activity</li>
+   <li><b>ref</b> the href for the <i>self</i> link</li>
+   <li><b>assignedTo</b>. This object is only returned for <b>TO DOs</b> when the retrieved TO DO is actually assigned to somebody. <br/>
+    In case it is present, the <b>assignedTo.name</b> and <b>assignedTo.id</b> properties are set and contain the Name and the UUID of the person whom the TO DO has been assigned to.</li>
+   <li><b>entry</b> the ATOM representation of the retrieved Activity (in case the checkbox on the configuration panel is set accordingly)</li>
+   </ul>
+   The Array is empty in case no Activity is found.
+   </li>
+   </ul>
+   </p>
+</script>
