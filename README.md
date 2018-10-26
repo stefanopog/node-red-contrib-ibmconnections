@@ -7,6 +7,10 @@ Node-RED IBM Connections Nodes
 
 This package contains a set of nodes to interact with IBM Connections.
 
+# *Changes*
+## Changes in V1.4.0
+* The **Files** node now returns also **folders** (optionally in a recursive way)
+
 # List of nodes
 
 This package will add 6 new nodes into your node-red palette : 

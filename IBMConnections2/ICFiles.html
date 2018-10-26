@@ -40,12 +40,20 @@
                     value: "",
                     required: false
                 },
+                folderId: {
+                    value: "",
+                    required: false
+                },
+                isRecursive: {
+                    value: false,
+                    required: false
+                },
                 isExternal: {
                     value: "Both",
                     required: true
                 },
                 visibility: {
-                    value: "Both",
+                    value: "All",
                     required: true
                 },
                 myShares: {
@@ -57,42 +65,77 @@
                     required: true
                 }
             },
-            oneditprepare: updateFormFilesGetTarget
+            oneditprepare: updateFormFileGetStart
         });
 
+    function updateFormFileGetStart() {
+        updateFormFilesGetTarget();
+        updateFormFilesGetObject();
+    }
     function updateFormFilesGetTarget() {
         switch (document.querySelector("#node-input-target").value) {
             case 'person':
                document.querySelector("#userRow").style.display = "inline";
                document.querySelector("#communityRow").style.display = "none";
-               document.querySelector("#sharing").style.display = "inline";
+               document.querySelector("#folderRow").style.display = "none";
                document.querySelector("#myShares").style.display = "none";
-               document.querySelector("#otherShares").style.display = "inline";
-               //document.querySelector("#personRow").style.display = "none";
+               if (document.querySelector("#node-input-fORf").value === 'files') {
+                    //
+                    //  Shared Others available
+                    //
+                    document.querySelector("#sharing").style.display = "inline";
+                    document.querySelector("#otherShares").style.display = "inline";
+                } else {
+                    //
+                    //  No possibility to Share Others
+                    //
+                    document.querySelector("#sharing").style.display = "none";
+                    document.querySelector("#otherShares").style.display = "none";
+                }
                break;
             case 'myself':
                document.querySelector("#userRow").style.display = "none";
                document.querySelector("#communityRow").style.display = "none";
+               document.querySelector("#folderRow").style.display = "none";
                document.querySelector("#sharing").style.display = "inline";
-               document.querySelector("#myShares").style.display = "inline";
+               if (document.querySelector("#node-input-fORf").value === 'filesAndFolders') {
+                    //
+                    //  Shared Others available
+                    //
+                    document.querySelector("#sharing").style.display = "none";
+                    document.querySelector("#myShares").style.display = "none";
+                } else {
+                    //
+                    //  No possibility to Share Others
+                    //
+                    document.querySelector("#sharing").style.display = "inline";
+                    document.querySelector("#myShares").style.display = "inline";
+                }
                document.querySelector("#otherShares").style.display = "none";
-               //document.querySelector("#personRow").style.display = "none";
                break;
             case 'public':
                document.querySelector("#userRow").style.display = "none";
                document.querySelector("#communityRow").style.display = "none";
+               document.querySelector("#folderRow").style.display = "none";
                document.querySelector("#sharing").style.display = "none";
                document.querySelector("#myShares").style.display = "none";
                document.querySelector("#otherShares").style.display = "none";
-               //document.querySelector("#personRow").style.display = "none";
                break;
             case 'community':
                document.querySelector("#userRow").style.display = "none";
                document.querySelector("#communityRow").style.display = "inline";
+               document.querySelector("#folderRow").style.display = "none";
                document.querySelector("#sharing").style.display = "none";
                document.querySelector("#myShares").style.display = "none";
                document.querySelector("#otherShares").style.display = "none";
-               //document.querySelector("#personRow").style.display = "none";
+               break;
+            case 'folder':
+               document.querySelector("#userRow").style.display = "none";
+               document.querySelector("#communityRow").style.display = "none";
+               document.querySelector("#folderRow").style.display = "inline";
+               document.querySelector("#sharing").style.display = "none";
+               document.querySelector("#myShares").style.display = "none";
+               document.querySelector("#otherShares").style.display = "none";
                break;
         }
     }
@@ -101,6 +144,42 @@
         //
         //  Select FILES or  FOLDERS
         //
+        if (document.querySelector("#node-input-target").value === 'person') {
+            if (document.querySelector("#node-input-fORf").value === 'files') {
+                //
+                //  Shared Others available
+                //
+                document.querySelector("#otherShares").style.display = "inline";
+            } else {
+                //
+                //  No possibility to Share Others
+                //
+                document.querySelector("#otherShares").style.display = "none";
+            }
+        }
+        //
+        //  Recursive ?
+        //
+        if (document.querySelector("#node-input-fORf").value === 'filesAndFolders') {
+            //
+            //  Recursive is available
+            //
+            document.querySelector("#recursiveRow").style.display = "inline";
+            document.querySelector("#sharing").style.display = "none";
+        } else {
+            //
+            //  Recursive is not allowd
+            //
+            document.querySelector("#recursiveRow").style.display = "none";
+            if ((document.querySelector("#node-input-target").value === 'person') && (document.querySelector("#node-input-fORf").value === 'files')) {
+                document.querySelector("#sharing").style.display = "inline";
+                document.querySelector("#otherShares").style.display = "inline";
+            }
+            if (document.querySelector("#node-input-target").value === 'myself') {
+                document.querySelector("#sharing").style.display = "inline";
+                document.querySelector("#myShares").style.display = "inline";
+            }
+        }
     }
 
     function updateFormFilesGetMyShares() {
@@ -113,19 +192,6 @@
         //
         //  Select on change of the otherShares dropdown
         //
-        /*
-        switch (document.querySelector("#node-input-otherShares").value) {
-            case 'none':
-                document.querySelector("#personRow").style.display = "none";
-                break;
-            case 'with':
-                document.querySelector("#personRow").style.display = "inline";
-                break;
-            case 'by':
-                document.querySelector("#personRow").style.display = "inline";
-                break;
-        }
-        */
     }
 
 </script>
@@ -137,31 +203,48 @@
     </div>
 
     <div class="form-row">
-        <label for="node-input-fORf"><i class="fa fa-arrow-circle-right"></i> Result</label>
-        <select id="node-input-fORf" onchange="updateFormFilesGetObject()">
-	       <option value="files">Files</option>
-	       <!-- <option value="folders">Folders</option> -->
+        <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Target</label>
+        <select id="node-input-target" onchange="updateFormFilesGetTarget()">
+            <option value="myself">Me</option>
+            <option value="person">Someone else</option>
+            <option value="community">Community</option>
+            <option value="public">Public</option>
+            <option value="folder">Collection</option>
         </select>
     </div>
 
     <div class="form-row">
-        <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Target</label>
-        <select id="node-input-target" onchange="updateFormFilesGetTarget()">
-	       <option value="myself">Me</option>
-	       <option value="person">Someone else</option>
-	       <option value="public">Public</option>
-	       <option value="community">Community</option>
+        <label for="node-input-fORf"><i class="fa fa-arrow-circle-right"></i> Result</label>
+        <select id="node-input-fORf" onchange="updateFormFilesGetObject()">
+            <option value="files">Files</option>
+            <option value="folders">Folders</option>
+            <option value="filesAndFolders">Files and Folders</option>
         </select>
+
+        <div id="recursiveRow">
+            <br />
+            <label for="node-input-isRecursive"><i class="fa fa-check-square"></i> Recursive ?</label>
+            <input type="checkbox" name="isRecursive" id="node-input-isRecursive"></input>
+        </div>
+    </div>
+    
+    <div class="form-row">
         <div class="form-row" id="userRow">
             <br/>
             <label for="node-input-userId"><i class="fa fa-user"></i> User ID</label>
-            <input type="text" id="node-input-userId" placeholder="User ID (ie. toto@myorg.com OR 51689d40-e7ed-102f-87b6-86a3c2278316)">
+            <input type="text" id="node-input-userId" placeholder="User ID (only ID, NOT mail!!)">
         </div>
     
         <div class="form-row" id="communityRow">
             <br/>
             <label for="node-input-communityId"><i class="fa fa-users"></i> Comm. ID</label>
             <input type="text" id="node-input-communityId" placeholder="Community ID (ie. bc4597f0-e35c-4edc-8ef4-14b0cc3376e4)">
+        </div>
+
+        <div class="form-row" id="folderRow">
+            <br/>
+            <label for="node-input-folderId"><i class="fa fa-folder-open"></i> Collection ID</label>
+            <input type="text" id="node-input-folderId" placeholder="Collection ID (ie. bc4597f0-e35c-4edc-8ef4-14b0cc3376e4)">
         </div>
     </div>
 
@@ -188,13 +271,6 @@
                     <option value="by">by</option>
                 </select>
             </div>
-            <!---
-            <div class="form-row" id="personRow">
-                <br/>
-                <label for="node-input-personId"><i class="fa fa-user"></i> User ID</label>
-                <input type="text" id="node-input-personId" placeholder="Other User ID (ie. toto@myorg.com OR 51689d40-e7ed-102f-87b6-86a3c2278316)">
-            </div>
-            -->
     </div>
 
     <br />
@@ -216,7 +292,7 @@
         <select id="node-input-visibility">
             <option value="public">Public</option>
             <option value="private">Private</option>
-            <option value="Both">Both</option>
+            <option value="All">All</option>
         </select>
      </div>
 

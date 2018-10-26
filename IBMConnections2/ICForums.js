@@ -141,7 +141,7 @@ module.exports = function(RED) {
         var parser = new xml2js.Parser();
         var builder  = new xml2js.Builder({rootName: "entry"});
         var entry = {};
-        console.log(JSON.stringify(feedEntry, ' ', 2));
+        //console.log(JSON.stringify(feedEntry, ' ', 2));
         //
         //  Start Processing
         //
@@ -260,7 +260,37 @@ module.exports = function(RED) {
  
         var xml2js   = require("xml2js");
         var parser   = new xml2js.Parser();
-
+        var async = require("async");
+        var asyncTasks = [];
+        
+        var _dummyCallback = function(err, item) {
+            __log('ICForumsGet._dummyCallback : ' + item);
+          }
+      
+        function _beforeSend(theMsg) {
+            console.log('ICForumsGet._beforeSend: need to process ' + asyncTasks.length + ' async tasks...');
+            //
+            //  This is where the MAGIC of Async happens
+            //
+            if (asyncTasks.length > 0) {
+                async.parallel(asyncTasks, 
+                               function(err, results) {
+                                    //
+                                    // All tasks are done now
+                                    //  We can return
+                                    //
+                                    console.log("ICForumsGet._beforeSend : ready to send final information....");
+                                    node.send(theMsg);
+                                }
+                );                  
+            } else {
+                //
+                //  Nothing asynchronous to do
+                //  We can return immediatealy
+                //
+                node.send(theMsg);
+            }
+        }
         
         function _likeForumAPI(theMsg, theURL, isAtom, theProcessor, isLike) {
             var method = "POST";
@@ -371,7 +401,7 @@ module.exports = function(RED) {
                                 },
                                 function(error2, response2, body2) {
                                     console.log('_acceptForumAPI: executing on ' + theURL);
-                                    console.log('_acceptForumAPI: posting body ' + body);
+                                    console.log('_acceptForumAPI: posting body ' + newPayload);
                                     if (error) {
                                         console.log("_acceptForumAPI : error " + announce + " the reply !");
                                         node.status({fill:"red", shape:"dot", text:"error " + announce + " the reply !"});
@@ -403,9 +433,9 @@ module.exports = function(RED) {
                                 }
                             );           
                         } else {
-                            console.log("_getForumAPI: Status NOT OK (" + response.statusCode + ")" + response.statusMessage);
+                            console.log("_acceptForumAPI: Status NOT OK (" + response.statusCode + ")" + response.statusMessage);
                             console.log(JSON.stringify(body, ' ', 2));
-                            node.status({fill:"red",shape:"dot",text:"_getForumAPI: " + response.statusMessage});
+                            node.status({fill:"red",shape:"dot",text:"_acceptForumAPI: " + response.statusMessage});
                             node.error(response.statusCode + ' : ' + response.body, theMsg);
                         }
                     }
@@ -414,7 +444,7 @@ module.exports = function(RED) {
         }
 
 
-        function _getForumAPI(theMsg, theURL, isAtom, theProcessor, sortKey, sortOrder) {
+        function _getForumAPI(theMsg, theURL, isAtom, theProcessor, sortKey, sortOrder, itemNumber, callback) {
             node.login.request(
                 {
                     url: theURL, 
@@ -438,21 +468,28 @@ module.exports = function(RED) {
                                     console.log(JSON.stringify(err, ' ', 2));
                                     node.status({fill:"red",shape:"dot",text:"Parser Error for CommunityForums"});
                                     node.error("_getForumAPI: Parser Error _getForumAPI", error);
-                                    return;
                                 } else {
-                                    var myData = theProcessor(result, isAtom);   
+                                    let myData = theProcessor(result, isAtom);
+                                    let outData = [];   
                                     if (myData.length > 0) {
                                         node.status({fill:"green",shape:"dot",text:"Forum topic retrieved"});
                                         if (sortKey) {
-                                            theMsg.payload = myData.sort(_compareValues(sortKey, sortOrder));
+                                            outData = myData.sort(_compareValues(sortKey, sortOrder));
                                         } else {
-                                            theMsg.payload = myData;
+                                            outData = myData;
                                         }
                                     } else {
                                         console.log('_getForumAPI: No ENTRY found for URL : ' + theURL);
-                                        node.status({fill:"yellow",shape:"dot",text:"No Entry found"});
+                                        node.status({fill:"yellow", shape:"dot", text:"No Entry found"});
                                     }
-                                    node.send(theMsg);
+                                    if (itemNumber >= 0) {
+                                        theMsg.payload[itemNumber].replies = outData;
+                                        theMsg.payload[itemNumber].numberOfReplies = outData.length;
+                                        callback(null, theURL);
+                                    } else {
+                                        theMsg.payload = outData;
+                                        node.send(theMsg);
+                                    }
                                 }
                             });
                         } else {
@@ -460,6 +497,77 @@ module.exports = function(RED) {
                             console.log(JSON.stringify(body, ' ', 2));
                             node.status({fill:"red",shape:"dot",text:"_getForumAPI: " + response.statusMessage});
                             node.error(response.statusCode + ' : ' + response.body, theMsg);
+                        }
+                    }
+                }
+            );           
+        }
+
+        function _getRecursiveForumAPI(theMsg, theURL, isAtom, theProcessor1, theProcessor2, sortKey, sortOrder) {
+            node.login.request(
+                {
+                    url: theURL, 
+                    method: "GET",
+                    headers:{"Content-Type" : "application/atom+xml; charset=UTF-8" }
+                },
+                function(error, response, body) {
+                    console.log('_getRecursiveForumAPI: executing on ' + theURL);
+                    if (error) {
+                        console.log("_getRecursiveForumAPI : error getting information for CommunityForums !");
+                        node.status({fill:"red",shape:"dot",text:"No CommunityForums"});
+                        node.error(error.toString(), error);
+                    } else {
+                        if (response.statusCode >= 200 && response.statusCode < 300) {
+                            //
+                            //	Parse the body
+                            //
+                            parser.parseString(body, function (err, result) {
+                                if (err) {
+                                    console.log("_getRecursiveForumAPI: error parsing Body of CommunityForums");
+                                    console.log(JSON.stringify(err, ' ', 2));
+                                    node.status({fill:"red",shape:"dot",text:"Parser Error for CommunityForums"});
+                                    node.error("_getRecursiveForumAPI: Parser Error _getRecursiveForumAPI", error);
+                                } else {
+                                    var myData = theProcessor1(result, isAtom);   
+                                    if (myData.length > 0) {
+                                        node.status({fill:"green", shape:"dot", text:"Forum topic retrieved"});
+                                        if (sortKey) {
+                                            theMsg.payload = myData.sort(_compareValues(sortKey, sortOrder));
+                                        } else {
+                                            theMsg.payload = myData;
+                                        }
+                                        //
+                                        //  Now we have some Entries.
+                                        //  They correspond to Topics.
+                                        //  We want to get the REPLIES for each of those topics
+                                        //
+                                        for (let k=0; k < myData.length; k++) {
+                                            if (theMsg.payload[k].repliesFeed) {
+                                                console.log('_getRecursiveForumAPI: queuing async task for replies: ' + theMsg.payload[k].repliesFeed);
+                                                asyncTasks.push(function(_dummyCallback) {
+                                                    _getForumAPI(theMsg, theMsg.payload[k].repliesFeed, isAtom, theProcessor2, sortKey, sortOrder, k, _dummyCallback);
+                                                });
+                                            } else {
+                                                console.log('_getRecursiveForumAPI: no replies feed : very strange situation');
+                                            }
+                                        }   
+                                        //
+                                        //  Before SEND, we need to verify if there are asynchronous things to be done ....
+                                        //
+                                        _beforeSend(theMsg);
+                                    } else {
+                                        console.log('_getRecursiveForumAPI: No ENTRY found for URL : ' + theURL);
+                                        node.status({fill:"yellow",shape:"dot",text:"No Entry found"});
+                                        theMsg.payload = [];
+                                        node.send(theMsg);
+                                    }
+                                }
+                            });
+                        } else {
+                            console.log("_getRecursiveForumAPI: Status NOT OK (" + response.statusCode + ") " + response.statusMessage);
+                            console.log(JSON.stringify(body, ' ', 2));
+                            node.status({fill:"red",shape:"dot",text:"_getRecursiveForumAPI: " + response.statusMessage});
+                            node.error(response.statusCode + ' : ' + response.statusMessage, theMsg);
                         }
                     }
                 }
@@ -476,11 +584,6 @@ module.exports = function(RED) {
                 //
                 var server = serverConfig.getServer;
                 var theTags = '';
-                if (config.forumTags !== '') {
-                    theTags = "tag=" + config.forumTags.trim();
-                } else if ((msg.forumTags !== undefined) && (msg.forumTags.trim() !== '')) {
-                    theTags = "tag=" + msg.forumTags.trim();
-                }
                 //
                 //  Check value of Target
                 //
@@ -489,6 +592,9 @@ module.exports = function(RED) {
                 let forumTopicOp = null;
                 let forumReplyOp = null;
                 let theId = null;
+
+                asyncTasks = [];
+
                 if (config.target === 'fromMSG') {
                     if ((msg.IC_target) && (msg.IC_target.trim() !== '')) {
                         target = msg.IC_target.trim();
@@ -525,7 +631,7 @@ module.exports = function(RED) {
                             }
                             myURL += theId;
                         }
-                        _getForumAPI(msg, myURL, config.isAtom, ICparseCommunityAtomEntry, null, null);
+                        _getForumAPI(msg, myURL, config.isAtom, ICparseCommunityAtomEntry, null, null, -1, null);
                         break;
                     case "ForumDetails" :
                         myURL = server + "/forums/atom/forum?forumUuid=";
@@ -546,7 +652,7 @@ module.exports = function(RED) {
                             }
                             myURL += theId;
                         }
-                        _getForumAPI(msg, myURL, config.isAtom, ICparseForumAtomEntry, null, null);
+                        _getForumAPI(msg, myURL, config.isAtom, ICparseForumAtomEntry, null, null, -1, null);
                         break;
                     case "ForumTopics" :
                         if (config.commOrForum === 'fromMSG') {
@@ -618,7 +724,7 @@ module.exports = function(RED) {
                         if (config.answerOrNot !== "topics") {
                             myURL += '&filter=' + config.answerOrNot;
                         }
-                        _getForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntryList, config.sortBy, 'desc');
+                        _getForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntryList, config.sortBy, 'desc', -1, null);
                         break;
                     case "ForumEntries" :
                         myURL = server + '/forums/atom/entries?forumUuid=';
@@ -639,7 +745,7 @@ module.exports = function(RED) {
                             }
                             myURL += theId;
                         }
-                        _getForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntryList, null, null);
+                        _getForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntryList, null, null, -1, null);
                         break;
                     case "OneForumTopic" :
                         //
@@ -682,11 +788,12 @@ module.exports = function(RED) {
                         switch (forumTopicOp) {
                             case "get":
                                 myURL = server + '/forums/atom/topic?topicUuid=' + theId;
-                                _getForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntry, null, null);
+                                _getRecursiveForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntry, ICparseTopicAtomEntryList, config.sortBy, 'desc');
+                                //_getForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntry, null, null, -1, null);
                                 break;
                             case "getReplies":
                                 myURL = server + '/forums/atom/replies?topicUuid=' + theId;
-                                _getForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntryList, null, null);
+                                _getForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntryList, null, null, -1, null);
                                 break;
                             case "like":
                                 myURL = server + '/forums/atom/recommendation/entries?postUuid=' + theId;
@@ -747,7 +854,7 @@ module.exports = function(RED) {
                         switch (forumReplyOp) {
                             case "get":
                                 myURL = server + '/forums/atom/reply?replyUuid=' + theId;
-                                _getForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntry, null, null);
+                                _getForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntry, null, null, -1, null);
                                 break;
                             case "like":
                                 myURL = server + '/forums/atom/recommendation/entries?postUuid=' + theId;
@@ -777,25 +884,6 @@ module.exports = function(RED) {
                     case "Search" :
                         myURL = server + '/forums/atom/topics?';
                         let theQuery;
-                        let theTags;
-                        //
-                        //  Check the CommunityOrForum flag
-                        //
-                        if (config.commOrForum === 'fromMSG') {
-                            if ((msg.IC_communityOrForum) && (msg.IC_communityOrForum.trim() !== '')) {
-                                commOrForum = msg.IC_communityOrForum.trim();
-                            } else {
-                                //
-                                //  There is an issue
-                                //
-                                console.log("ICForumsGet: Invalid flag for Commuity Or Forum");
-                                node.status({fill:"red", shape:"dot", text:"Invalid flag for Commuity Or Forum"});
-                                node.error('Invalid flag for Commuity Or Forum', msg);
-                                return;
-                            }
-                        } else {
-                            commOrForum = config.commOrForum;
-                        }
                         //
                         //  Check  Forum IDs is present
                         //
@@ -860,16 +948,12 @@ module.exports = function(RED) {
                         if (theTags  !== '') myURL += 'tag=' + theTags + '&';
                         myURL += 'filter=' + config.answerOrNot + '&';
                         myURL += 'sortBy=modified&sortOrder=desc&';
-                        if (commOrForum === 'Community') {
-                            myURL += 'communityUuid=' + theId;
-                        } else {
-                            myURL += 'forumUuid=' + theId;
-                        }
+                        myURL += 'forumUuid=' + theId;
                         //myURL += 'filter=' + config.answerOrNot + '&';
                         //myURL += 'scope=forums&format=light&';
                         //myURL += 'personalization={"type":"personalContentBoost","value":"on"}&';
                         //myURL += 'social={"type":"community","id":"'+ theId + '"}';
-                        _getForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntry, config.sortBy, 'desc');
+                        _getRecursiveForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntryList, ICparseTopicAtomEntryList, config.sortBy, 'desc');
                         break;
                     default:
                         //

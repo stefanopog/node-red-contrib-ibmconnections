@@ -196,18 +196,17 @@ module.exports = function(RED) {
                                         asyncTasks.push(function(_dummyCallback) {
                                                             _getProfileLinks(theMsg, _dummyCallback);
                                                         });
-                                        _beforeSend(theMsg);
                                     } else {
                                         //
                                         //  Safely return node results as no other action 
                                         //  is required
                                         //
                                         node.status({});
-                                        //
-                                        //  Before SEND, we need to verify if there are asynchronous things to be done ....
-                                        //
-                                        _beforeSend(theMsg);
                                     }
+                                    //
+                                    //  Before SEND, we need to verify if there are asynchronous things to be done ....
+                                    //
+                                    _beforeSend(theMsg);
                                 } else {
                                     console.log('getForOther: Missing <ENTRY> element : ' + result);
                                     node.status({fill:"yellow",shape:"dot",text:"No Entry "});
