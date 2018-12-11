@@ -407,6 +407,9 @@ module.exports = function(RED) {
              getURL += module;
              getURL += "?format=json&rollup=true";
              getURL += constraints;
+             if (config.count) {
+                getURL += "&count="+config.count;
+             }
              node.status({fill: "blue", shape: "dot", text: "Retrieving..."});
              console.log(getURL);
              node.login.request({
