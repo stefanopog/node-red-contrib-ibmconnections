@@ -56,7 +56,11 @@
                 untilCB: {
                     value: false,
                     required: false
-                }
+		},
+		    count : {
+		    value : false,
+		    required : false
+		}
             },
             oneditprepare: updateFormASGet
         });
@@ -201,7 +205,11 @@
             <br />
         </div>
     </div>
-
+    <div class="form-row">
+        <hr />
+        <label for="node-input-count"><i class="fa fa-sort-numeric-up"></i> Count</span></label>
+        <input type="text" id="node-input-count" ></input>
+    </div>
     <br/>
     <br/>
     <div class="form-row" id="contextRoot">
