@@ -58,7 +58,7 @@
                     required: false
 		},
 		    count : {
-		    value : false,
+		    value : ,
 		    required : false
 		}
             },
@@ -207,7 +207,7 @@
     </div>
     <div class="form-row">
         <hr />
-        <label for="node-input-count"><i class="fa fa-sort-numeric-up"></i> Count</span></label>
+        <label for="node-input-count"><i class="fa fa-sort-numeric-asc"></i> Count</span></label>
         <input type="text" id="node-input-count" ></input>
     </div>
     <br/>
@@ -234,6 +234,8 @@
    The UserId of the target (in case <b>person</b> is selected in the configuration panel) can be either the <i>Mail address</i> or the <i>UserId</i> of a valid user. The information can be provided either in the configuration panel or via the <code>msg.userId</code> input.</p>
    <p>
    The CommunityId of the target (in case <b>community</b> is selected in the configuration panel) is the <i>Community UUID</i> of a valid Community. The information can be provided either in the configuration panel or via the <code>msg.communityId</code> input.</p>
+   <p>
+   The number of returned entries from an activity stream is limited to 20 by default. If you want to get more or less entries, you can set the <b>Count</b> value to an integer. 
    <p>
    The results may also be filtered by a range of dates (specified as dd/mm/yyyy).
    <ul>
