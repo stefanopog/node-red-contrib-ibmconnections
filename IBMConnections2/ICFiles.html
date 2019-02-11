@@ -383,3 +383,173 @@
     </ul>
     </p>
 </script>
+
+<script type="text/javascript">
+	RED.nodes.registerType('ICFilePut', {
+		category : "IBMsocial",
+		inputs : 1,
+		outputs : 1,
+		icon : "ibmconnections.png",
+		color : "#FFFFFF",
+		align : "right",
+		label : function() {
+			return this.name || 'Upload File';
+		},
+		paletteLabel : "Upload File",
+		defaults : {
+			server : {
+				value : "",
+				required : true,
+				type : "ICLogin2"
+			},
+			target : {
+				value : "mylib",
+				required : true
+			},
+			contextRoot : {
+				value : "/connections",
+				required : false
+			},
+			communityId : {
+				value : "",
+				required : false
+			},
+			name : {
+				value : "",
+				required : false
+			},
+			filename : {
+				value : "",
+				required : false
+			},
+			fileTags : {
+				value : "",
+				required : false
+			},	
+			fileDesc : {
+				value : "",
+				required : false
+			},
+			fileFolder : {
+				value : "",
+				required : false
+			},
+
+		},
+		oneditprepare : updateFormFilePutAll
+	});
+
+	function updateFormFilePut() {
+		switch (document.querySelector("#node-input-target").value) {
+		case "mylib":
+			// 			document.querySelector("#targetRow").style.display = "inline";
+			document.querySelector("#communityRow").style.display = "none";
+			break;
+		case "community":
+			// 			document.querySelector("#targetRow").style.display = "none";
+			document.querySelector("#communityRow").style.display = "inline";
+			break;
+		}
+	}
+
+	function switchContextRoot() {
+		$
+				.getJSON(
+						'credentials/ICLogin2/' + this.server,
+						function(data) {
+							//alert(JSON.stringify(data, ' ', 2));
+							if (data.theServerType
+									&& (data.theServerType !== '')) {
+								if (data.theServerType === 'cloud') {
+									document.querySelector("#contextRoot").style.display = 'none';
+								}
+							}
+						});
+	}
+
+	function updateFormFilePutAll() {
+		updateFormFilePut();
+		switchContextRoot();
+	}
+</script>
+
+<script type="text/x-red" data-template-name="ICFilePut">
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+        <input type="text" id="node-input-server" onchange="switchContextRoot()">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Target</label>
+        <select id="node-input-target" onchange="updateFormFilePut()">
+	       <option value="mylib">My library</option>
+           <option value="community">Community Library</option>
+        </select>
+    </div>
+
+    <div class="form-row" id="communityRow">
+        <label for="node-input-communityId"><i class="fa fa-users"></i> Comm. ID</label>
+        <input type="text" id="node-input-communityId" placeholder="Community ID (ie. bc4597f0-e35c-4edc-8ef4-14b0cc3376e4)">
+    </div>
+    <div class="form-row" id="fileFolderRow">
+        <label for="node-input-fileFolder"><i class="fa fa-folder"></i> Folder</label>
+        <input type="text" id="node-input-fileFolder" placeholder="Name of existing folder in Connections">
+    </div>
+
+    <div class="form-row" id="filenameRow">
+        <label for="node-input-filename"><i class="fa fa-tag"></i> File Name</label>
+        <input type="text" id="node-input-filename" placeholder="ie. WhiteboardCam.jpg (a timestamp will be added automatically)">
+    </div>
+
+    <div class="form-row" id="fileTagsRow">
+        <label for="node-input-fileTags"><i class="fa fa-tag"></i> File Tags</label>
+        <input type="text" id="node-input-fileTags" placeholder="ie. whiteboard bot iot ...	">
+    </div>
+    <div class="form-row" id="fileDescRow">
+        <label for="node-input-fileDesc"><i class="fa fa-align-left"></i> File Description</label>
+        <input type="text" id="node-input-fileDesc" placeholder="This is a new file ...	">
+    </div>
+    <div class="form-row">
+        <hr />
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
+        <input type="text" id="node-input-name" ></input>
+    </div>
+
+</script>
+
+<script type="text/x-red" data-help-name="ICFilePut">
+	<p>
+		Uploads a file to the file library of a user or a community in IBM Connections. If there is no msg.label the file will be labeled with the node's property "File Label" and the actual timestamp (e.g. "filename1521802184844.jpg").
+	</p>
+	<p>
+		<i>Inputs:</i>
+		<ul>
+			<li><code>msg.payload</code> : Contains a buffer or a stream of the file that will be uploaded.</li>
+			<li><code>msg.filename</code> : Contains the filename (e.g. "uploadedFile.jpeg"). "File Name" in the node's properties will overwrite msg.fileName</li>
+			<li><code>msg.communityId</code> : Contains the ID of the community where the file will be uploaded. <code>msg.communityId</code> will overwrite the community id from the nodes's properties.</li>
+			<li><code>msg.description (optional)</code> : Contains a text description for the file. msg.description overwrites "File Description" in the node's properties.</li>
+			<li><code>msg.tags (optional)</code> : Contains a string of tags for the file, separated by comma or space (e.g. msg.tags="iot,whiteboard"). msg.tags overwrites "File Tags" in the node's properties</li>
+			<li><code>msg.folder (optional)</code> : String containing the folderId of an existing folder where the file is uploaded to</li>
+		</ul>
+	</p>
+	<p>
+		<i>Returns:</i>
+		<ul>
+			<li><code>msg.fileUrl</code> Contains the uploaded file's url. </li>
+			<li><code>msg.payload</code> Contains the response object received from the IBM Connections server. </li>
+			<ul>
+				<li><code>.id</code> Uploaded file's uuid </li>
+				<li><code>.title</code> Uploaded file's title </li>
+				<li><code>.summary</code> Uploaded file's description </li>
+				<li><code>.content</code> ?  </li>
+				<li><code>.updated</code> Uploaded file's last update </li>
+				<li><code>.published</code> Uploaded file's publish date </li>
+				<li><code>.authors</code> Array of persons who uploaded the file </li>
+				<li><code>.links</code> Array of URLs for the uploaded file (e.g. link[1].href for relation "alternate") </li>
+				<li><code>.categories</code> Array of tags.</li>
+				<li><code>.attachments</code> Array containing the uploaded file for attaching it to a new status update (microblogging).</li>
+			</ul>
+						
+		</ul>
+	</p>
+</script>
