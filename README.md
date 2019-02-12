@@ -5,7 +5,7 @@ This package is a fork of the [GitHub-Repo](https://github.com/stefanopog/node-r
 
 # *Changes*
 ## Changes in comparison to V1.4.1
-* We added a **Upload File node** that enables uploading files to IBM Connections. The node supports uploading a file into the user's library and into a community's library.
+* We added an **Upload File node** that enables uploading files to IBM Connections. The node supports uploading a file into the user's library and into a community's library.
 * The **Get AS node** has been limited to returning 20 entries by default. For this reason we added the parameter *count* for specifying the maximum number of returned entries.
 
 # List of nodes
