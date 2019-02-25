@@ -884,7 +884,11 @@ module.exports = function(RED) {
                         getActivityList(msg, myURL, config.isAtom, false);
                         break;
                     case "CommActivities" :
-                        myURL = server + "/activities/service/atom2/activities?includeCommunityActivities=only";
+                        if (config.communityId === '') {
+                            myURL = server + "/activities/service/atom2/activities?includeCommunityActivities=only";
+                        } else {
+                            myURL = server + '/activities/service/atom2/activities?commUuid=' + config.communityId;
+                        }
                         if (theTags !== '') myURL += '&' + theTags;
                         getActivityList(msg, myURL, config.isAtom, true);
                         break;
