@@ -1,7 +1,18 @@
 module.exports = function(RED) {    
+    const { __log, 
+        __logJson, 
+        __logError, 
+        __logWarning, 
+        __getOptionValue, 
+        __getMandatoryInputFromSelect, 
+        __getMandatoryInputString, 
+        __getOptionalInputString, 
+        __getNameValueArray,
+        __getItemValuesFromMsg } = require('./common.js');
+
     function ICparseActivityAtomEntry(entry, isAtom) {
         var xml2js = require("xml2js");
-        var parser = new xml2js.Parser();
+        //var parser = new xml2js.Parser();
         var builder  = new xml2js.Builder({rootName: "entry"});
             var activity = {};
         var isActivity = true;
@@ -9,7 +20,7 @@ module.exports = function(RED) {
         //console.log(JSON.stringify(entry, ' ', 2));
         function __checkSchemeValue(entry, scheme, value) {
             var result = false;
-            for (j=0; j < entry.category.length; j++) {
+            for (let j=0; j < entry.category.length; j++) {
                 let tmp = entry.category[j];
                 if (tmp['$'].scheme === scheme) {
                     if (tmp['$'].term === value) {
@@ -25,7 +36,7 @@ module.exports = function(RED) {
         //
         isActivity = !__checkSchemeValue(entry, "http://www.ibm.com/xmlns/prod/sn/type", "todo");
         //
-        //  Start Processing
+        //  Start Processing 
         //
         activity.title = entry.title[0]['_'];
         activity.id = entry.id[0].replace('urn:lsid:ibm.com:oa:', '');
@@ -158,7 +169,7 @@ module.exports = function(RED) {
             }
             if (entry['snx:position']) entry.position = entry['snx:position'][0];
         }
-        for (j=0; j < entry.link.length; j++ ) {
+        for (let j=0; j < entry.link.length; j++ ) {
             var tmp = entry.link[j];
             if (tmp['$'].rel === "self") {
                 activity.ref =  tmp['$'].href; 
@@ -173,7 +184,7 @@ module.exports = function(RED) {
 
     function ICparseActivityAtomEntry2(entry, isAtom) {
         var xml2js = require("xml2js");
-        var parser = new xml2js.Parser();
+        //var parser = new xml2js.Parser();
         var builder  = new xml2js.Builder({rootName: "entry"});
         var result = {};
 
@@ -451,10 +462,9 @@ module.exports = function(RED) {
                 //
                 //  Entry not part of the Activity
                 //
-                console.log("Move Entry  NOT OK. Entry " + params.entry + " not part of Acctivity !" );
-                console.log(body);
-                node.status({fill:"red",shape:"dot",text:"Move Entry  NOT OK. Entry " + params.entry + " not part of Acctivity !"});
-                node.error("Move Entry  NOT OK. Entry " + params.entry + " not part of Acctivity !", theMsg);
+                console.log("Move Entry  NOT OK. Entry " + params.entry + " not part of Activity !" );
+                node.status({fill:"red",shape:"dot",text:"Move Entry  NOT OK. Entry " + params.entry + " not part of Activity !"});
+                node.error("Move Entry  NOT OK. Entry " + params.entry + " not part of Activity !", theMsg);
             } else {
                 //
                 //  Check if the Section is in the activity
@@ -471,7 +481,6 @@ module.exports = function(RED) {
                         //  Section not part of the Activity
                         //
                         console.log("Move Entry NOT OK. Section " + params.section + " not part of Acctivity !" );
-                        console.log(body);
                         node.status({fill:"red",shape:"dot",text:"Move Entry  NOT OK. Section " + params.section + " not part of Acctivity !"});
                         node.error("Move Entry  NOT OK. Section " + params.section + " not part of Acctivity !", theMsg);
                     } else {
@@ -496,7 +505,6 @@ module.exports = function(RED) {
                     //  There must be some SECTIONS !!!
                     //
                     console.log("Move Entry NOT OK. Section " + params.section + " not part of Acctivity !" );
-                    console.log(body);
                     node.status({fill:"red",shape:"dot",text:"Move Entry  NOT OK. Section " + params.section + " not part of Acctivity !"});
                     node.error("Move Entry  NOT OK. Section " + params.section + " not part of Acctivity !", theMsg);
             }
@@ -506,7 +514,6 @@ module.exports = function(RED) {
             //  There must be some ENTRIES !!!
             //
             console.log("Move Entry  NOT OK. Entry " + params.entry + " not part of Acctivity !" );
-            console.log(body);
             node.status({fill:"red",shape:"dot",text:"Move Entry  NOT OK. Entry " + params.entry + " not part of Acctivity !"});
             node.error("Move Entry  NOT OK. Entry " + params.entry + " not part of Acctivity !", theMsg);
         }
@@ -562,8 +569,8 @@ module.exports = function(RED) {
                                     //  removing the "template" flag
                                     //
                                     var k = -1;
-                                    for (i=0; i < feedJson.category.length; i++) {
-                                        tmp = feedJson.category[i];
+                                    for (let i=0; i < feedJson.category.length; i++) {
+                                        let tmp = feedJson.category[i];
                                         if (tmp["$"].term === "template") {
                                             k = i;
                                             break;
@@ -575,8 +582,8 @@ module.exports = function(RED) {
                                     //
                                     if (communityId !== null) {
                                         k = -1;
-                                        for (i=0; i < feedJson.category.length; i++) {
-                                            tmp = feedJson.category[i];
+                                        for (let i=0; i < feedJson.category.length; i++) {
+                                            let tmp = feedJson.category[i];
                                             if (tmp["$"].term === "activity") {
                                                 tmp["$"].term = "explicit_membership_community_activity";
                                                 tmp["$"].label = "Explicit Membership Community Activity";
@@ -657,7 +664,7 @@ module.exports = function(RED) {
                                     node.status({});
                                     node.send(theMsg);
                                 } else {
-                                    onsole.log('_createActivity: No ENTRY found for URL : ' + theURL);
+                                    console.log('_createActivity: No ENTRY found for URL : ' + theURL);
                                     node.status({fill:"red",shape:"dot",text:"No Entry "});
                                     node.error("Missing <ENTRY>", theMsg);
                                 }
@@ -729,13 +736,13 @@ module.exports = function(RED) {
                     node.error('Missing Name', msg);
                     return;
                 } else {
-                    var activityName = '';
+                    let activityName = '';
                     if (config.activityName !== '') {
                         activityName = config.activityName.trim();
                     } else {
                         activityName = msg.activityName.trim();
                     }
-                    var templateId = null;
+                    let templateId = null;
                     if (config.isTemplate) {
                         if ((config.templateId !== '') || 
                             ((msg.templateId !== undefined) && (msg.templateId !== ''))) {
@@ -750,19 +757,11 @@ module.exports = function(RED) {
                         }                        
                     }
                     myURL = server + "/activities/service/atom2/activities";
-                    var prefix = "?";
-                    var communityId = null;
+                    let prefix = "?";
+                    let communityId = null;
                     if (config.isCommunity) {
-                        if ((config.communityId !== '') || 
-                            ((msg.communityId !== undefined) && (msg.communityId !== ''))) {
-                            //
-                            //  a Community has been specified
-                            //
-                            if (config.communityId !== '') {
-                                communityId = config.communityId.trim();
-                            } else {
-                                communityId = msg.communityId.trim();
-                            }
+                        communityId = __getOptionalInputString('ICActivitiesGet', config.communityId, msg.communityId, 'communityId', msg, node);
+                        if (communityId !== '') {
                             myURL += prefix + "commUuid=" + communityId;
                             prefix = "&";
                         }                        
@@ -818,10 +817,10 @@ module.exports = function(RED) {
                                 var myData = new Array();
                                 if (result.feed.entry) {
                                    //
-                                    for (i=0; i < result.feed.entry.length; i++) {
+                                    for (let i=0; i < result.feed.entry.length; i++) {
                                         var processIt = false;
                                         if (isCommunity) {
-                                            for (j=0; j < result.feed.entry[i].category.length; j++) {
+                                            for (let j=0; j < result.feed.entry[i].category.length; j++) {
                                                 var tmp = result.feed.entry[i].category[j]["$"];
                                                 if (tmp.scheme == "http://www.ibm.com/xmlns/prod/sn/type") {
                                                     if (tmp.term == "community_activity") processIt = true;
@@ -866,8 +865,10 @@ module.exports = function(RED) {
                 var theTags = '';
                 if (config.activityTags !== '') {
                     theTags = "tag=" + config.activityTags.trim();
-                } else if ((msg.activityTags !== undefined) && (msg.activityTags !== '')) {
-                    theTags = "tag=" + msg.activityTags.trim();
+                } else {
+                    if ((msg.activityTags !== undefined) && (msg.activityTags !== '')) {
+                        theTags = "tag=" + msg.activityTags.trim();
+                    }
                 }
                 
                 node.status({fill:"blue",shape:"dot",text:"Retrieving..."});
@@ -883,11 +884,20 @@ module.exports = function(RED) {
                         if (theTags !== '') myURL += '&' + theTags;
                         getActivityList(msg, myURL, config.isAtom, false);
                         break;
-                    case "CommActivities" :
-                        myURL = server + "/activities/service/atom2/activities?includeCommunityActivities=only";
+                    case "CommActivities" : {
+                        //
+                        //  Check if there is a communityId coming from config or from message
+                        //
+                        let communityId = __getOptionalInputString('ICActivitiesGet', config.communityId, msg.communityId, 'communityId', msg, node);
+                        if (communityId === '') {
+                            myURL = server + "/activities/service/atom2/activities?includeCommunityActivities=only";
+                        } else {
+                            myURL = server + '/activities/service/atom2/activities?commUuid=' + communityId;
+                        }
                         if (theTags !== '') myURL += '&' + theTags;
                         getActivityList(msg, myURL, config.isAtom, true);
                         break;
+                    }
                     case "byId" :
                         myURL = server + "/activities/service/atom2/activity?activityUuid=";
                         //myURL = server + "/activities/service/atom2/activitynode?activityNodeUuid=";
@@ -1009,7 +1019,7 @@ module.exports = function(RED) {
                     activityId = msg.activityId.trim();
                 }
                 switch (config.target) {
-                    case "Reparent" :
+                    case "Reparent" : {
                         //
                         //  Getting Title of the Section (this is a Mandatory argument)
                         //
@@ -1060,6 +1070,7 @@ module.exports = function(RED) {
                         };
                         getActivity(node, parser, msg, myURL, config.isAtom, _moveEntry, params); 
                         break;
+                    }
                     case "Section" :
                         //
                         //  Getting Title of the Section (this is a Mandatory argument)

@@ -1,0 +1,25 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            //"runtimeExecutable": "/usr/local/bin/node-red",
+            "args": ["-v", "--inspect=12345", "/Users/stefano/.node-red/flows_stefanos-macbook-pro-2-1.home.json"],
+            "cwd": "${workspaceFolder}",
+            "program": "/usr/local/bin/node-red",
+            "restart":true,
+            "name": "Launch Program"
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach to Process",
+            //"processId": "${command:PickProcess}"
+            "port": 12345
+        }
+    ]
+}

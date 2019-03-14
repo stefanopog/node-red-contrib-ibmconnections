@@ -490,6 +490,7 @@ module.exports = function(RED) {
         //
         //  Performing the request
         //
+        console.log(JSON.stringify(req, ' ', 2));
         return request(req, function(err, result, data) {
             if (err) {
                 // handled in callback
