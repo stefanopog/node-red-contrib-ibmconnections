@@ -327,7 +327,7 @@
     </div>
 
     <div class="form-row" id="communityRow">
-        <label for="node-input-communityId"><i class="fa fa-odnoklassniki"></i> Community</label>
+        <label for="node-input-communityId"><i class="fa fa-institution"></i> Community</label>
         <input type="text" id="node-input-communityId" placeholder="Community ID"></input>
         <br />
     </div>
@@ -387,10 +387,12 @@ TO DOs can be retrieved for the <bold>"Assigned To"</bold> and <bold>"Created By
    <p><i>Inputs:</i>
    <ul>
     <li><code>msg.activityId</code> : if set, it contains the ID of the Activity to be retrieved in case the selector is set to retrieve a specific Activity</li>
+    <li><code>msg.communityId</code> : if set, it contains the ID of the Community for which Activities need to be retrieved to be retrieved in case the selector is set to retrieve Community Activities</li>
     <li><code>msg.entryId</code> : if set, it contains the ID of the Activity <b>entry</b> to be retrieved in case the selector is set to retrieve a specific Entry</li>
     <li><code>msg.activityTags</code> : the name of a single tag used for filtering the search criteria</li>
-   <li><code>msg.otherPersonId</code> : if set, it contains the UUID of the person for which the TO DOs are to be retrieved if different than "me"</li>
+    <li><code>msg.otherPersonId</code> : if set, it contains the UUID of the person for which the TO DOs are to be retrieved if different than "me"</li>
    </ul></p>
+   The value in the Configuration Panel takes precedence on any of the above input parameters.
    <p><i>Returns:</i>
    <ul>
    <li><code>msg.payalod</code>. This is an array of objects where each object has the following properties:
