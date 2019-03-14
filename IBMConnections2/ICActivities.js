@@ -761,7 +761,7 @@ module.exports = function(RED) {
                     let communityId = null;
                     if (config.isCommunity) {
                         communityId = __getOptionalInputString('ICActivitiesGet', config.communityId, msg.communityId, 'communityId', msg, node);
-                        if (communityId !== '') {
+                        if (communityId) {
                             myURL += prefix + "commUuid=" + communityId;
                             prefix = "&";
                         }                        
@@ -889,10 +889,10 @@ module.exports = function(RED) {
                         //  Check if there is a communityId coming from config or from message
                         //
                         let communityId = __getOptionalInputString('ICActivitiesGet', config.communityId, msg.communityId, 'communityId', msg, node);
-                        if (communityId === '') {
-                            myURL = server + "/activities/service/atom2/activities?includeCommunityActivities=only";
-                        } else {
+                        if (communityId) {
                             myURL = server + '/activities/service/atom2/activities?commUuid=' + communityId;
+                        } else {
+                            myURL = server + "/activities/service/atom2/activities?includeCommunityActivities=only";
                         }
                         if (theTags !== '') myURL += '&' + theTags;
                         getActivityList(msg, myURL, config.isAtom, true);
