@@ -291,3 +291,138 @@
    </p>
 </script>
 
+<script type="text/javascript">
+    RED.nodes.registerType(
+        'ICCommunityNew',
+        {
+            category:"IBMsocial",
+            inputs: 1,
+            outputs: 1,
+            icon: "ibmconnections.png",
+            color: "#FFFFFF",
+            label: function() {
+                return this.name ||'Create Community';
+            },
+            paletteLabel: "Create Community",
+            defaults: {
+                name: {
+                    value: ""
+                },
+                server: {
+                            value : "",
+                            required: true,
+                            type: "ICLogin2"
+                },
+                communityTitle: {
+                    value: "",
+                    required: false
+                },
+                communityDescription: {
+                    value: "",
+                    required: false
+                }
+            }
+        });
+</script>
+ 
+ <script type="text/x-red" data-template-name="ICCommunityNew">
+     <div class="form-row">
+         <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+         <input type="text" id="node-input-server" placeholder="Server">
+     </div>
+ 
+     <div class="form-row" id="communityTitle">
+         <label for="node-input-communityTitle"><i class="fa fa-tag"></i> Title</span></label>
+         <input type="text" id="node-input-communityTitle" ></input>
+         <br />
+     </div>
+ 
+     <br />
+     <div class="form-row">
+         <label for="node-input-communityDescription"><i class="fa fa-tag"></i> Description</span></label>
+         <input type="text" id="node-input-communityDescription" ></input>
+     </div>
+ 
+     <br />
+     <div class="form-row">
+         <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
+         <input type="text" id="node-input-name" ></input>
+     </div>
+ </script>
+ 
+ <script type="text/x-red" data-help-name="ICCommunityNew">
+     <p>Creates a new Community</p>
+     <p><i>Inputs:</i>
+     <ul>
+     <li><code>msg.communityTitle</code> : if set, it contains the title for the community. <b>NOTE : </b>the checkbox in the configuration panel needs to be set for this parameter to be taken in consideration</li>
+     <li><code>msg.communityDescription</code> : if set, it contains the description for the community. <b>NOTE : </b>the checkbox in the configuration panel needs to be set for this parameter to be taken in consideration</li>
+     </ul></p>
+     <p><i>Returns:</i>
+     <ul>
+     <li><code>msg.payload</code>. This is the ID of the created community</li>
+     </ul>
+     </p>
+  </script>
+
+ <script type="text/javascript">
+     RED.nodes.registerType(
+         'ICCommunityChangeImage',
+         {
+             category:"IBMsocial",
+             inputs: 1,
+             outputs: 1,
+             icon: "ibmconnections.png",
+             color: "#FFFFFF",
+             label: function() {
+                 return this.name ||'Change Community Image';
+             },
+             paletteLabel: "Change Community Image",
+             defaults: {
+                 name: {
+                     value: ""
+                 },
+                 server: {
+                             value : "",
+                             required: true,
+                             type: "ICLogin2"
+                 },
+                 communityId: {
+                     value: "",
+                     required: false
+                 }
+             }
+         });
+ </script>
+
+<script type="text/x-red" data-template-name="ICCommunityChangeImage">
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+        <input type="text" id="node-input-server" placeholder="Server">
+    </div>
+
+    <div class="form-row" id="communityRow">
+        <label for="node-input-communityId"><i class="fa fa-users"></i> Comm. Id</label>
+        <input type="text" id="node-input-communityId" placeholder="ID"></input>
+        <br />
+   </div>
+
+    <br />
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
+        <input type="text" id="node-input-name" ></input>
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="ICCommunityChangeImage">
+    <p>Changes the Community Image</p>
+    <p><i>Inputs:</i>
+    <ul>
+    <li><code>msg.communityId</code> : if set, the id of the community to update. <b>NOTE : </b>the checkbox in the configuration panel needs to be set for this parameter to be taken in consideration</li>
+    <li><code>msg.communityImage</code> : <b>REQUIRED, CURRENTLY ONLY PNG SUPPORTED</b> the raw image to upload. <b>NOTE : </b>the checkbox in the configuration panel needs to be set for this parameter to be taken in consideration</li>
+    </ul></p>
+    <p><i>Returns:</i>
+    <ul>
+    <li><code>msg.payload</code>. This is the ID of the community</li>
+    </ul>
+    </p>
+ </script>

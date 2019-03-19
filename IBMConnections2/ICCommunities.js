@@ -454,4 +454,197 @@ module.exports = function (RED) {
     }
 
     RED.nodes.registerType("ICCommunitiesUpdate", ICCommunitiesUpdate);
+
+    function ICCommunityNew(config) {
+        RED.nodes.createNode(this,config);
+        //
+        //  Global to access the custom HTTP Request object available from the
+        //  ICLogin node
+        //
+        this.login = RED.nodes.getNode(config.server);
+        var node = this;
+
+        function createCommunity(theMsg, theURL, commTitle, commDesc) {
+            var theBody = '';
+            theBody += '<entry xmlns="http://www.w3.org/2005/Atom" xmlns:app="http://www.w3.org/2007/app" xmlns:snx="http://www.ibm.com/xmlns/prod/sn">';
+            theBody += '<title type="text">' + commTitle + '</title>';
+            theBody += '<content type="html">' + commDesc + '</content>';
+            theBody += '<category term="community" scheme="http://www.ibm.com/xmlns/prod/sn/type"></category>';
+            theBody += '<snx:communityType>private</snx:communityType>';
+            theBody += ' <snx:isExternal>true</snx:isExternal>';
+            theBody += '</entry>';
+
+            node.login.request({
+                url: theURL,
+                method: "POST",
+                body: theBody,
+                headers: {"Content-Type": "application/atom+xml"}
+            },
+            function (error, response, body) {
+                if (error) {
+                    if (response.statusCode == 409) {
+                        console.log("createCommunity : community already exists");
+                        node.status({fill: "red", shape: "dot", text: "community already exists"});
+                        node.error(error.toString(), theMsg);
+                    } else {
+                        console.log("createCommunity : error creating community");
+                        node.status({fill: "red", shape: "dot", text: "error createCommunity"});
+                        node.error(error.toString(), theMsg);
+                    }
+                } else {
+                    console.log('createCommunity: run');
+                    theMsg.statusCode = response.statusCode;
+                    theMsg.statusMessage = response.statusMessage;
+                    let communityLocation = response.headers.location;
+                    if ((response.statusCode >= 201) && (response.statusCode < 300)) {
+                        console.log("createCommunity OK (" + response.statusCode + ")");
+                        console.log(body);
+                        console.log(communityLocation);
+                        theMsg.payload = communityLocation.split('communityUuid=')[1];
+                        node.status({});
+                        node.send(theMsg);
+                    } else {
+                        console.log("createCommunity NOT OK (" + response.statusCode + ")");
+                        console.log(body);
+                        console.log(theURL);
+                        node.status({fill: "red", shape: "dot", text: "Err3 " + response.statusMessage});
+                        node.error(response.statusCode + ' : ' + response.statusMessage, theMsg);
+                    }
+                }
+            });
+        }
+
+        this.on(
+            'input',
+            function(msg) {
+                var serverConfig = RED.nodes.getNode(config.server);
+                //
+                //  Server is a GLOBAL variable
+                //
+                var server = serverConfig.getServer;
+                var myURL = server + "/communities";
+                if (node.login.authType === "oauth") myURL += '/oauth';
+                let communityTitle = '';
+                let communityDescription = '';
+                if ((config.communityTitle == '') &&
+                    ((msg.communityTitle == undefined || msg.communityTitle == ''))) {
+                    //
+                    //  There is an issue
+                    //
+                    console.log("Missing CommunityTitle Information");
+                    node.status({fill: "red", shape: "dot", text: "Missing CommunityTitle"});
+                    node.error('Missing CommunityTitle', msg);
+                    return;
+                } else if ((config.communityDescription == '') &&
+                    ((msg.communityDescription == undefined || msg.communityDescription == ''))) {
+                    //
+                    //  There is an issue
+                    //
+                    console.log("Missing communityDescription Information");
+                    node.status({fill: "red", shape: "dot", text: "Missing communityDescription"});
+                    node.error('Missing communityDescription', msg);
+                    return;
+                } else {
+                    if (config.communityTitle != '') {
+                        communityTitle = config.communityTitle.trim();
+                    } else {
+                        communityTitle = msg.communityTitle.trim();
+                    }
+                    if (config.communityDescription != '') {
+                        communityDescription = config.communityDescription.trim();
+                    } else {
+                        communityDescription = msg.communityDescription.trim();
+                    }
+                    node.status({fill: "blue", shape: "dot", text: "Creating..."});
+                    myURL += "/service/atom/communities/my";
+                    createCommunity(msg, myURL, communityTitle, communityDescription);
+                }
+            }
+        )
+    }
+
+    RED.nodes.registerType("ICCommunityNew", ICCommunityNew);
+
+    function ICCommunityChangeImage(config) {
+        RED.nodes.createNode(this,config);
+        //
+        //  Global to access the custom HTTP Request object available from the
+        //  ICLogin node
+        //
+        this.login = RED.nodes.getNode(config.server);
+        var node = this;
+
+        function createCommunity(theMsg, theURL, commId, image) {
+            node.login.request({
+                url: theURL,
+                method: "PUT",
+                body: image,
+                headers: {"Content-Type": "image/png"}
+            },
+            function (error, response, body) {
+                if (error) {
+                    console.log("changeCommunityImage : error changing image");
+                    node.status({fill: "red", shape: "dot", text: "error changing image"});
+                    node.error(error.toString(), theMsg);
+                } else {
+                    console.log('changeCommunityImage: run');
+                    if ((response.statusCode >= 200) && (response.statusCode < 300)) {
+                        console.log("changeCommunityImage OK (" + response.statusCode + ")");
+                        console.log(body);
+                        node.status({});
+                        node.send(theMsg);
+                    } else {
+                        console.log("changeCommunityImage NOT OK (" + response.statusCode + ")");
+                        console.log(body);
+                        console.log(theURL);
+                        node.status({fill: "red", shape: "dot", text: "Err3 " + response.statusMessage});
+                        node.error(response.statusCode + ' : ' + response.statusMessage, theMsg);
+                    }
+                }
+            });
+        }
+
+        this.on(
+            'input',
+            function(msg) {
+                var serverConfig = RED.nodes.getNode(config.server);
+                //
+                //  Server is a GLOBAL variable
+                //
+                var server = serverConfig.getServer;
+                var myURL = server + "/communities";
+                if (node.login.authType === "oauth") myURL += '/oauth';
+                let communityId = '';
+                if ((config.communityId == '') &&
+                    ((msg.communityId == undefined || msg.communityId == ''))) {
+                    //
+                    //  There is an issue
+                    //
+                    console.log("Missing CommunityId Information");
+                    node.status({fill: "red", shape: "dot", text: "Missing CommunityId"});
+                    node.error('Missing CommunityId', msg);
+                    return;
+                } else if ((msg.communityImage == undefined || msg.communityImage == '')) {
+                    //
+                    //  There is an issue
+                    //
+                    console.log("Missing communityImage Information");
+                    node.status({fill: "red", shape: "dot", text: "Missing communityImage"});
+                    node.error('Missing communityImage', msg);
+                    return;
+                } else {
+                    if (config.communityId != '') {
+                        communityId = config.communityId.trim();
+                    } else {
+                        communityId = msg.communityId.trim();
+                    }
+                    node.status({fill: "blue", shape: "dot", text: "Creating..."});
+                    myURL += "/service/html/image?communityUuid=" + communityId;
+                    createCommunity(msg, myURL, communityId, msg.communityImage);
+                }
+            }
+        )
+    }
+
+    RED.nodes.registerType("ICCommunityChangeImage", ICCommunityChangeImage);
 };
