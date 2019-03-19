@@ -286,7 +286,7 @@ module.exports = function (RED) {
             var theBody = '';
             theBody = '<entry xmlns="http://www.w3.org/2005/Atom" xmlns:app="http://www.w3.org/2007/app" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:snx="http://www.ibm.com/xmlns/prod/sn">';
             theBody += '<contributor>' + userLine + '</contributor>';
-            theBody += '<snx:role xmlns:snx="http://www.ibm.com/xmlns/prod/sn" component="http://www.ibm.com/xmlns/prod/sn/communities">' + userRole + '</snx:role>';
+            theBody += '<snx:role xmlns:snx="http://www.ibm.com/xmlns/prod/sn" component="http://www.ibm.com/xmlns/prod/sn/communities">' + userRole.toLowerCase() + '</snx:role>';
             theBody += '<category term="person" scheme="http://www.ibm.com/xmlns/prod/sn/type"></category></entry>';
             node.login.request({
                     url: theURL,
