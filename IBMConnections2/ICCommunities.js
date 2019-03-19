@@ -125,6 +125,55 @@ module.exports = function (RED) {
             );
         }
 
+        function getCommunityById(theMsg, theURL) {
+            node.login.request(
+                {
+                    url: theURL,
+                    method: "GET",
+                    headers: {"Content-Type": "application/atom+xml"}
+                },
+                function (error, response, body) {
+                    console.log('getCommunityById: executing on ' + theURL);
+                    if (error) {
+                        console.log("getCommunityById : error getting information for Community !");
+                        node.status({fill: "red", shape: "dot", text: "No Community"});
+                        node.error(error.toString(), theMsg);
+                    } else {
+                        if (response.statusCode >= 200 && response.statusCode < 300) {
+                            console.log("GET OK (" + response.statusCode + ")");
+                            console.log(body);
+                            //
+                            //	Have the node to emit the URL of the newly created event
+                            //
+                            parser.parseString(body, function (err, result) {
+                                if (err) {
+                                    console.log(err);
+                                    node.status({fill: "red", shape: "dot", text: "Parser Error"});
+                                    node.error("Parser Error getCommunityById", theMsg);
+                                    return;
+                                }
+                                var myData = '';
+                                if (result.entry) {
+                                    myData = parseAtomEntry(result.entry, true);
+                                    node.status({});
+                                } else {
+                                    console.log('getCommunityById: No ENTRY found for URL : ' + theURL);
+                                    node.status({fill: "red", shape: "dot", text: "No Entry "});
+                                }
+                                theMsg.payload = myData;
+                                node.send(theMsg);
+                            });
+                        } else {
+                            console.log("GET COMMUNITY BY ID NOT OK (" + response.statusCode + ")");
+                            console.log(body);
+                            node.status({fill: "red", shape: "dot", text: "Err3 " + response.statusMessage});
+                            node.error(response.statusCode + ' : ' + response.body, theMsg);
+                        }
+                    }
+                }
+            );
+        }
+
         function getCommunityMembers(theMsg, theURL) {
             node.login.request({
                     url: theURL,
@@ -260,6 +309,29 @@ module.exports = function (RED) {
                             // get Profile By Tags
                             //
                             getCommunityMembers(msg, myURL);
+                        }
+                        break;
+                    case "Id" :
+                        if ((config.communityId == '') &&
+                            ((msg.communityId == undefined) || (msg.communityId == ''))) {
+                            //
+                            //  There is an issue
+                            //
+                            console.log("Missing CommunityId Information");
+                            node.status({ fill: "red", shape: "dot", text: "Missing CommunityID" });
+                            node.error('Missing CommunityID', msg);
+                        } else {
+                            var communityId = '';
+                            if (config.communityId != '') {
+                                communityId = config.communityId.trim();
+                            } else {
+                                communityId = msg.communityId.trim();
+                            }
+                            myURL += "/community/instance?communityUuid=" + communityId;
+                            //
+                            // get Profile By Tags
+                            //
+                            getCommunityById(msg, myURL);
                         }
                         break;
                 }

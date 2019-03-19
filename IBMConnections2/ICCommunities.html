@@ -70,6 +70,12 @@
                document.querySelector("#userRow").style.display = "none";
                document.querySelector("#communityRow").style.display = "inline";
                break;
+           case "Id" :
+               document.querySelector("#searchRow").style.display = "none";
+               document.querySelector("#tagRow").style.display = "none";
+               document.querySelector("#userRow").style.display = "none";
+               document.querySelector("#communityRow").style.display = "inline";
+               break;
        }
    }
 </script>
@@ -87,6 +93,7 @@
 	       <option value="AllCommunities">All Communities</option>
 	       <option value="UserCommunities">User Communities</option>
 	       <option value="Members">Community Members</option>
+           <option value="Id">Community By Id</option>
         </select>
         <br />
     </div>
@@ -132,6 +139,7 @@
    <li><b>All Public Communities</b>, possibly filtered by <i>tag</i></li>
    <li><b>All User's Communities</b>, possibly filtered by <i>tag</i></li>
    <li><b>The Members of a given Community</b></li>
+   <li><b>The ATOM feed for a given Community</b></li>
    </ul>
    </p>
    <p><i>Inputs:</i>
@@ -166,6 +174,9 @@
    </ul>
    The Array is empty in case no Member is found.
    </li>
+   </ul>
+   <ul>
+    When a specific community is retrieved, <li><code>msg.payload</code></li>. The ATOM for the given community.
    </ul>
    </p>
 </script>
