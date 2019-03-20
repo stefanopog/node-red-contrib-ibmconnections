@@ -342,13 +342,11 @@ module.exports = function (RED) {
                             node.status({ fill: "red", shape: "dot", text: "Missing CommunityID" });
                             node.error('Missing CommunityID', msg);
                         } else {
-                            var communityId = '';
                             if (config.communityId != '') {
-                                communityId = config.communityId.trim();
+                                myURL += "/community/instance?communityUuid=" + config.communityId.trim();
                             } else {
-                                communityId = msg.communityId.trim();
+                                myURL += "/community/instance?communityUuid=" + msg.communityId.trim();
                             }
-                            myURL += "/community/instance?communityUuid=" + communityId;
                             //
                             // get Profile By Tags
                             //
