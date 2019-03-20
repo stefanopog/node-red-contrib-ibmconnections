@@ -1,4 +1,28 @@
+/*
+Copyright IBM All Rights Reserved.
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
 module.exports = function(RED) {
+    var __isDebug = process.env.ICDebug || false;
+    var __moduleName = 'IC_Forums';
+  
+    console.log("*****************************************");
+    console.log("* Debug mode is " + (__isDebug ? "enabled" : "disabled") + ' for module ' + __moduleName);
+    console.log("*****************************************");
+  
+    const { __log, 
+        __logJson, 
+        __logError, 
+        __logWarning, 
+        __getOptionValue, 
+        __getMandatoryInputFromSelect, 
+        __getMandatoryInputString, 
+        __getOptionalInputString, 
+        __getNameValueArray,
+        __getItemValuesFromMsg } = require('./common.js');
+
     function _compareValues(key, order = 'asc') {
         //  
         //  Array sort function
@@ -36,7 +60,7 @@ module.exports = function(RED) {
         //  Start Processing
         //
         if (result.feed.entry) {
-            for (i=0; i < result.feed.entry.length; i++) {
+            for (let i=0; i < result.feed.entry.length; i++) {
                 myData.push(_parseForumAtomEntry(result.feed.entry[i], isAtom));
             }
         }
@@ -58,7 +82,7 @@ module.exports = function(RED) {
         //  Start Processing
         //
         if (result.feed.entry) {
-            for (i=0; i < result.feed.entry.length; i++) {
+            for (let i=0; i < result.feed.entry.length; i++) {
                 myData.push(_parseTopicAtomEntry(result.feed.entry[i], isAtom));
             }
         }
@@ -76,7 +100,7 @@ module.exports = function(RED) {
 
     function _parseForumAtomEntry(entry, isAtom) {
         var xml2js = require("xml2js");
-        var parser = new xml2js.Parser();
+        //var parser = new xml2js.Parser();
         var builder  = new xml2js.Builder({rootName: "entry"});
         var forum = {};
         //console.log(JSON.stringify(entry, ' ', 2));
@@ -138,7 +162,7 @@ module.exports = function(RED) {
 
     function _parseTopicAtomEntry(feedEntry, isAtom) {
         var xml2js = require("xml2js");
-        var parser = new xml2js.Parser();
+        //var parser = new xml2js.Parser();
         var builder  = new xml2js.Builder({rootName: "entry"});
         var entry = {};
         //console.log(JSON.stringify(feedEntry, ' ', 2));
@@ -264,8 +288,8 @@ module.exports = function(RED) {
         var asyncTasks = [];
         
         var _dummyCallback = function(err, item) {
-            __log('ICForumsGet._dummyCallback : ' + item);
-          }
+            console.log('ICForumsGet._dummyCallback : ' + item);
+        }
       
         function _beforeSend(theMsg) {
             console.log('ICForumsGet._beforeSend: need to process ' + asyncTasks.length + ' async tasks...');
@@ -323,13 +347,13 @@ module.exports = function(RED) {
                            //	Have the node to emit the URL of the newly created event
                            //
                            parser.parseString(body, function (err, result) {
-                               if (err) {
+                                if (err) {
                                    console.log(err);
                                    node.status({fill:"red",shape:"dot",text:"Parser Error"});
                                    node.error("_likeForumAPI: Parser Error", theMsg);
                                    return;
-                               }
-                               if (isLike) {
+                                }
+                                if (isLike) {
                                     if (result.entry) {
                                         var myData = [];
                                         myData.push(_parseTopicAtomEntry(result.entry, isAtom));
@@ -341,11 +365,11 @@ module.exports = function(RED) {
                                         node.status({fill:"red",shape:"dot", text:"No Entry for " + theURL});
                                         node.error('_likeForumAPI: Missing <ENTRY>', theMsg);
                                     }
-                               } else {
-                                delete (theMsg.payload);;
-                                node.status({fill:"green", shape:"dot", text: announce + " Succesfully performed"});
-                                node.send(theMsg);
-                       }
+                                } else {
+                                    delete (theMsg.payload);
+                                    node.status({fill:"green", shape:"dot", text: announce + " Succesfully performed"});
+                                    node.send(theMsg);
+                                }
                            });
                        } else {
                            console.log("_likeForumAPI NOT OK (" + response.statusCode + ")");
@@ -419,7 +443,7 @@ module.exports = function(RED) {
                                                     node.error("_acceptForumAPI: Parser Error", theMsg);
                                                     return;
                                                 }
-                                                delete (theMsg.payload);;
+                                                delete (theMsg.payload);
                                                 node.status({fill:"green", shape:"dot", text: announce + " Succesfully performed"});
                                                 node.send(theMsg);
                                             });
@@ -867,6 +891,7 @@ module.exports = function(RED) {
                             case "accept":
                                 myURL = server + '/forums/atom/reply?replyUuid=' + theId;
                                 _acceptForumAPI(msg, myURL, true);
+                                break;
                             case "reject":
                                 myURL = server + '/forums/atom/reply?replyUuid=' + theId;
                                 _acceptForumAPI(msg, myURL, false);
@@ -881,7 +906,7 @@ module.exports = function(RED) {
                                 break;
                         }
                         break;
-                    case "Search" :
+                    case "Search" : {
                         myURL = server + '/forums/atom/topics?';
                         let theQuery;
                         //
@@ -955,6 +980,7 @@ module.exports = function(RED) {
                         //myURL += 'social={"type":"community","id":"'+ theId + '"}';
                         _getRecursiveForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntryList, ICparseTopicAtomEntryList, config.sortBy, 'desc');
                         break;
+                    }
                     default:
                         //
                         //  There is an issue

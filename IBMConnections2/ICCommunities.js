@@ -1,4 +1,27 @@
+/*
+Copyright IBM All Rights Reserved.
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
 module.exports = function (RED) {
+    var __isDebug = process.env.ICDebug || false;
+    var __moduleName = 'IC_Communities';
+  
+    console.log("*****************************************");
+    console.log("* Debug mode is " + (__isDebug ? "enabled" : "disabled") + ' for module ' + __moduleName);
+    console.log("*****************************************");
+  
+    const { __log, 
+        __logJson, 
+        __logError, 
+        __logWarning, 
+        __getOptionValue, 
+        __getMandatoryInputFromSelect, 
+        __getMandatoryInputString, 
+        __getOptionalInputString, 
+        __getNameValueArray,
+        __getItemValuesFromMsg } = require('./common.js');
 
     function ICCommunitiesGet(config) {
         RED.nodes.createNode(this, config);
@@ -13,7 +36,7 @@ module.exports = function (RED) {
         var xml2js = require("xml2js");
         var parser = new xml2js.Parser();
 
-        function parseAtomEntry(entry, isAtom) {
+        function parseAtomEntry(entry) {
             var xml2js = require("xml2js");
             var builder = new xml2js.Builder({
                 rootName: "entry"
@@ -28,7 +51,7 @@ module.exports = function (RED) {
                 community['id'] = entry.id[0];
             }
             if (entry.link) {
-                for (j = 0; j < entry.link.length; j++) {
+                for (let j = 0; j < entry.link.length; j++) {
                     var tmp = entry.link[j];
                     if (tmp['$'].rel === "self") {
                         community['ref'] = tmp['$'].href;
@@ -50,11 +73,9 @@ module.exports = function (RED) {
             return community;
         }
 
-        function parseMemberEntry(entry, isAtom) {
-            var xml2js = require("xml2js");
-            var builder = new xml2js.Builder({
-                rootName: "entry"
-            });
+        function parseMemberEntry(entry) {
+            //var xml2js = require("xml2js");
+            //var builder = new xml2js.Builder({rootName: "entry"});
             var member = {};
 
             //console.log(JSON.stringify(entry, ' ', 2));
@@ -103,8 +124,8 @@ module.exports = function (RED) {
                                 }
                                 var myData = new Array();
                                 if (result.feed.entry) {
-                                    for (i = 0; i < result.feed.entry.length; i++) {
-                                        myData.push(parseAtomEntry(result.feed.entry[i], true));
+                                    for (let i = 0; i < result.feed.entry.length; i++) {
+                                        myData.push(parseAtomEntry(result.feed.entry[i]));
                                     }
                                     node.status({});
                                 } else {
@@ -153,8 +174,8 @@ module.exports = function (RED) {
                                 }
                                 var myData = new Array();
                                 if (result.feed.entry) {
-                                    for (i = 0; i < result.feed.entry.length; i++) {
-                                        myData.push(parseMemberEntry(result.feed.entry[i], true));
+                                    for (let i = 0; i < result.feed.entry.length; i++) {
+                                        myData.push(parseMemberEntry(result.feed.entry[i]));
                                     }
                                     node.status({});
                                 } else {
@@ -203,7 +224,7 @@ module.exports = function (RED) {
                 } else if ((msg.userId != undefined) && (msg.userId != '')) {
                     theMail = msg.userId.trim();
                 }
-                thMail = theMail.trim();
+                theMail = theMail.trim();
 
                 node.status({fill: "blue", shape: "dot", text: "Retrieving..."});
                 switch (config.target) {
@@ -279,8 +300,8 @@ module.exports = function (RED) {
 		var node = this;
 
         var mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-        var xml2js = require("xml2js");
-        var parser = new xml2js.Parser();
+        //var xml2js = require("xml2js");
+        //var parser = new xml2js.Parser();
 
         function addCommunityMember(theMsg, theURL, userRole, userLine) {
             var theBody = '';

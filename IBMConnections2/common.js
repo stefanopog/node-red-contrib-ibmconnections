@@ -1,3 +1,9 @@
+/*
+Copyright IBM All Rights Reserved.
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
 //
 //  Utility to transfor an Array to an OBJECT
 //  Used in previous versions
@@ -40,14 +46,14 @@ function __logError(moduleName, theString, config, error, theMsg, theNode) {
         console.log(JSON.stringify(error, ' ', 2));
     }
     if (error) {
-        theMsg.DDB_fatal = error;
+        theMsg.CNX_fatal = error;
     } else {
         if (config) {
-            theMsg.DDB_fatal = {
+            theMsg.CNX_fatal = {
                 message: errString,
                 details: config};
         } else {
-            theMsg.DDB_fatal = {
+            theMsg.CNX_fatal = {
                 message: errString
             };
         }
