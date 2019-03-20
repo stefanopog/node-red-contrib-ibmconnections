@@ -836,7 +836,7 @@ module.exports = function(RED) {
                                             for (let j=0; j < result.feed.entry[i].category.length; j++) {
                                                 var tmp = result.feed.entry[i].category[j]["$"];
                                                 if (tmp.scheme == "http://www.ibm.com/xmlns/prod/sn/type") {
-                                                    if (tmp.term == "community_activity") processIt = true;
+                                                    if (tmp.term.indexOf("community_activity") > -1) processIt = true; // see https://github.com/stefanopog/node-red-contrib-ibmconnections/issues/16
                                                 }
                                             }
                                         } else {
