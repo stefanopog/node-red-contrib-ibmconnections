@@ -1,6 +1,31 @@
+/*
+Copyright IBM All Rights Reserved.
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
 module.exports = function(RED) {
     "use strict";
-    var debug = true;
+
+    const __isDebug = process.env.ICDebug || false;
+    const __moduleName = 'IC_Login2';
+  
+    console.log("*****************************************");
+    console.log("* Debug mode is " + (__isDebug ? "enabled" : "disabled") + ' for module ' + __moduleName);
+    console.log("*****************************************");
+  
+    const { __log, 
+        __logJson, 
+        __logError, 
+        __logWarning, 
+        __getOptionValue, 
+        __getMandatoryInputFromSelect, 
+        __getMandatoryInputString, 
+        __getOptionalInputString, 
+        __getNameValueArray,
+        __getItemValuesFromMsg } = require('./common.js');
+
+
     var fs = require("fs");
     var request = require("request");
     var request2 = require("request");
@@ -55,33 +80,20 @@ module.exports = function(RED) {
                                     refreshTime: {type:"password"},
                                     displayName: {type: "text"},
                                     theServerType: {type: "text"}
-				            }});
+                        }});
     //
     //  Debugging functions
     //
     function _ICLogin2_dumpCallback(err, result, data) {
-        if (debug) {
-            if (err) {
-                console.log('======= ERR ==========');
-                console.log(JSON.stringify(err, null, 2));
-            }
-            if (result) {
-                console.log('======= result 2 ==========');
-                console.log(result.statusCode);
-                console.log(result.statusMessage);
-                console.log(JSON.stringify(result.headers, null, 2));
-            }
-            if (data) {
-                console.log('======= data 2 ==========');
-                console.log(JSON.stringify(data, null, 2));
-            }
-        }
+        __logJson(__moduleName, __isDebug, '_ICLogin2_dumpCallback: == ERR ==', err);
+        __logJson(__moduleName, __isDebug, '_ICLogin2_dumpCallback: == RESULT ==', result);
+        __logJson(__moduleName, __isDebug, '_ICLogin2_dumpCallback: == DATA ==', data);
     }
     //
     //  Debugging Function
     //
     function _ICLogin2_dumpCred(credentials, header) {
-        if (debug) {
+        if (__isDebug) {
             console.log('******** ' + header + ' ************** ');
             console.log('Client Id : ' + credentials.oauthId);
             console.log('Client Secret : ' + credentials.oauthSecret);
@@ -89,7 +101,7 @@ module.exports = function(RED) {
             console.log('Refresh Token : ' + credentials.refreshToken);
             console.log('Token Type : ' + credentials.tokenType);
             console.log('Expires In : ' + credentials.expiresIn);
-            var xyz = new Date(credentials.expireTime).toUTCString();
+            const xyz = new Date(credentials.expireTime).toUTCString();
             console.log('Expire Time : ' + xyz);
             console.log('last refresh : ' + credentials.refreshTime);
             console.log('*********************************************');
@@ -99,14 +111,12 @@ module.exports = function(RED) {
     //  Get the OAuth Authorization URL (as a function of the serverType)
     //
     function _ICLogin2_getAuthURL(serverType, server, clientId, callback) {
-        var authURL = '';
+        var authURL = server;
         if (serverType === "cloud") {
-            authURL  = server + '/manage/oauth2/authorize';
-            authURL += '?response_type=code&client_id=' + clientId;
+            authURL += '/manage/oauth2/authorize?response_type=code&client_id=' + clientId;
             authURL += '&callback_uri=' + callback;
         } else {
-            authURL  = server + '/oauth2/endpoint/connectionsProvider/authorize';
-            authURL += '?response_type=code&client_id=' + clientId;
+            authURL += '/oauth2/endpoint/connectionsProvider/authorize?response_type=code&client_id=' + clientId;
             authURL += '&callback_uri=' + callback;
             authURL += '&scope=' + server + '/connections/oauth/apps';
             authURL += '&access_type=offline';
@@ -118,11 +128,11 @@ module.exports = function(RED) {
     //  Get the OAuth Authorization URL (as a function of the serverType)
     //
     function _ICLogin2_getTokenURL(serverType, server) {
-        var tokenURL = '';
+        var tokenURL = server;
         if (serverType === "cloud") {
-            tokenURL = server + '/manage/oauth2/token';
+            tokenURL += '/manage/oauth2/token';
         } else {
-            tokenURL = server + '/oauth2/endpoint/connectionsProvider/token';
+            tokenURL += '/oauth2/endpoint/connectionsProvider/token';
         }
         return tokenURL;
     }

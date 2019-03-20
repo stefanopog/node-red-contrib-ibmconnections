@@ -1,4 +1,28 @@
+/*
+Copyright IBM All Rights Reserved.
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
 module.exports = function(RED) {
+    var __isDebug = process.env.ICDebug || false;
+    var __moduleName = 'IC_EmbeddedExperience';
+  
+    console.log("*****************************************");
+    console.log("* Debug mode is " + (__isDebug ? "enabled" : "disabled") + ' for module ' + __moduleName);
+    console.log("*****************************************");
+  
+    const { __log, 
+        __logJson, 
+        __logError, 
+        __logWarning, 
+        __getOptionValue, 
+        __getMandatoryInputFromSelect, 
+        __getMandatoryInputString, 
+        __getOptionalInputString, 
+        __getNameValueArray,
+        __getItemValuesFromMsg } = require('./common.js');
+
     function ICASPut(config) {      
          RED.nodes.createNode(this,config);        
          //
@@ -298,7 +322,7 @@ module.exports = function(RED) {
          var server = "";
          var context = "";
  
-         function _getDate(fromConfig, fromMsg, label, theMsg) {
+         function _getDate(fromConfig, fromMsg, label) {
              var datePattern = /(\d{2})\/(\d{2})\/(\d{4})((\s|T)(\d{2}):(\d{2}):(\d{2}))?/;
              if ((fromConfig == '') && ((fromMsg == undefined) || (fromMsg == ''))) {
                  //
@@ -332,7 +356,6 @@ module.exports = function(RED) {
          }
  
          function _getDateConstraints(sinceDate, untilDate) {
-             var ora = new Date();
              var isoDateSince = new Date(sinceDate).toISOString();
              var isoDateUntil = new Date(untilDate).toISOString();
              return "&dateFilter={'from':'" + isoDateSince + "','to':'" + isoDateUntil + "','fromInclusive':true,'toInclusive':true}}";
@@ -453,9 +476,9 @@ module.exports = function(RED) {
              var untilDate = new Date();
              var constraints = '';
              if (config.sinceCB) {
-                 sinceDate = _getDate(config.sinceDate, msg.sinceDate, 'Since', msg);
+                 sinceDate = _getDate(config.sinceDate, msg.sinceDate, 'Since');
                  if (config.untilCB) {
-                     untilDate = _getDate(config.untilDate, msg.untilDate, 'Until', msg);
+                     untilDate = _getDate(config.untilDate, msg.untilDate, 'Until');
                  } else {
                      //
                      //  No Until DAte .

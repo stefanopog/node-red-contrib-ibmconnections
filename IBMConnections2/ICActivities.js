@@ -1,4 +1,17 @@
-module.exports = function(RED) {    
+/*
+Copyright IBM All Rights Reserved.
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
+module.exports = function(RED) {
+    var __isDebug = process.env.ICDebug || false;
+    var __moduleName = 'IC_Activities';
+  
+    console.log("*****************************************");
+    console.log("* Debug mode is " + (__isDebug ? "enabled" : "disabled") + ' for module ' + __moduleName);
+    console.log("*****************************************");
+  
     const { __log, 
         __logJson, 
         __logError, 
@@ -14,7 +27,7 @@ module.exports = function(RED) {
         var xml2js = require("xml2js");
         //var parser = new xml2js.Parser();
         var builder  = new xml2js.Builder({rootName: "entry"});
-            var activity = {};
+        var activity = {};
         var isActivity = true;
 
         //console.log(JSON.stringify(entry, ' ', 2));
@@ -823,7 +836,7 @@ module.exports = function(RED) {
                                             for (let j=0; j < result.feed.entry[i].category.length; j++) {
                                                 var tmp = result.feed.entry[i].category[j]["$"];
                                                 if (tmp.scheme == "http://www.ibm.com/xmlns/prod/sn/type") {
-                                                    if (tmp.term == "community_activity") processIt = true;
+                                                    if (tmp.term.indexOf("community_activity") > -1) processIt = true; // see https://github.com/stefanopog/node-red-contrib-ibmconnections/issues/16
                                                 }
                                             }
                                         } else {

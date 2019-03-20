@@ -1,4 +1,28 @@
+/*
+Copyright IBM All Rights Reserved.
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
 module.exports = function(RED) {
+    var __isDebug = process.env.ICDebug || false;
+    var __moduleName = 'IC_Files';
+  
+    console.log("*****************************************");
+    console.log("* Debug mode is " + (__isDebug ? "enabled" : "disabled") + ' for module ' + __moduleName);
+    console.log("*****************************************");
+  
+    const { __log, 
+        __logJson, 
+        __logError, 
+        __logWarning, 
+        __getOptionValue, 
+        __getMandatoryInputFromSelect, 
+        __getMandatoryInputString, 
+        __getOptionalInputString, 
+        __getNameValueArray,
+        __getItemValuesFromMsg } = require('./common.js');
+
     function ICFilesGet(config) {      
         RED.nodes.createNode(this,config);                
         //
@@ -8,12 +32,12 @@ module.exports = function(RED) {
         this.login = RED.nodes.getNode(config.server);
 		var node = this;
 
-        var mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-        const jsdom = require("jsdom");
-        const { JSDOM } = jsdom;
+        //var mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+        //const jsdom = require("jsdom");
+        //const { JSDOM } = jsdom;
         var xml2js = require("xml2js");
         var parser = new xml2js.Parser();
-        var builder  = new xml2js.Builder({rootName: "content"});
+        //var builder  = new xml2js.Builder({rootName: "content"});
         var server = "";
         var async = require("async");
         var pendingTasks = 0;
@@ -344,7 +368,7 @@ module.exports = function(RED) {
             }
         }
 
-        function _otherShares() {
+        function _otherShares(theMsg) {
             if (config.otherShares === "none") {
                 return "";
             } else {
@@ -352,7 +376,7 @@ module.exports = function(RED) {
                 if (config.userId !== '') {
                     mailAddr = config.userId;
                 } else {
-                    mailAddr = msg.userId;
+                    mailAddr = theMsg.userId;
                 }
                 if (config.otherShares === "with") {
                     return "&sharedWith=" + mailAddr;
@@ -373,20 +397,19 @@ module.exports = function(RED) {
         }
 
         function _visibilityOption() {
+            var out = '';
             switch (config.visibility) {
-                case 'All':
-                    return "";
-                    break;
                 case "private" :
-                    return "&visibility=private";
+                    out = "&visibility=private";
                     break;
                 case "public" :
-                    return "&visibility=public"
+                    out = "&visibility=public"
                     break;
+                case 'All':
                 default:
-                    return "";
                     break;
             }
+            return out;
         }
 
         function _getFiles(theMsg, theURL, otherURL, isRecursive, isTopLevelFiles, isTopLevelFolders, callback) {
@@ -571,7 +594,7 @@ module.exports = function(RED) {
                 var isRecursive = false;
                 var isTopLevelFiles = false;
                 var isTopLevelFolders = false;
-                asyncTasks = [];
+                //var asyncTasks = [];
                 //
                 //  Server is a GLOBAL variable
                 //
@@ -651,7 +674,7 @@ module.exports = function(RED) {
                                     if (config.myShares === 'none') {
                                         myURL += "/api/userlibrary/" + mailAddr + "/feed?" + _defaultFilesFlags();
                                     } else {
-                                        myURL += "/api/documents/shared/feed?" + _defaultFilesFlags() + _otherShares();
+                                        myURL += "/api/documents/shared/feed?" + _defaultFilesFlags() + _otherShares(msg);
                                     }
                                     break;
                                 case 'folders':
@@ -818,11 +841,11 @@ module.exports = function(RED) {
         this.login = RED.nodes.getNode(config.server);
         var node = this;
 
-        var mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-        var xml2js = require("xml2js");
-        var parser = new xml2js.Parser();
+        //var mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+        //var xml2js = require("xml2js");
+        //var parser = new xml2js.Parser();
         var server = "";
-        var context = "";
+        //var context = "";
         
         //
         // This to avoid issues on Self-Signed Certificates on Test Sites
@@ -830,45 +853,46 @@ module.exports = function(RED) {
         process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
         this.on('input', function (msg) {
+            var desc, filename, folder, tags;
             var serverConfig = RED.nodes.getNode(config.server);
             //
             // Server is a GLOBAL variable
             //
             server = serverConfig.getServer;
-            context = config.contextRoot.trim();
-            if (msg.tags!=undefined) {
-            	var tags = msg.tags.split(/[ ,]+/);
-            }else{
-            	var tags = config.fileTags.split(/[ ,]+/);
+            //context = config.contextRoot.trim();
+            if (msg.tags != undefined) {
+                tags = msg.tags.split(/[ ,]+/);
+            } else {
+                tags = config.fileTags.split(/[ ,]+/);
             }
-            if (msg.description!=undefined) {
-            	var desc = msg.description;
-            }else{
-            	var desc = config.fileDesc;
+            if (msg.description != undefined) {
+                desc = msg.description;
+            } else {
+                desc = config.fileDesc;
             }
-            if (config.filename != "" && config.filename.split('.')[1]!=undefined) {
-            	var filename = config.filename.split('.')[0] +"_"+ Date.now()+"."+config.filename.split('.')[1];
-            	//var filename = config.filename;
-            }else{
-            	if (msg.filename!=undefined){
-            		//var filename = msg.filename.split('.')[0]+"_"+ Date.now()+"."+msg.filename.split('.')[1];
-            		var filename = msg.filename;
-            	}else{
-            		
-            		console.log("missing filename or type for file upload");
-            		node.status({
-                         fill: "red",
-                         shape: "dot",
-                         text: "Missing filename or type!"
-                     });
-            		 return;
-            	}
-            	
+            if (config.filename != "" && config.filename.split('.')[1] != undefined) {
+                filename = config.filename.split('.')[0] + "_" + Date.now() + "." + config.filename.split('.')[1];
+                //var filename = config.filename;
+            } else {
+                if (msg.filename != undefined) {
+                    //var filename = msg.filename.split('.')[0]+"_"+ Date.now()+"."+msg.filename.split('.')[1];
+                    filename = msg.filename;
+                } else {
+
+                    console.log("missing filename or type for file upload");
+                    node.status({
+                        fill: "red",
+                        shape: "dot",
+                        text: "Missing filename or type!"
+                    });
+                    return;
+                }
+
             }
-            if (msg.folder!=undefined) {
-            	var folder = msg.folder;
-            }else{
-            	var folder = config.fileFolder;
+            if (msg.folder != undefined) {
+                folder = msg.folder;
+            } else {
+                folder = config.fileFolder;
             }
             
             var targetId = "";
@@ -878,11 +902,10 @@ module.exports = function(RED) {
                     _addNonce(msg.payload, filename, msg, targetId, tags, desc, folder);
                     break;
                 case "community":
-                	 if (msg.communityId != undefined && 
-                			 msg.communityId != "") {
-                		 targetId = "communitylibrary/" + msg.communityId;
-                     }else{
-                    	 targetId = "communitylibrary/" + config.communityId;
+                    if ((msg.communityId != undefined) && (msg.communityId != "")) {
+                        targetId = "communitylibrary/" + msg.communityId;
+                     } else {
+                        targetId = "communitylibrary/" + config.communityId;
                      }
                     
                     _addNonce(msg.payload, filename, msg, targetId, tags, desc, folder);
@@ -892,9 +915,6 @@ module.exports = function(RED) {
         
         //GET-Request for retrieving a NONCE from Connections
         function _addNonce(payload, filename, msg, targetId, tags, desc, folder) {
-           // console.log('=============== ' + targetId);
-
-            // Get Nonce
             var getURL = server + "/files/";
             getURL += node.login.authType + "/api/nonce";
             console.log("_getNonce : Get Nonce from: " + getURL);
@@ -948,14 +968,14 @@ module.exports = function(RED) {
 
         }
         
-      //Executes a POST request for uploading the file to Connections
+        //Executes a POST request for uploading the file to Connections
         function _postFile(nonce, payload, filename, msg, targetId, tags, desc, folder) {
             //console.log('=============== ' + targetId);
             var postURL = server + "/files/";
             postURL += node.login.authType + "/api/" + targetId + "/feed?";
             //attach tags as url parameter
-            for (i in tags){
-            	postURL += "tag="+tags[i]+"&";
+            for (let i in tags) {
+                postURL += "tag=" + tags[i] + "&";
             }
             node.status({
                 fill: "blue",
@@ -1008,8 +1028,7 @@ module.exports = function(RED) {
                             str = str.replace(/&amp;/g,'&')
                             msg.payload=JSON.parse(str);
                             if (msg.payload.links!=undefined){
-                            	msg.fileUrl = msg.payload.links[1].href;
-                                
+                                msg.fileUrl = msg.payload.links[1].href;                               
                                 //prepare payload.attachments[] for using uploaded file within a status update
                                 msg.payload.attachments = new Array(1);
                                 msg.payload.attachments[0] = {};
@@ -1020,16 +1039,15 @@ module.exports = function(RED) {
                                 msg.payload.attachments[0].image.url = msg.payload.links[0].href.replace('entry','thumbnail');
                                 //clear node's status and send msg
                                 node.status({});
-                                if (folder==""){
-                                	node.send(msg);
-                                }else{
-                                	console.log("folderName ="+folder);
-                                	console.log("execute _moveFile");
-                                	_moveFile(msg,folder);
+                                if (folder === "") {
+                                    node.send(msg);
+                                } else {
+                                    console.log("folderName ="+folder);
+                                    console.log("execute _moveFile");
+                                    _moveFile(msg,folder);
                                 }
                             }else{ //e.g. access denied
-                            	 console.log("_postFile NOT OK ("
-                                         + response.statusCode + ")");
+                                    console.log("_postFile NOT OK (" + response.statusCode + ")");
                                      console.log(body);
                                      console.log(postURL);
                                      console.log(response.statusMessage);
@@ -1061,43 +1079,42 @@ module.exports = function(RED) {
         }
         //Moves the uploaded file to the spcified folder
         function _moveFile(msg, folder) {
-        	
-        	//post-request for moving the file
-        	console.log("_moveFile : Moving File to collection: " + folder);
-        	var itemId = msg.payload.id.replace("urn:lsid:ibm.com:td:","");
-        	console.log(itemId);
-        	var postURL = server + "/files/";
-            postURL += node.login.authType + "/api/collection/" + folder + "/feed?itemId="+itemId;
+            //post-request for moving the file
+            console.log("_moveFile : Moving File to collection: " + folder);
+            var itemId = msg.payload.id.replace("urn:lsid:ibm.com:td:", "");
+            console.log(itemId);
+            var postURL = server + "/files/";
+            postURL += node.login.authType + "/api/collection/" + folder + "/feed?itemId=" + itemId;
             console.log("_moveFile : postURL: " + postURL);
-        	var options = {
-    				method : 'POST',
-    				url : postURL
-    			};
-        	 
-        	node.status({
+            var options = {
+                method: 'POST',
+                url: postURL
+            };
+
+            node.status({
                 fill: "blue",
                 shape: "dot",
                 text: "Moving file to folder ..."
             });
-        	node.login.request(options, function (error, response, body) {
-        		if (response.statusCode == 204) {
-        			console.log("_moveFile: The file was successfully moved.");
-//        			console.log("response: "+response);
-//        			console.log("body: "+body);
-        			node.status({});
-        			msg.response=response;
-        			node.send(msg);
-        		}else{
-        			console.log("_moveFile NOT OK ("+ response.statusCode + ")");
-        			node.status({
-        				fill: "red",
-        				shape: "dot",
-        				text: "Folder Err3 " + response.statusMessage
-        			});
-        			node.error(response.statusCode + ' : ' + response.statusMessage, msg);
-        			node.send(msg);
-        		}
-        	});
+            node.login.request(options, function (error, response, body) {
+                if (response.statusCode == 204) {
+                    console.log("_moveFile: The file was successfully moved.");
+                    //        			console.log("response: "+response);
+                    //        			console.log("body: "+body);
+                    node.status({});
+                    msg.response = response;
+                    node.send(msg);
+                } else {
+                    console.log("_moveFile NOT OK (" + response.statusCode + ")");
+                    node.status({
+                        fill: "red",
+                        shape: "dot",
+                        text: "Folder Err3 " + response.statusMessage
+                    });
+                    node.error(response.statusCode + ' : ' + response.statusMessage, msg);
+                    node.send(msg);
+                }
+            });
         }
     }
 

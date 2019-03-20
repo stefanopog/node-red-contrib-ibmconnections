@@ -1,4 +1,28 @@
+/*
+Copyright IBM All Rights Reserved.
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
 module.exports = function (RED) {
+    var __isDebug = process.env.ICDebug || false;
+    var __moduleName = 'IC_Search';
+  
+    console.log("*****************************************");
+    console.log("* Debug mode is " + (__isDebug ? "enabled" : "disabled") + ' for module ' + __moduleName);
+    console.log("*****************************************");
+  
+    const { __log, 
+        __logJson, 
+        __logError, 
+        __logWarning, 
+        __getOptionValue, 
+        __getMandatoryInputFromSelect, 
+        __getMandatoryInputString, 
+        __getOptionalInputString, 
+        __getNameValueArray,
+        __getItemValuesFromMsg } = require('./common.js');
+
     function ICSimpleSearch(config) {
         RED.nodes.createNode(this, config);
         //
@@ -10,8 +34,8 @@ module.exports = function (RED) {
 
         var xml2js = require("xml2js");
         var parser = new xml2js.Parser();
-        var builder = new xml2js.Builder({rootName: "content"});
-        var target = "";
+        //var builder = new xml2js.Builder({rootName: "content"});
+        //var target = "";
         var totalResults = 0;
         var pageSize = 100;
         var maxResults = 1000000;
@@ -98,8 +122,8 @@ module.exports = function (RED) {
                             //
                             //  Since is earlier in the current year
                             //
-                            for (var jj = firstMonth; jj <= lastMonth; jj++) {
-                                var jj2 = (jj <= 9 ? "0" + jj : jj + '');
+                            for (let jj = firstMonth; jj <= lastMonth; jj++) {
+                                let jj2 = (jj <= 9 ? "0" + jj : jj + '');
                                 constraint.push('"Date/' + kk + '/' + jj2 + '"');
                             }
                         }
@@ -107,8 +131,8 @@ module.exports = function (RED) {
                         //
                         //  We need to count the months for the Category
                         //
-                        for (var jj = firstMonth; jj <= lastMonth; jj++) {
-                            var jj2 = (jj <= 9 ? "0" + jj : jj + '');
+                        for (let jj = firstMonth; jj <= lastMonth; jj++) {
+                            let jj2 = (jj <= 9 ? "0" + jj : jj + '');
                             constraint.push('"Date/' + kk + '/' + jj2 + '"');
                         }
                     }
@@ -168,7 +192,7 @@ module.exports = function (RED) {
                                         //
                                         var myItem;
                                         var myDate;
-                                        for (i = 0; i < result.feed.entry.length; i++) {
+                                        for (let i = 0; i < result.feed.entry.length; i++) {
                                             myItem = _getItemDetail(result.feed.entry[i]);
                                             myDate = new Date(myItem.date);
                                             if ((myDate >= sinceDate) && (myDate <= untilDate)) {
@@ -243,7 +267,7 @@ module.exports = function (RED) {
                     //
                     console.log("Missing Query Information");
                     node.status({fill: "red", shape: "dot", text: "Missing Query"});
-                    node.error('Missing Query', theMsg);
+                    node.error('Missing Query', msg);
                 } else {
                     //
                     //  Get the Max number of results

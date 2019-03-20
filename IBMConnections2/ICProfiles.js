@@ -1,4 +1,28 @@
+/*
+Copyright IBM All Rights Reserved.
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
 module.exports = function(RED) {
+    var __isDebug = process.env.ICDebug || false;
+    var __moduleName = 'IC_Profiles';
+  
+    console.log("*****************************************");
+    console.log("* Debug mode is " + (__isDebug ? "enabled" : "disabled") + ' for module ' + __moduleName);
+    console.log("*****************************************");
+  
+    const { __log, 
+        __logJson, 
+        __logError, 
+        __logWarning, 
+        __getOptionValue, 
+        __getMandatoryInputFromSelect, 
+        __getMandatoryInputString, 
+        __getOptionalInputString, 
+        __getNameValueArray,
+        __getItemValuesFromMsg } = require('./common.js');
+
     function ICProfilesGet(config) {      
         RED.nodes.createNode(this,config);                
         //
@@ -17,7 +41,6 @@ module.exports = function(RED) {
         var async = require("async");
         var asyncTasks = [];
         var server = "";
-        var globalError = false;
         
         function _dummyCallback(err, item) {
             console.log('DUMMY CALLBACK ' + item);
@@ -117,7 +140,6 @@ module.exports = function(RED) {
                         console.log("error getting information for MY profile !", error);
                         node.status({fill:"red",shape:"dot",text:"No Profile Info"});
                         node.error(error.toString(), theMsg);
-                        globalError = true;
                     } else {
                         if (response.statusCode >= 200 && response.statusCode < 300) {
                             console.log("GET OK (" + response.statusCode + ")");
@@ -129,7 +151,6 @@ module.exports = function(RED) {
                                     console.log(err);
                                     node.status({fill:"red",shape:"dot",text:"Parser Error"});
                                     node.error("getForMe: Parser Error", theMsg);
-                                    globalError = true;
                                     return;
                                 }
                                 if (result.service.workspace[0].collection[0]['snx:userid'][0]) {
@@ -151,7 +172,6 @@ module.exports = function(RED) {
                             console.log(body);
                             node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
                             node.error(response.statusCode + ' : ' + response.statusMessage, theMsg);
-                            globalError = true;
                         }
                     }
                 }
@@ -172,7 +192,6 @@ module.exports = function(RED) {
                         console.log("error getting information for profile : " + theURL + " - " + error);
                         node.status({fill:"red",shape:"dot",text:"No Profile Info"});
                         node.error(error.toString(), theMsg);
-                        globalError = true;
                     } else {
                         if (response.statusCode >= 200 && response.statusCode < 300) {
                             console.log("GET OK (" + response.statusCode + ")");
@@ -184,7 +203,6 @@ module.exports = function(RED) {
                                     console.log(err);
                                     node.status({fill:"red",shape:"dot",text:"Parser Error"});
                                     node.error("getForOther: Parser Error", theMsg);
-                                    globalError = true;
                                     return;
                                 }
                                 if (result.feed.entry) {
@@ -223,7 +241,6 @@ module.exports = function(RED) {
                             console.log(body);
                             node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
                             node.error(response.statusCode + ' : ' + response.body, theMsg);
-                            globalError = true;
                         }
                     }
                 }
@@ -243,7 +260,6 @@ module.exports = function(RED) {
                         console.log("error getting information by PARAMS : " + theURL + " - " + error);
                         node.status({fill:"red",shape:"dot",text:"No Profile Info"});
                         node.error('No Profile Info', theMsg);
-                        globalError = true;
                     } else {
                         if (response.statusCode >= 200 && response.statusCode < 300) {
                             console.log("GET OK (" + response.statusCode + ")");
@@ -255,12 +271,11 @@ module.exports = function(RED) {
                                     console.log(err);
                                     node.status({fill:"red",shape:"dot",text:"Parser Error"});
                                     node.error("getByParams: Parser Error", theMsg);
-                                    globalError = true;
                                     return;
                                 }
                                 if (result.feed.entry) {
                                     var myData = new Array();
-                                    for (i=0; i < result.feed.entry.length; i++) {
+                                    for (let i=0; i < result.feed.entry.length; i++) {
                                         myData.push(_getUserDetail(result.feed.entry[i]));
                                     }
                                     theMsg.payload = myData;
@@ -285,7 +300,6 @@ module.exports = function(RED) {
                             console.log(body);
                             node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
                             node.error(response.statusCode + ' : ' + response.body, theMsg);
-                            globalError = true;
                         }
                     }
                 }
@@ -315,7 +329,7 @@ module.exports = function(RED) {
                                     node.status({fill:"yellow",shape:"dot",text:"Parser Error _getProfileLinks"});
                                 } else {
                                     var links = [];
-                                    for (i=0; i < result.linkroll.link.length; i++) {
+                                    for (let i=0; i < result.linkroll.link.length; i++) {
                                         var theLink = {};
                                         theLink.name = result.linkroll.link[i]["$"].name;
                                         theLink.url = result.linkroll.link[i]["$"].url;
@@ -384,7 +398,6 @@ module.exports = function(RED) {
                 //  Prepare for callbacks
                 //
                 asyncTasks = [];
-                gloablError = false;
                 switch (config.target) {
                     case "byKeyword" :
                         if ((config.mykeywords === '') && 
@@ -395,7 +408,6 @@ module.exports = function(RED) {
                             console.log("Missing Keywords Information");
                             node.status({fill:"red",shape:"dot",text:"Missing Keywords"});
                             node.error('Missing Keywords', msg);
-                            globalError = true;
                          } else {
                             var theKeywords = '';
                             if (config.mykeywords !== '') {
@@ -421,7 +433,6 @@ module.exports = function(RED) {
                             console.log("Missing Tags Information");
                             node.status({fill:"red",shape:"dot",text:"Missing Tags"});
                             node.error('Missing Tags', msg);
-                            globalError = true;
                          } else {
                             var theTags = '';
                             if (config.mytags !== '') {
@@ -448,7 +459,6 @@ module.exports = function(RED) {
                             console.log("Missing Free Syntax Information");
                             node.status({fill:"red",shape:"dot",text:"Missing Syntax"});
                             node.error('Missing Syntax', msg);
-                            globalError = true;
                          } else {
                             var freeSyntax = '';
                             if (config.freesyntax !== '') {
@@ -490,7 +500,6 @@ module.exports = function(RED) {
                             console.log("Missing Target Information");
                             node.status({fill:"red",shape:"dot",text:"Missing Target"});
                             node.error('Missing Target', msg);
-                            globalError = true;
                          } else {
                             var mailAddr = '';
                             if (config.targetValue !== '') {
