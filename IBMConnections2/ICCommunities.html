@@ -224,6 +224,11 @@
                document.querySelector("#communityRow").style.display = "inline";
                document.querySelector("#userRoleRow").style.display = "none";
                break;
+            case "ChangeImage" :
+               document.querySelector("#userRow").style.display = "none";
+               document.querySelector("#communityRow").style.display = "inline";
+               document.querySelector("#userRoleRow").style.display = "none";
+               break;
        }
    }
 </script>
@@ -238,7 +243,8 @@
         <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Search</label>
         <select id="node-input-target" onchange="updateFormCommunitiesUpdate()">
 	       <option value="AddMember">Add Member</option>
-	       <option value="RemoveMember">Remove Member</option>
+           <option value="RemoveMember">Remove Member</option>
+           <option value="ChangeImage">Change Community Image</option>
         </select>
         <br />
     </div>
@@ -282,6 +288,7 @@
    The configuration panel can override or replace this value</li>
    <li><code>msg.communityId</code> : the ID of the Community to which the member needs to be added or removed.<br/>
    The configuration panel can override or replace this value</li>
+   <li><code>msg.communityImage</code> : the raw image to upload. <b>NOTE : </b> relevant only for changing the community image, currently only PNG is supported</b></li>
    </ul></p>
    <p><i>Returns:</i>
    <ul>
