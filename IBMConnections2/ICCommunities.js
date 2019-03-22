@@ -447,6 +447,36 @@ module.exports = function (RED) {
             );
         }
 
+        function changeImage(theMsg, theURL, commId, image) {
+            node.login.request({
+                url: theURL,
+                method: "PUT",
+                body: image,
+                headers: {"Content-Type": "image/png"}
+            },
+            function (error, response, body) {
+                if (error) {
+                    console.log("changeCommunityImage : error changing image");
+                    node.status({fill: "red", shape: "dot", text: "error changing image"});
+                    node.error(error.toString(), theMsg);
+                } else {
+                    console.log('changeCommunityImage: run');
+                    if ((response.statusCode >= 200) && (response.statusCode < 300)) {
+                        console.log("changeCommunityImage OK (" + response.statusCode + ")");
+                        console.log(body);
+                        node.status({});
+                        node.send(theMsg);
+                    } else {
+                        console.log("changeCommunityImage NOT OK (" + response.statusCode + ")");
+                        console.log(body);
+                        console.log(theURL);
+                        node.status({fill: "red", shape: "dot", text: "Err3 " + response.statusMessage});
+                        node.error(response.statusCode + ' : ' + response.statusMessage, theMsg);
+                    }
+                }
+            });
+        }
+
         this.on(
             'input',
             function (msg) {
@@ -481,22 +511,38 @@ module.exports = function (RED) {
                 //  Check if the user to be added/removed is specified
                 //
                 var userId = '';
-                if ((config.email == '') &&
-                    ((msg.userId == undefined) || (msg.userId == ''))) {
-                    //
-                    //  There is an issue
-                    //
-                    console.log("Missing UserId Information");
-                    node.status({ fill: "red", shape: "dot", text: "Missing UserId" });
-                    node.error('Missing UserId', msg);
-                    return;
-                } else {
-                    if (config.userId != '') {
-                        userId = config.userId.trim();
+                var communityImage = '';
+                if (config.target === "AddMember" || config.target ==="RemoveMember") {
+                    if ((config.email == '') &&
+                        ((msg.userId == undefined) || (msg.userId == ''))) {
+                        //
+                        //  There is an issue
+                        //
+                        console.log("Missing UserId Information");
+                        node.status({ fill: "red", shape: "dot", text: "Missing UserId" });
+                        node.error('Missing UserId', msg);
+                        return;
                     } else {
-                        userId = msg.userId.trim();
+                        if (config.userId != '') {
+                            userId = config.userId.trim();
+                        } else {
+                            userId = msg.userId.trim();
+                        }
+                    }
+                } else {
+                    if ((msg.communityImage == undefined || msg.communityImage == '')) {
+                        //
+                        //  There is an issue
+                        //
+                        console.log("Missing communityImage Information");
+                        node.status({fill: "red", shape: "dot", text: "Missing communityImage"});
+                        node.error('Missing communityImage', msg);
+                        return;
+                    } else {
+                        communityImage = msg.communityImage;
                     }
                 }
+            
                 //
                 //  Initialize the display
                 //
@@ -538,6 +584,10 @@ module.exports = function (RED) {
                         // remove Member
                         //
                         removeCommunityMember(msg, myURL);
+                        break;
+                    case "ChangeImage":
+                        myURL += "/service/html/image?communityUuid=" + communityId;
+                        changeImage(msg, myURL, communityId, communityImage);
                         break;
                 }
             }
