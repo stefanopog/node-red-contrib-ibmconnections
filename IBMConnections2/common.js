@@ -15,7 +15,65 @@ array.reduce((obj, item) => {
   return obj;
 }, {});
 */
+const xml2js = require("xml2js");
+const __fs = require('fs')
+const __isDebug = __getDebugFlag();
+const __moduleName = 'IC_common';
 
+//
+//  Wrapper around ICDebug environment variable
+//
+function __getDebugFlag() {
+    var dbg = process.env.ICDebug;
+    if (typeof dbg === "string") {
+        if (dbg.toLowerCase() === "false") {
+            return false;
+        } else {
+            if (dbg.toLowerCase() === "true") {
+                return true;
+            } else {
+                return false;
+            }
+        }
+    } else {
+        return dbg || false;
+    }
+}
+//
+//  Promise-based wrapper fro XML Parser
+//
+function __getXmlAttribute (xml, options) {    // __getXmlAttribute(entry, {explicitArray: false});
+    return new Promise(function (resolve, reject) {
+        const parser = new xml2js.Parser(options);
+        parser.parseString(xml, function(err, result) {
+        if (err) return reject(err);    // rejects the promise with `err` as the reason
+        resolve(result);                // fulfills the promise with `result` as the value
+      })
+    })
+}
+//
+//  Promise-based wrapper fro FS package 
+//
+function __readFile(path, opts = 'utf8') {
+    return new Promise(function (resolve, reject) {
+        __fs.readFile(path, opts, function(err, data) {
+            if (err) return reject(err);
+            resolve(data)
+        })
+    })
+}
+function __writeFile(path, dataopts = 'utf8') {
+    return new Promise(function (resolve, reject) {
+        __fs.writeFile(path, dataopts, function(err) {
+            if (err) return reject(err);
+            resolve()
+        })
+    })
+}
+
+//
+//  Common Logging function
+//
 function __log(moduleName, isDebug, logMsg) {
     if (isDebug) {
         console.log(moduleName + " => " + logMsg);
@@ -39,38 +97,33 @@ function __logJson(moduleName, isDebug, logMsg, jsonObj, isConfig=false) {
 
 function __logError(moduleName, theString, config, error, theMsg, theNode) {
     var errString = moduleName + ' : ' + theString;
-    console.log(errString);
+    console.log(moduleName + ' : ' + errString);
+    theNode.status({fill: "red", shape: "dot", text: errString});
     if (config) console.log(JSON.stringify(config, ' ', 2));
     if (error) {
         console.log(moduleName + ' : Error Follows : ');
         console.log(JSON.stringify(error, ' ', 2));
-    }
-    if (error) {
-        theMsg.CNX_fatal = error;
+        theMsg.ICX_fatal = JSON.parse(JSON.stringify(error));
+        theNode.error(error, theMsg);
     } else {
         if (config) {
-            theMsg.CNX_fatal = {
+            theMsg.ICX_fatal = {
                 message: errString,
                 details: config};
         } else {
-            theMsg.CNX_fatal = {
+            theMsg.ICX_fatal = {
                 message: errString
             };
+            theNode.error(errString, theMsg);
         }
     }
-    theNode.status({
-        fill: "red",
-        shape: "dot",
-        text: errString
-    });
-    theNode.error(errString, theMsg);
 }
 
 function __logWarning(moduleName, theString, theNode) {
     var warnString = moduleName + ' : ' + theString;
-    console.log(warnString);
+    __log(moduleName, __isDebug, warnString);
     theNode.status({fill: "yellow", shape: "dot", text: warnString});
-    theNode.warn(warnString);
+    if (__isDebug) theNode.warn(warnString);
 }
 
 function __getOptionValue(moduleName, theLimits, theOption, fromConfig, fromMsg, theNode) {
@@ -110,7 +163,7 @@ function __getOptionValue(moduleName, theLimits, theOption, fromConfig, fromMsg,
     return theLimits;
 }
 
-function __getMandatoryInputFromSelect(moduleName, fromConfig, fromMsg, label, values, theMsg, theNode) {
+function __getMandatoryInputStringFromSelect(moduleName, fromConfig, fromMsg, label, values, theMsg, theNode) {
     //
     //  This function gets the final value of an input which could be provided by :
     //  - either the Configuration Panel
@@ -158,7 +211,7 @@ function __getMandatoryInputString(moduleName, fromConfig, fromMsg, onlyFromMsg,
     //
     //  IF onlyFromMsg==="fromMsg", then any value from the ConfigurationPanel will NOT be taken in account (())
     //
-    //  If no value is provided, an ERROR is generated
+    //  If no value is provided, an ERROR is generated and a NULL Value is returned
     //
     var theValue = null;
     if (onlyFromMsg === 'fromMsg') {
@@ -181,7 +234,7 @@ function __getMandatoryInputString(moduleName, fromConfig, fromMsg, onlyFromMsg,
     return theValue;
 }
 
-function __getOptionalInputString(moduleName, fromConfig, fromMsg, label, theMsg, theNode) {
+function __getMandatoryInputArray(moduleName, fromConfig, fromMsg, onlyFromMsg, label, theMsg, theNode) {
     //
     //  This function retrieves a value which can be provided
     //  - either by the Configuration Panel
@@ -189,11 +242,44 @@ function __getOptionalInputString(moduleName, fromConfig, fromMsg, label, theMsg
     //
     //  The value from the COnfiguration Panel takes precedence over the input msg. attribute
     //
-    //  If no value is provided, a WARNING is generated
+    //  IF onlyFromMsg==="fromMsg", then any value from the ConfigurationPanel will NOT be taken in account (())
+    //
+    //  If no value is provided, an ERROR is generated and a NULL Value is returned
     //
     var theValue = null;
+    if (onlyFromMsg === 'fromMsg') {
+        if ((fromMsg === undefined) || (fromMsg === null) || !Array.isArray(fromMsg)) {
+            __logError(moduleName, "Missing " + label + " Array", null, null, theMsg, theNode);
+        } else {
+            theValue = fromMsg;
+        }
+    } else {
+        if ((fromConfig.trim() === '') && ((fromMsg === undefined) || (fromMsg === null) || !Array.isArray(fromMsg))) {
+            __logError(moduleName, "Missing " + label + " String or Array", null, null, theMsg, theNode);
+        } else {
+            if (fromConfig.trim() !== '') {
+                theValue = fromConfig.trim();
+            } else {
+                theValue = fromMsg;
+            }
+        }
+    }
+    return theValue;
+}
+
+function __getOptionalInputString(moduleName, fromConfig, fromMsg, label, theNode) {
+    //
+    //  This function retrieves a value which can be provided
+    //  - either by the Configuration Panel
+    //  - or by an input msg. attribute
+    //
+    //  The value from the COnfiguration Panel takes precedence over the input msg. attribute
+    //
+    //  If no value is provided, a WARNING is generated and an empty string is returned
+    //
+    var theValue = '';
     if ((fromConfig.trim() === '') && ((fromMsg === undefined) || ((typeof fromMsg) !== 'string') || (fromMsg.trim() === ''))) {
-        __logWarning(moduleName, "Missing " + label + " string", theNode);
+        __logWarning(moduleName, "Missing Optional " + label + " string", theNode);
     } else {
         if (fromConfig.trim() !== '') {
             theValue = fromConfig.trim();
@@ -341,8 +427,13 @@ module.exports = {__log,
                   __logError, 
                   __logWarning, 
                   __getOptionValue, 
-                  __getMandatoryInputFromSelect, 
+                  __getMandatoryInputStringFromSelect, 
                   __getMandatoryInputString, 
+                  __getMandatoryInputArray,
                   __getOptionalInputString,
                   __getNameValueArray,
-                  __getItemValuesFromMsg};
+                  __getItemValuesFromMsg,
+                  __getXmlAttribute,
+                  __readFile,
+                  __writeFile,
+                  __getDebugFlag};

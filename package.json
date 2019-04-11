@@ -33,10 +33,13 @@
         }
     },
     "dependencies": {
-        "request": "*",
-        "xml2js": "*",
-        "jsdom": "*",
+        "async": "*",
         "cheerio": "*",
-        "async": "*"
+        "image-size": "^0.7.3",
+        "jsdom": "*",
+        "mime-types": "^2.1.22",
+        "request": "*",
+        "request-promise-native": "^1.0.7",
+        "xml2js": "*"
     }
 }

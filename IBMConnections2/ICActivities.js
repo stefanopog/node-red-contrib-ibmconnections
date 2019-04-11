@@ -5,23 +5,13 @@ SPDX-License-Identifier: Apache-2.0
 */
 
 module.exports = function(RED) {
-    var __isDebug = process.env.ICDebug || false;
-    var __moduleName = 'IC_Activities';
+    const ICX = require('./common.js');
+    const __isDebug = ICX.__getDebugFlag();
+    const __moduleName = 'IC_Activities';
   
     console.log("*****************************************");
     console.log("* Debug mode is " + (__isDebug ? "enabled" : "disabled") + ' for module ' + __moduleName);
     console.log("*****************************************");
-  
-    const { __log, 
-        __logJson, 
-        __logError, 
-        __logWarning, 
-        __getOptionValue, 
-        __getMandatoryInputFromSelect, 
-        __getMandatoryInputString, 
-        __getOptionalInputString, 
-        __getNameValueArray,
-        __getItemValuesFromMsg } = require('./common.js');
 
     function ICparseActivityAtomEntry(entry, isAtom) {
         var xml2js = require("xml2js");
@@ -773,8 +763,8 @@ module.exports = function(RED) {
                     let prefix = "?";
                     let communityId = null;
                     if (config.isCommunity) {
-                        communityId = __getOptionalInputString('ICActivitiesGet', config.communityId, msg.communityId, 'communityId', msg, node);
-                        if (communityId) {
+                        communityId = ICX.__getOptionalInputString('ICActivitiesGet', config.communityId, msg.communityId, 'communityId', msg, node);
+                        if (communityId !== '') {
                             myURL += prefix + "commUuid=" + communityId;
                             prefix = "&";
                         }                        
@@ -901,7 +891,7 @@ module.exports = function(RED) {
                         //
                         //  Check if there is a communityId coming from config or from message
                         //
-                        let communityId = __getOptionalInputString('ICActivitiesGet', config.communityId, msg.communityId, 'communityId', msg, node);
+                        let communityId = ICX.__getOptionalInputString('ICActivitiesGet', config.communityId, msg.communityId, 'communityId', msg, node);
                         if (communityId) {
                             myURL = server + '/activities/service/atom2/activities?commUuid=' + communityId;
                         } else {

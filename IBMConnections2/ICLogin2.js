@@ -6,29 +6,23 @@ SPDX-License-Identifier: Apache-2.0
 
 module.exports = function(RED) {
     "use strict";
-
-    const __isDebug = process.env.ICDebug || false;
+    const ICX = require('./common.js');
+    const __isDebug = ICX.__getDebugFlag();
     const __moduleName = 'IC_Login2';
   
     console.log("*****************************************");
     console.log("* Debug mode is " + (__isDebug ? "enabled" : "disabled") + ' for module ' + __moduleName);
     console.log("*****************************************");
-  
-    const { __log, 
-        __logJson, 
-        __logError, 
-        __logWarning, 
-        __getOptionValue, 
-        __getMandatoryInputFromSelect, 
-        __getMandatoryInputString, 
-        __getOptionalInputString, 
-        __getNameValueArray,
-        __getItemValuesFromMsg } = require('./common.js');
 
-
-    var fs = require("fs");
-    var request = require("request");
-    var request2 = require("request");
+    const fs = require("fs");
+    const request = require("request");
+    const request2 = require("request");
+    const rpn = require("request-promise-native");
+    const jsdom = require("jsdom");
+    const { JSDOM } = jsdom;
+    const xml2js = require("xml2js");
+    //const parser = new xml2js.Parser();
+    const builder  = new xml2js.Builder({rootName: "content"});
     //
     //  Managing storage for OAUTH credentials (on BlueMix)
     //
@@ -85,9 +79,9 @@ module.exports = function(RED) {
     //  Debugging functions
     //
     function _ICLogin2_dumpCallback(err, result, data) {
-        __logJson(__moduleName, __isDebug, '_ICLogin2_dumpCallback: == ERR ==', err);
-        __logJson(__moduleName, __isDebug, '_ICLogin2_dumpCallback: == RESULT ==', result);
-        __logJson(__moduleName, __isDebug, '_ICLogin2_dumpCallback: == DATA ==', data);
+        ICX.__logJson(__moduleName, __isDebug, '_ICLogin2_dumpCallback: == ERR ==', err);
+        ICX.__logJson(__moduleName, __isDebug, '_ICLogin2_dumpCallback: == RESULT ==', result);
+        ICX.__logJson(__moduleName, __isDebug, '_ICLogin2_dumpCallback: == DATA ==', data);
     }
     //
     //  Debugging Function
@@ -534,6 +528,264 @@ module.exports = function(RED) {
             }
         });
     };
+    //
+    //  Async/Await version of the request prototype
+    //
+    ICLogin2.prototype.rpn = function (req, retries) {
+        var node = this;
+        return new Promise(async function (resolve, reject) {
+            if (typeof retries === 'undefined') {
+                retries = 1;
+            }
+            if (typeof req !== 'object') {
+                req = { url: req };
+            }
+            //
+            //  Setting HTTP Method
+            //
+            req.method = req.method || 'GET';
+            //
+            //  Setting Headers
+            //
+            if (req.headers) {
+                req.headers["User-Agent"] = "Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0";
+            } else {
+                req.headers = {"User-Agent" : "Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0"};
+            }
+            //
+            //  Dumping the Input Parameters
+            //  We do BEFORE setting the Authorization in order to avoid writing Passwords or Secrets
+            //
+            ICX.__logJson(__moduleName, true, 'RPN : Performing HTTP using the following parameters', req);
+            //
+            //  Check which authorization
+            //
+            if (node.authType === 'oauth') {
+                //
+                // always set access token to the latest ignoring any already present
+                //
+                req.auth = {bearer: node.credentials.accessToken};
+            } else {
+                req.auth = {user: node.credentials.username, password: node.credentials.password};
+            }
+            //
+            //  Performing the request
+            //
+            try {
+                let response = await rpn(req);
+                ICX.__logJson(__moduleName, __isDebug, 'RPN : Request was succesfull', response);
+                resolve(response);
+            } catch (err) {
+                let errors = require('request-promise-native/errors');
+                ICX.__logJson(__moduleName, __isDebug, 'RPN : Request WITH ERROR', err);
+                //console.log(err instanceof errors.StatusCodeError);
+                return reject(err);
+            }
+        });
+    }
+    function __getUserDetail(record, idOnly) {
+        var person = {};
+        //
+        //  This function retrieves the photo "sp_XX:div" from the VCARD
+        //
+        var tmp = record.id[0];
+        person.key = tmp.split(':entry')[1];
+        person.userid = record.contributor[0]['snx:userid'][0];
+        person.mail = record.contributor[0]['email'][0];
+        person.name = record.contributor[0]['name'][0];
+        if (!idOnly) {
+            let kk = (function (a) { return a[Object.keys(a)[1]];})(record.content[0]);
+            const dom = new JSDOM(builder.buildObject(kk[0]));        
+            person.vcard = builder.buildObject(record.content[0]);
+            if (dom.window.document.querySelector("div.title").textContent) {
+                person.title = dom.window.document.querySelector("div.title").textContent;
+            } else {
+                person.title = 'UNDEFINED';
+            }
+            try {
+                let tmp = dom.window.document.querySelector("img.photo").src;
+                tmp = tmp.split('&')[0];
+                person.photo = tmp;
+                //
+                //  We will deal ASYNCHRONOUSLY with downloading each photo
+                //
+                /*
+                asyncTasks.push(function(_dummyCallback) {
+                                    _getPhotoBytes(person, tmp, _dummyCallback);
+                                }
+                );
+                */
+            } catch (err) {
+                console.log('error trying to get Photo for user ' + person.name + '. Error is ' + err.message);
+                console.log(record.content[0]);
+                person.photo = '';
+                node.warn('No photo for ' +  person.name);
+            }
+        }
+        return person;                                     
+    }
+
+    ICLogin2.prototype.fromMailToId = async function (mailAddress, idOnly=false) {
+        var __msgText = 'error getting profile for ' + mailAddress;
+        var __msgStatus = 'error getting profile';
+        try {
+            //
+            //  Get the Profile Entry
+            //
+            ICX.__log(__moduleName, true, 'fromMailToId: convert ' + mailAddress + ' to ID');
+            let myURL = this.getServer + "/profiles";
+            if (this.authType === "oauth") myURL += '/oauth';
+            if (this.serverType === "cloud") {
+                myURL += "/atom/search.do?search=" + mailAddress + '&format=full';
+            } else {
+                myURL += "/atom/profile.do?email=" + mailAddress;
+            }
+            let response = await this.rpn(
+                {
+                    url: myURL,
+                    method: "GET",
+                    headers: {"Content-Type": "application/atom+xml"}
+                }                    
+            );
+            ICX.__logJson(__moduleName, __isDebug, "fromMailToId OK", response);
+            //
+            //  Parse the Profile Entry
+            //
+            __msgText = 'Parser error in for ' + mailAddress;
+            __msgStatus = 'Parser Error';
+            ICX.__log(__moduleName, true, 'fromMailToId: Parsing XML Feed for ' + mailAddress);
+            let result = await ICX.__getXmlAttribute(response);
+            if (result.feed.entry) {
+                let myData = __getUserDetail(result.feed.entry[0], idOnly);
+                ICX.__log(__moduleName, true, 'fromMailToId: Succesfully Parsed entry for ' + mailAddress);
+                if (!idOnly) {
+                    //
+                    //  Get the LINKS associated to the Profile
+                    //
+                    __msgText = 'fromMailToId : error getting Linkroll for ' + mailAddress;
+                    __msgStatus = 'error getting Linkroll';
+                    ICX.__log(__moduleName, true, 'fromMailToId: getting Profile Links for ' + mailAddress);
+                    let linksURL = this.getServer + "/profiles";
+                    if (this.authType === "oauth") theURL += '/oauth';
+                    linksURL += '/atom/profileExtension.do?key=' + myData.key + '&extensionId=profileLinks';
+                    let response2 = await this.rpn(
+                        {
+                            url: linksURL,
+                            method: "GET",
+                            headers: {"Content-Type": "application/atom+xml"}
+                        }                    
+                    );
+                    if (response2 !== '') {
+                        ICX.__logJson(__moduleName, __isDebug, "fromMailToId : Links OK", response2);
+                        //
+                        //  Parse Linkrool
+                        //
+                        __msgText = 'Parser error in fromMailToId Linkroll!';
+                        __msgStatus = 'Linkroll Parser Error';
+                        ICX.__log(__moduleName, true, 'fromMailToId: Parsing XML Linkroll Feed for ' + mailAddress);
+                        let result2 = await ICX.__getXmlAttribute(response2);
+                        let links = [];
+                        for (let i=0; i < result2.linkroll.link.length; i++) {
+                            let theLink = {};
+                            theLink.name = result.linkroll.link[i]["$"].name;
+                            theLink.url = result.linkroll.link[i]["$"].url;
+                            links.push(theLink);
+                        }
+                        myData.linkroll = links;
+                    } else {
+                        ICX.__log(__moduleName, __isDebug, "fromMailToId : No Links found");
+                    }
+                }
+                return myData;
+            } else {
+                ICX.__log(__moduleName, true, 'fromMailToId: No ENTRY found for ' + mailAddress);
+                return null;
+            }
+        } catch (error) {
+            error.message = '{{' + __msgStatus + '}}\n' + error.message;
+            ICX.__logJson(__moduleName, true, "fromMailToId : " + __msgText, error);
+            throw error;
+        }
+    }
+
+    ICLogin2.prototype.fromIdToMail = async function (userId, idOnly=false) {
+        var __msgText = 'error getting profile for ' + userId;
+        var __msgStatus = 'error getting profile';
+        try {
+            //
+            //  Get the Profile Entry
+            //
+            ICX.__log(__moduleName, true, 'fromIdToMail: convert ' + userId + ' to Mail');
+            let myURL = this.getServer + "/profiles";
+            if (this.authType === "oauth") myURL += '/oauth';
+            myURL += "/atom/profile.do?userid=" + userId;
+            let response = await this.rpn(
+                {
+                    url: myURL,
+                    method: "GET",
+                    headers: {"Content-Type": "application/atom+xml"}
+                }                    
+            );
+            ICX.__logJson(__moduleName, __isDebug, "fromIdToMail OK", response);
+            //
+            //  Parse the Profile Entry
+            //
+            __msgText = 'Parser error in for ' + userId;
+            __msgStatus = 'Parser Error';
+            ICX.__log(__moduleName, true, 'fromIdToMail: Parsing XML Feed for ' + userId);
+            let result = await ICX.__getXmlAttribute(response);
+            if (result.feed.entry) {
+                let myData = __getUserDetail(result.feed.entry[0], idOnly);
+                ICX.__log(__moduleName, true, 'fromIdToMail: Succesfully Parsed entry for ' + userId);
+                if (!idOnly) {
+                    //
+                    //  Get the LINKS associated to the Profile
+                    //
+                    __msgText = 'fromIdToMail : error getting Linkroll for ' + userId;
+                    __msgStatus = 'error getting Linkroll';
+                    ICX.__log(__moduleName, true, 'fromIdToMail: getting Profile Links for ' + userId);
+                    let linksURL = this.getServer + "/profiles";
+                    if (this.authType === "oauth") theURL += '/oauth';
+                    linksURL += '/atom/profileExtension.do?key=' + myData.key + '&extensionId=profileLinks';
+                    let response2 = await this.rpn(
+                        {
+                            url: linksURL,
+                            method: "GET",
+                            headers: {"Content-Type": "application/atom+xml"}
+                        }                    
+                    );
+                    if (response2 !== '') {
+                        ICX.__logJson(__moduleName, __isDebug, "fromIdToMail : Links OK", response2);
+                        //
+                        //  Parse Linkrool
+                        //
+                        __msgText = 'Parser error in fromIdToMail Linkroll!';
+                        __msgStatus = 'Linkroll Parser Error';
+                        ICX.__log(__moduleName, true, 'fromIdToMail: Parsing XML Linkroll Feed for ' + userId);
+                        let result2 = await ICX.__getXmlAttribute(response2);
+                        let links = [];
+                        for (let i=0; i < result2.linkroll.link.length; i++) {
+                            let theLink = {};
+                            theLink.name = result.linkroll.link[i]["$"].name;
+                            theLink.url = result.linkroll.link[i]["$"].url;
+                            links.push(theLink);
+                        }
+                        myData.linkroll = links;
+                    } else {
+                        ICX.__log(__moduleName, __isDebug, "fromIdToMail : No Links found");
+                    }
+                }
+                return myData;
+            } else {
+                ICX.__log(__moduleName, true, 'fromIdToMail: No ENTRY found for ' + userId);
+                return null;
+            }
+        } catch (error) {
+            error.message = '{{' + __msgStatus + '}}\n' + error.message;
+            ICX.__logJson(__moduleName, true, "fromIdToMail : " + __msgText, error);
+            throw error;
+        }
+    }
     //
     //  Implementing first leg of OAuth 2.0
     //

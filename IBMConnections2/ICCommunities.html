@@ -45,43 +45,90 @@ SPDX-License-Identifier: Apache-2.0
                             value : "",
                             required: false
                 },
+                showMembers: {
+                            value : false,
+                            required: false
+                },
+                showApplications: {
+                            value : false,
+                            required: false
+                },
+                showLogo: {
+                            value : false,
+                            required: false
+                },
+                showWidgets: {
+                            value : false,
+                            required: false
+                }
             },
-            oneditprepare: updateFormCommunitiesGet
+            oneditprepare: __IC_updateFormCommunitiesGet
         });
 
-   function updateFormCommunitiesGet() {
-       switch (document.querySelector("#node-input-target").value) {
-           case "MyCommunities" :
-               document.querySelector("#searchRow").style.display = "inline";
-               document.querySelector("#tagRow").style.display = "inline";
-               document.querySelector("#userRow").style.display = "none";
-               document.querySelector("#communityRow").style.display = "none";
-               break;
-           case "AllCommunities" :
-               document.querySelector("#searchRow").style.display = "inline";
-               document.querySelector("#tagRow").style.display = "inline";
-               document.querySelector("#userRow").style.display = "none";
-               document.querySelector("#communityRow").style.display = "none";
-               break;
-           case "UserCommunities" :
-               document.querySelector("#searchRow").style.display = "inline";
-               document.querySelector("#tagRow").style.display = "inline";
-               document.querySelector("#userRow").style.display = "inline";
-               document.querySelector("#communityRow").style.display = "none";
-               break;
-           case "Members" :
-               document.querySelector("#searchRow").style.display = "none";
-               document.querySelector("#tagRow").style.display = "none";
-               document.querySelector("#userRow").style.display = "none";
-               document.querySelector("#communityRow").style.display = "inline";
-               break;
-           case "Id" :
-               document.querySelector("#searchRow").style.display = "none";
-               document.querySelector("#tagRow").style.display = "none";
-               document.querySelector("#userRow").style.display = "none";
-               document.querySelector("#communityRow").style.display = "inline";
-               break;
+        function __IC_communitiesGetOnChange() {
+            switch (document.querySelector("#node-input-target").value) {
+                case "MyCommunities" :
+                    document.querySelector("#searchRow").style.display = "inherit";
+                    document.querySelector("#tagRow").style.display = "inherit";
+                    document.querySelector("#userRow").style.display = "none";
+                    document.querySelector("#communityRow").style.display = "none";
+                    document.querySelector("#output_options").style.display = "inherit";
+                    break;
+                case "AllCommunities" :
+                    document.querySelector("#searchRow").style.display = "inherit";
+                    document.querySelector("#tagRow").style.display = "inherit";
+                    document.querySelector("#userRow").style.display = "none";
+                    document.querySelector("#communityRow").style.display = "none";
+                    document.querySelector("#output_options").style.display = "inherit";
+                    break;
+                case "UserCommunities" :
+                    document.querySelector("#searchRow").style.display = "inherit";
+                    document.querySelector("#tagRow").style.display = "inherit";
+                    document.querySelector("#userRow").style.display = "inherit";
+                    document.querySelector("#communityRow").style.display = "none";
+                    document.querySelector("#output_options").style.display = "inherit";
+                    break;
+                case "Members" :
+                    document.querySelector("#searchRow").style.display = "none";
+                    document.querySelector("#tagRow").style.display = "none";
+                    document.querySelector("#userRow").style.display = "none";
+                    document.querySelector("#communityRow").style.display = "inherit";
+                    document.querySelector("#output_options").style.display = "none";
+                    break;
+                case "Id" :
+                    document.querySelector("#searchRow").style.display = "none";
+                    document.querySelector("#tagRow").style.display = "none";
+                    document.querySelector("#userRow").style.display = "none";
+                    document.querySelector("#communityRow").style.display = "inherit";
+                    document.querySelector("#output_options").style.display = "inherit";
+                    break;
+            }
        }
+    function __IC_updateFormCommunitiesGet() {
+        if ((this.showMembers === undefined) || (this.showMembers === null)) {
+            this.showMembers = false;
+            document.querySelector("#node-input-showMembers").value = false;
+            document.querySelector("#node-input-showMembers").checked = false;
+        }
+        if ((this.showApplications === undefined) || (this.showApplications === null)) {
+            this.showApplications = false;
+            document.querySelector("#node-input-showApplications").value = false;
+            document.querySelector("#node-input-showApplications").checked = false;
+        }
+        if ((this.showWidgets === undefined) || (this.showWidgets === null)) {
+            this.showWidgets = false;
+            document.querySelector("#node-input-showWidgets").value = false;
+            document.querySelector("#node-input-showWidgets").checked = false;
+        }
+        if ((this.showLogo === undefined) || (this.showLogo === null)) {
+            this.showLogo = false;
+            document.querySelector("#node-input-showLogo").value = false;
+            document.querySelector("#node-input-showLogo").checked = false;
+        }
+        var targetInputField = $("#node-input-target")[0];
+        targetInputField.addEventListener('change', __IC_communitiesGetOnChange);
+
+        __IC_communitiesGetOnChange();
    }
 </script>
 
@@ -92,8 +139,8 @@ SPDX-License-Identifier: Apache-2.0
     </div>
 
     <div class="form-row">
-        <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Search</label>
-        <select id="node-input-target" onchange="updateFormCommunitiesGet()">
+        <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Target</label>
+        <select id="node-input-target">
 	       <option value="MyCommunities">My Communities</option>
 	       <option value="AllCommunities">All Communities</option>
 	       <option value="UserCommunities">User Communities</option>
@@ -122,10 +169,41 @@ SPDX-License-Identifier: Apache-2.0
    </div>
 
     <div class="form-row" id="communityRow">
-        <label for="node-input-communityId"><i class="fa fa-users"></i> CommunityId</label>
+        <label for="node-input-communityId"><i class="fa fa-users"></i> Comm. yId</label>
         <input type="text" id="node-input-communityId" placeholder="ID"></input>
         <br />
    </div>
+
+   <br />
+   <br />
+   
+   <div class="form-row" id="output_options">
+    <b><legend style="font-size: 14px">Output options</legend></b>
+
+    <div class="form-row">
+            <label for="node-input-showMembers" style="width: initial"><i class="fa fa-users" /> Show Members</label>
+            <input type="checkbox" name="showMembers" id="node-input-showMembers" style="width: initial" />
+    </div>
+
+    <div class="form-row">
+            <label for="node-input-showLogo" style="width: initial"><i class="fa fa-image" /> Show Logo</label>
+            <input type="checkbox" name="showLogo" id="node-input-showLogo" style="width: initial" />
+    </div>
+
+    <div class="form-row">
+            <label for="node-input-showApplications" style="width: initial"><i class="fa fa-cubes" /> Show Applications</label>
+            <input type="checkbox" name="showApplications" id="node-input-showApplications" style="width: initial" />
+    </div>
+
+    <div class="form-row">
+            <label for="node-input-showWidgets" style="width: initial"><i class="fa fa-cog" /> Show Widgets</label>
+            <input type="checkbox" name="showWidgets" id="node-input-showWidgets" style="width: initial" />
+    </div>
+</div>
+
+
+
+
 
     <br />
 
@@ -140,49 +218,78 @@ SPDX-License-Identifier: Apache-2.0
 <script type="text/x-red" data-help-name="ICCommunitiesGet">
    <p>Retrieves a list of Communities based on selection criteria.</p>
    <p>It can retrieve:
-   <ul>
-   <li><b>All Public Communities</b>, possibly filtered by <i>tag</i></li>
-   <li><b>All User's Communities</b>, possibly filtered by <i>tag</i></li>
-   <li><b>The Members of a given Community</b></li>
-   <li><b>The ATOM feed for a given Community</b></li>
-   </ul>
+       <ul>
+           <li><b>All Public Communities</b>, possibly filtered by <i>tag</i></li>
+           <li><b>All User's Communities</b>, possibly filtered by <i>tag</i></li>
+           <li><b>The Members of a given Community</b></li>
+           <li><b>The detailed information</b> for a given Community</li>
+       </ul>
    </p>
    <p><i>Inputs:</i>
-   <ul>
-   <li><code>msg.userId</code> : if set, it contains the <b>email</b> or the <b>userId</b> of a user for whom to search communities.</li>
-   <li><code>msg.communityTag</code> : the name of a <b>single tag</b> used for filtering the search criteria.</li>
-   <li><code>msg.searchString</code> : the content of a well formed search string used for filtering the search criteria.</li>
-   <li><code>msg.communityId</code> : in case <b>members of a community</b> need to be retrieved, the ID of the Community.</li>
-   </ul></p>
+       <ul>
+           <li><code>msg.userId</code> : if set, it contains the <b>email</b> or the <b>userId</b> of a user for whom to search communities.</li>
+           <li><code>msg.communityTag</code> : the name of a <b>single tag</b> used for filtering the search criteria.</li>
+           <li><code>msg.searchString</code> : the content of a well formed search string used for filtering the search criteria.</li>
+           <li><code>msg.communityId</code> : in case <b>members of a community</b> need to be retrieved, the ID of the Community.</li>
+       </ul>
+   </p>
    <p><i>Returns:</i>
-   <ul>
-   When a list of Communities is retrived, <li><code>msg.payload</code>. An array of objects where each object has the following propertiese:
-   <ul>
-   <li><b>title</b> the name of the retrieved Community</li>
-   <li><b>id</b> the ID of the retrieved Community</li>
-   <li><b>ref</b> the href for the <i>self</i> link</li>
-   <li><b>entry</b> the ATOM representation of the retrieved Community</li>
-   </ul>
-   The Array is empty in case no Community is found.
-   </li>
-   </ul>
-   <ul>
-    When a list of Members is retrieved, <li><code>msg.payload</code>. An array of objects where each object has the following properties:
-   <ul>
-   <li><b>name</b> the name of the retrieved person</li>
-   <li><b>userState</b>"active" or "inactive" </li>
-   <li><b>userid</b> the ID of the retrieved person (only if <code>userState = active</code>)</li>
-   <li><b>mail</b> the mail of the retrieved person (only if <code>userState = active</code>) - set to <code>UNDEFINED@UNDEFINED.COM</code> in case it cannot be retrieved</li>
-   <li><b>role</b> the Role (member, owner) of the retrieved person (only if <code>userState = active</code>)</li>
-   <li><b>orgId</b> the organization Id of the retrieved person (only if <code>userState = active</code>)</li>
-   <li><b>isExternal</b> if the member is external (only if <code>userState = active</code>)</li>
-   </ul>
-   The Array is empty in case no Member is found.
-   </li>
-   </ul>
-   <ul>
-    When a specific community is retrieved, <li><code>msg.payload</code></li>. The ATOM for the given community.
-   </ul>
+       <ul>
+           <li>When a list of Communities is retrieved, code>msg.payload</code> is an array of objects where each object
+               has the following propertiese:
+               <ul>
+                   <li><b>title</b> the name of the retrieved Community</li>
+                   <li><b>id</b> the ID of the retrieved Community</li>
+                   <li><b>ref</b> the href for the <i>self</i> link</li>
+                   <li><b>communityType</b>, can be <i>public</i> etc...</li>
+                   <li><b>isExternal</b>, true or false to indicate if the Community is open to external users</li>
+                   <li><b>Uuid</b>, the UUID of the Community </li>
+                   <li><b>links</b>, an object containing all the links from the ATOM entry. Each link is identified by
+                       its <code>rel</code> attribute and has the value represented by its <code>ref</code> attribute.
+                   </li>
+                   <li><b>content</b>, the <b>HTML</b> description for the Community</li>
+                   <li><b>summary</b>, the <b>Text</b> description for the Community</li>
+                   <li><b>entry</b> the ATOM representation of the retrieved Community</li>
+                   <li><b>originalentry</b> the raw JSON representation of the ATOM entry</li>
+               </ul>
+               The Array is empty in case no Community is found.
+           </li>
+           <li>When a list of Members is retrieved, <code>msg.payload</code> is an array of objects where each object
+               has the following properties:
+               <ul>
+                   <li><b>name</b> the name of the retrieved person</li>
+                   <li><b>userState</b>"active" or "inactive" </li>
+                   <li><b>userid</b> the ID of the retrieved person (only if <code>userState = active</code>)</li>
+                   <li><b>mail</b> the mail of the retrieved person (only if <code>userState = active</code>) - set to
+                       <code>UNDEFINED@UNDEFINED.COM</code> in case it cannot be retrieved</li>
+                   <li><b>role</b> the Role (member, owner) of the retrieved person (only if <code>userState =
+                           active</code>)</li>
+                   <li><b>orgId</b> the organization Id of the retrieved person (only if <code>userState =
+                           active</code>)</li>
+                   <li><b>isExternal</b> if the member is external (only if <code>userState = active</code>)</li>
+               </ul>
+               The Array is empty in case no Member is found.
+           </li>
+           <li>When a specific community is retrieved, <code>msg.payload</code> is a single object with the following
+               properties:
+               <ul>
+                   <li><b>title</b> the name of the retrieved Community</li>
+                   <li><b>id</b> the ID of the retrieved Community</li>
+                   <li><b>ref</b> the href for the <i>self</i> link</li>
+                   <li><b>communityType</b>, can be <i>public</i> etc...</li>
+                   <li><b>isExternal</b>, true or false to indicate if the Community is open to external users</li>
+                   <li><b>Uuid</b>, the UUID of the Community </li>
+                   <li><b>links</b>, an object containing all the links from the ATOM entry. Each link is identified by
+                       its <code>rel</code> attribute and has the value represented by its <code>ref</code> attribute.
+                   </li>
+                   <li><b>content</b>, the <b>HTML</b> description for the Community</li>
+                   <li><b>summary</b>, the <b>Text</b> description for the Community</li>
+                   <li><b>entry</b> the ATOM representation of the retrieved Community</li>
+                   <li><b>originalentry</b> the raw JSON representation of the ATOM entry</li>
+               </ul>
+               The object is empty if no match is found.
+           </li>
+       </ul>
    </p>
 </script>
 
@@ -201,52 +308,310 @@ SPDX-License-Identifier: Apache-2.0
             paletteLabel : "Update Communities",
             defaults : {
                 name: {
-                            value: ""
+                    value: ""
                 },
                 server: {
-                            value : "",
-                            required: true,
-                            type: "ICLogin2"
-                },
-                target: {
-                            value : "AddMember",
-                            required: true
+                    value : "",
+                    required: true,
+                    type: "ICLogin2"
                 },
                 communityId: {
-                            value : "",
-                            required: false
+                    value : "",
+                    required: false
+                },
+                communityTitle: {
+                    value : "",
+                    required: false
+                },
+                communityDesc: {
+                    value : "",
+                    required: false
+                },
+                communityTags: {
+                    value : "",
+                    required: false
+                },
+                replaceTags: {
+                    value: false,
+                    required: false
+                },
+                target: {
+                    value : "none",
+                    required: true
                 },
                 userId: {
-                            value : "",
-                            required: false
+                    value : "",
+                    required: false
                 },
                 userRole: {
-                            value : "Member",
-                            required: false
+                    value : "member",
+                    required: false
                 },
+                target2: {
+                    value : "none",
+                    required: true
+                },
+                widgetId: {
+                    value : "",
+                    required: false
+                },
+                imageFrom: {
+                    value : "none",
+                    required: false
+                },
+                localImage: {
+                    value : "",
+                    required: false
+                },
+                internetImage: {
+                    value : "",
+                    required: false
+                },
+                localImageBytes: {
+                    value : ""
+                },
+                internetImageBytes: {
+                    value : ""
+                }
             },
-            oneditprepare: updateFormCommunitiesUpdate
+            oneditprepare: __IC_updateFormCommunitiesUpdate
         });
 
-   function updateFormCommunitiesUpdate() {
-       switch (document.querySelector("#node-input-target").value) {
-           case "AddMember" :
-               document.querySelector("#userRow").style.display = "inline";
-               document.querySelector("#communityRow").style.display = "inline";
-               document.querySelector("#userRoleRow").style.display = "inline";
-               break;
-           case "RemoveMember" :
-               document.querySelector("#userRow").style.display = "inline";
-               document.querySelector("#communityRow").style.display = "inline";
-               document.querySelector("#userRoleRow").style.display = "none";
-               break;
-            case "ChangeImage" :
-               document.querySelector("#userRow").style.display = "none";
-               document.querySelector("#communityRow").style.display = "inline";
-               document.querySelector("#userRoleRow").style.display = "none";
-               break;
-       }
-   }
+        function __IC_changeMembersValue() {
+            switch (document.querySelector("#node-input-target").value) {
+                case "AddMember" :
+                    document.querySelector("#userRow").style.display = "inherit";
+                    document.querySelector("#userRoleRow").style.display = "inherit";
+                    break;
+                case "RemoveMember" :
+                    document.querySelector("#userRow").style.display = "inherit";
+                    document.querySelector("#userRoleRow").style.display = "none";
+                    break;
+                case "none" :
+                case "fromMsg" :
+                    document.querySelector("#userRow").style.display = "none";
+                    document.querySelector("#userRoleRow").style.display = "none";
+                    break;
+                }
+        }
+
+        function __IC_changeWidgetsValue() {
+            switch (document.querySelector("#node-input-target2").value) {
+                case "AddWidget" :
+                    document.querySelector("#widgetsRow").style.display = "inherit";
+                    break;
+                case "RemoveWidget" :
+                    document.querySelector("#widgetsRow").style.display = "inherit";
+                    break;
+                case "none" :
+                case "fromMsg" :
+                    document.querySelector("#widgetsRow").style.display = "none";
+                    break;
+                }
+        }
+        function __IC_changeImageFromValue() {
+            switch (document.querySelector("#node-input-imageFrom").value) {
+                case "none":
+                case "fromMsg" :
+                    //
+                    //  We do not want to change the logo
+                    //
+                    document.querySelector("#uploadLocalPhoto").style.display = "none";
+                    document.querySelector("#uploadInternetPhoto").style.display = "none";
+                    document.querySelector("#theImageLocal").style.display = "none";
+                    document.querySelector("#theImageInternet").style.display = "none";
+                    document.querySelector("#thePreview").style.display = "none";
+                    break;
+                case "localFile" :
+                    document.querySelector("#uploadLocalPhoto").style.display = "inherit";
+                    document.querySelector("#uploadInternetPhoto").style.display = "none";
+                    document.querySelector("#theImageLocal").style.display = "inherit";
+                    document.querySelector("#theImageInternet").style.display = "none";
+                    document.querySelector("#thePreview").style.display = "inherit";
+                    break;
+                case "url" :
+                    document.querySelector("#uploadLocalPhoto").style.display = "none";
+                    document.querySelector("#uploadInternetPhoto").style.display = "inherit";
+                    document.querySelector("#theImageLocal").style.display = "none";
+                    document.querySelector("#theImageInternet").style.display = "inherit";
+                    document.querySelector("#thePreview").style.display = "inherit";
+                    break;
+            }
+        }
+        function __IC_updateFormCommunitiesUpdate() {
+            debugger;
+            //
+            //  Taking care of new parameters
+            //
+            if (!this.imageFrom) {
+                this.imageFrom = 'none';
+                document.querySelector("#node-input-imageFrom").value = 'none';
+            }
+            if (!this.target2) {
+                this.target2 = 'none';
+                document.querySelector("#node-input-target2").value = 'none';
+            }
+            if ((this.replaceTags === undefined) || (this.replaceTags === null)) {
+                this.replaceTags = false;
+                document.querySelector("#node-input-replaceTags").value = false;
+                document.querySelector("#node-input-replaceTags").checked = false;
+            }
+            //
+            //  Preloading visualization if present
+            //
+            if (this.localImageBytes) {
+                document.querySelector("#theImageLocal").src = this.localImageBytes;
+                document.querySelector("#theImageLocal").style.display = "inherit";
+            }
+            if (this.localImage && (this.localImage !== '')) {
+                document.querySelector('#labelImageLocal').innerText += ' (' + this.localImage + ')';
+            }
+            if (this.internetImageBytes) {
+                document.querySelector("#theImageInternet").src = this.internetImageBytes;
+                document.querySelector("#theImageInternet").style.display = "inherit";
+            }
+
+            //
+            //  Set the process to capture the INPUT FILE result
+            //
+            var fileInputField = $("#localInputFile")[0];
+            //fileInputField.style.opacity = 0;
+            fileInputField.addEventListener('change', __IC_updateLocalImageDisplay);
+
+            var internetInputField = $("#node-input-internetImage")[0];
+            internetInputField.addEventListener('change', __IC_updateInternetImageDisplay);
+
+            var targetInputField = $("#node-input-target")[0];
+            targetInputField.addEventListener('change', __IC_changeMembersValue);
+
+            var target2InputField = $("#node-input-target2")[0];
+            target2InputField.addEventListener('change', __IC_changeWidgetsValue);
+
+            var imageFromInputField = $("#node-input-imageFrom")[0];
+            imageFromInputField.addEventListener('change', __IC_changeImageFromValue);
+
+            //
+            //  Initial Visual Setup
+            //
+            __IC_changeMembersValue();
+            __IC_changeWidgetsValue();
+            __IC_changeImageFromValue();
+        }
+
+        function __IC_updateLocalImageDisplay() {
+            debugger;
+            //
+            //  Local functions
+            //
+            function __IC_validFileType(file) {
+                var fileTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                for(let i = 0; i < fileTypes.length; i++) {
+                    if (file.type === fileTypes[i]) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            function __IC_returnFileSize(number) {
+                if(number < 1024) {
+                    return number + ' octets';
+                } else if(number >= 1024 && number < 1048576) {
+                    return (number/1024).toFixed(1) + ' Ko';
+                } else if(number >= 1048576) {
+                    return (number/1048576).toFixed(1) + ' Mo';
+                }
+            } 
+            var thePreview = $("#thePreview")[0];
+            var image = $("#theImageLocal")[0];
+            var label = $('#labelImageLocal')[0];
+            var otherImage = $("#theImageInternet")[0];
+            var para = $("#theP")[0];
+            var fileInputField = $("#localInputFile")[0];
+            var curFiles = fileInputField.files;
+            if(curFiles.length === 0) {
+                para.textContent = 'No files currently selected for upload';
+                para.style.display = "inherit";
+                image.style.display = "none";
+                otherImage.style.display = "none";
+            } else {
+                if (__IC_validFileType(curFiles[0])) {
+                    //para.textContent = 'File name ' + curFiles[0].name + ', file size ' + __IC_returnFileSize(curFiles[0].size) + '.';
+                    image.style.display = "inherit";
+                    otherImage.style.display = "none";
+                    para.style.display = "none";
+
+                    let reader = new FileReader();
+                    reader.onload = (function(theFile) {
+                        return function(e) {
+                            //
+                            //  visual of the image
+                            //
+                            image.src = reader.result;
+                            //
+                            //  Node variable containing the file name
+                            //
+                            $('#node-input-localImage')[0].value = curFiles[0].name;
+                            //
+                            //  Node Variable containing the blob
+                            //
+                            $("#node-input-localImageBytes")[0].value = reader.result;
+                            //
+                            //  Changing the value of the clickable label to reflect the name of the file
+                            //
+                            let rr = /(\(.+?\))/;
+                            if (label.innerText.match(rr)) {
+                                label.innerText = label.innerText.replace(rr, '(' + curFiles[0].name + ')');
+                            } else {
+                                label.innerText += ' (' + curFiles[0].name + ')';
+                            }
+                        };
+                    })(curFiles[0]);
+                    //
+                    //  Read in the image file as a data URL.
+                    //
+                    reader.readAsDataURL(curFiles[0]);
+                } else {
+                    para.style.display = "inherit";
+                    para.textContent = 'File name ' + curFiles[0].name + ': Not a valid file type. Update your selection.';
+                    image.style.display = "none";
+                    otherImage.style.display = "none";
+                }
+            }
+        }
+        function __IC_updateInternetImageDisplay() {
+            var theFile = $('#node-input-internetImage')[0].value;
+            if (theFile === '') return;
+            var para = $("#theP")[0];
+            var image = $("#theImageInternet")[0];
+            var otherImage = $("#theImageLocal")[0];
+
+            let options = {
+                method: 'GET',
+                url: "image?link=" + theFile, 
+                beforeSend: function (xhr) {
+                    xhr.overrideMimeType('text/plain; charset=x-user-defined');
+                }
+            };
+
+            $.ajax(options)
+            .done((data, textStatus, xhr) => {
+                image.src = data;
+                image.style.display = "inherit";
+                $("#node-input-internetImageBytes")[0].value = image.src;
+                otherImage.style.display = "none";
+                para.style.display = "none";
+            }).fail(( xhr, textStatus, error ) => {
+                para.style.display = "inherit";
+                para.textContent = 'Image ' + theFile + ' : Not retrieved: ' + xhr.status + ' (' + xhr.statusText + ')';
+                image.style.display = "none";
+                otherImage.style.display = "none";
+                console.log("xhr: " + JSON.stringify(xhr, ' ', 2));
+                console.log("textStatus: " + textStatus);
+                console.log("error: " + JSON.stringify(error, ' ', 2));
+                console.log("status: " + xhr.status + ' (' + xhr.statusText + ')');
+                console.log(JSON.stringify(JSON.parse(xhr.responseText), ' ', 2));
+            });
+        }
 </script>
 
 <script type="text/x-red" data-template-name="ICCommunitiesUpdate">
@@ -254,20 +619,49 @@ SPDX-License-Identifier: Apache-2.0
         <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
         <input type="text" id="node-input-server" placeholder="Server">
     </div>
-
-    <div class="form-row">
-        <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Search</label>
-        <select id="node-input-target" onchange="updateFormCommunitiesUpdate()">
-	       <option value="AddMember">Add Member</option>
-           <option value="RemoveMember">Remove Member</option>
-           <option value="ChangeImage">Change Community Image</option>
-        </select>
+    
+    <div class="form-row" id="communityRow">
+        <label for="node-input-communityId"><i class="fa fa-users"></i> Comm. Id</label>
+        <input type="text" id="node-input-communityId" placeholder="ID"></input>
         <br />
     </div>
 
+    <div class="form-row" id="communityTitle">
+        <label for="node-input-communityTitle"><i class="fa fa-graduation-cap"></i> Title</label>
+        <input type="text" id="node-input-communityTitle" placeholder="Community Title"></input>
+        <br />
+    </div>
+
+    <div class="form-row" id="communityDesc">
+        <label for="node-input-communityDesc"><i class="fa fa-list-alt"></i> Description</label>
+        <input type="text" id="node-input-communityDesc" placeholder="Community Description"></input>
+        <br />
+    </div>
+
+    <div class="form-row" id="communityTags">
+        <label for="node-input-communityTags"><i class="fa fa-tags"></i> Tags</label>
+        <input type="text" id="node-input-communityTags" placeholder="comma-separated list of tags" style="width:60%"/>
+        <div style="float: right">
+            <label for="node-input-replaceTags" style="width: initial"> Replace</label>
+            <input type="checkbox" name="replaceTags" id="node-input-replaceTags" style="width: initial" />
+        </div>
+    <br />
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-target"><i class="fa fa-address-card"></i> Member Mgmt</label>
+        <select id="node-input-target">
+            <option value="none">No Member Management</option>
+            <option value="AddMember">Add Members</option>
+            <option value="RemoveMember">Remove Members</option>
+	        <option value="fromMsg">--set from msg.IC_communityMembers--</option>
+        </select>
+        <br />
+    </div>
+                            
     <div class="form-row" id="userRow">
-        <label for="node-input-userId"><i class="fa fa-odnoklassniki"></i> UserId</label>
-        <input type="text" id="node-input-userId" placeholder="ID or mail address"></input>
+        <label for="node-input-userId"><i class="fa fa-users"></i> Users</label>
+        <input type="text" id="node-input-userId" placeholder="comma-separated list of IDs or mail addresses"></input>
         <br />
     </div>
 
@@ -276,15 +670,73 @@ SPDX-License-Identifier: Apache-2.0
         <select id="node-input-userRole">
 	       <option value="member">Member</option>
 	       <option value="owner">Owner</option>
+	       <option value="business-owner">Business Owner</option>
         </select>
         <br />
     </div>
 
-    <div class="form-row" id="communityRow">
-        <label for="node-input-communityId"><i class="fa fa-users"></i> Comm. Id</label>
-        <input type="text" id="node-input-communityId" placeholder="ID"></input>
+    <div class="form-row">
+        <label for="node-input-target2"><i class="fa fa-tachometer"></i> Widget Mgmt</label>
+        <select id="node-input-target2">
+            <option value="none">No Widgets Management</option>
+            <option value="AddWidget">Add Widgets</option>
+            <option value="RemoveWidget">Remove Widgets</option>
+            <option value="fromMsg">--set from msg.IC_communityWidgets--</option>
+        </select>
         <br />
-   </div>
+    </div>
+                            
+    <div class="form-row" id="widgetsRow">
+        <label for="node-input-widgetId"><i class="fa fa-cog"></i> Widgets</label>
+        <input type="text" id="node-input-widgetId" placeholder="Widgets"></input>
+        <br />
+    </div>
+
+   <div class="form-row" id="imageSelector">
+        <label for="node-input-imageFrom"><i class="fa fa-camera"></i> Logo</label>
+        <select id="node-input-imageFrom">
+            <option value="none">no logo</option>
+            <option value="localFile">from Local File</option>
+            <option value="url">from URL</option>
+	        <option value="fromMsg">--set from msg.IC_logoFrom--</option>
+        </select>
+        <br />
+    </div>
+    
+    <div class="form-row" id="uploadLocalPhoto">
+        <label id="labelImageLocal" for="localInputFile" title="Load Community Logo" style="width:80%"><i class="fa fa-camera"></i> Click to upload local Image</label>
+        <input type="file" id="localInputFile" accept=".jpg, .jpeg, .png"  style="display: none" />
+        <br />
+    </div>
+
+    <div class="form-row" id="uploadInternetPhoto">
+        <label for="node-input-internetImage" title="Load Community Logo"><i class="fa fa-camera"></i> Logo URL</label>
+        <input type="text" id="node-input-internetImage" />
+        <br />
+    </div>
+            
+    <div class="form-row" id="thePreview">
+        <label for="theImageLocal"><i class="fa fa-camera-retro"></i> Preview</label>
+        <img id="theImageLocal" style="display:none; width: 110px; height: 110px: objevt-fit: contain; vertical-align: middle" />
+        <img id="theImageInternet" style="display:none; width: 110px; height: 110px: objevt-fit: contain; vertical-align: middle" />
+        <p id="theP" style="display:none; width: 70%; vertical-align: middle" />
+        <br />
+    </div>
+
+    <div class="form-row" id="node-config-input-upload-file-status-success" style="color:green; display:none;">
+        <small class="form-text text-muted">
+            <span>Photo has been successfully retrieved.</span>
+        </small>
+    </div>
+    <div class="form-row" id="node-config-input-upload-file-status-failure" style="color:red; display:none;">
+        <small class="form-text text-muted">
+            <span>The request could not be processed. Please check the Debug Tab for further information!</span>
+        </small>
+    </div>
+
+    <input type="hidden" id="node-input-localImageBytes" />
+    <input type="hidden" id="node-input-localImage" />
+    <input type="hidden" id="node-input-internetImageBytes" />
 
     <br />
 
