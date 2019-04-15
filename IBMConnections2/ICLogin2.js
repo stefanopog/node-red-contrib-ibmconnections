@@ -8,6 +8,7 @@ module.exports = function(RED) {
     "use strict";
     const ICX = require('./common.js');
     const __isDebug = ICX.__getDebugFlag();
+    const __delegation = ICX.__getLConnRunAs();
     const __moduleName = 'IC_Login2';
   
     console.log("*****************************************");
@@ -42,9 +43,7 @@ module.exports = function(RED) {
     //  Node-RED Configuration function
     //
     function ICLogin2(config) {
-        console.log('ICLogin2............');
 		RED.nodes.createNode(this, config);
-        console.log('ICLogin2............ created');
 
 		this.server      = config.server;
 		this.serverType  = config.serverType;
@@ -59,6 +58,11 @@ module.exports = function(RED) {
 
         this.getServer   = _ICLogin2_getServer(this.serverType, this.cloudServer, this.server);
         //this.getContext  = _ICLogin2_getContext(this.server, this.serverType);
+
+        ICX.__log(__moduleName, __isDebug, "###############################################");
+        ICX.__logJson(__moduleName, __isDebug, "Credentials for [" + this.id + "] " + (this.name ? this.name : ""), this.credentials);
+        ICX.__log(__moduleName, __isDebug, "###############################################");
+
     }
     //
     //  Exporting modules
@@ -278,8 +282,8 @@ module.exports = function(RED) {
     //  get full Connections server URL
     //
     function _ICLogin2_getServer(serverType, cloudServer, server){
-        var endSlash = new RegExp("/" + "+$");
-        var fmtServer   = "";
+        var endSlash  = new RegExp("/" + "+$");
+        var fmtServer = "";
         //
         //	Retrieving Configuration from LOGIN node
         //
@@ -306,8 +310,7 @@ module.exports = function(RED) {
         //
         //  Deal with specific W3-Connections
         //
-        if ((server.toLowerCase().indexOf("w3-connections") != -1) &&
-            (serverType !== "cloud")) {
+        if ((server.toLowerCase().indexOf("w3-connections") != -1) && (serverType !== "cloud")) {
             context = "/common";
         } else {
             context = "/connections";
@@ -471,30 +474,51 @@ module.exports = function(RED) {
         if (typeof req !== 'object') {
             req = { url: req };
         }
+        //
+        //  Setting HTTP Method
+        //
         req.method = req.method || 'GET';
+        //
+        //  Setting Headers
+        //
+        if (req.headers) {
+            req.headers["User-Agent"] = "Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0";
+        } else {
+            req.headers = {"User-Agent" : "Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0"};
+        }
+        //
+        //  Delegation
+        //
+        if (node.serverType === 'cloud') {
+            if (__delegation && (node.id === __delegation.nodeId)) {
+                if ((req.method === 'PUT') || (req.method === "POST")) {
+                    //
+                    //  Adding Delegation
+                    //
+                    req.headers['X-LCONN-RUNAS'] = __delegation.userId;
+                    ICX.__log(__moduleName, __isDebug, 'Adding X_LCONN_RUNAS delegation to userId ' + __delegation.userId);
+                }
+            }
+        }
+        //
+        //  Dumping the Input Parameters
+        //  We do BEFORE setting the Authorization in order to avoid writing Passwords or Secrets
+        //
+        ICX.__logJson(__moduleName, __isDebug, 'Request : Performing HTTP using the following parameters', req);
         //
         //  Check which authorization
         //
-        var theAuth = {};
         if (node.authType === 'oauth') {
             //
             // always set access token to the latest ignoring any already present
             //
-            theAuth = {bearer: node.credentials.accessToken};
+            req.auth = {bearer: node.credentials.accessToken};
         } else {
-            theAuth = {user: node.credentials.username, password: node.credentials.password};
-        }
-        req.auth = theAuth;
-        if (req.headers) {
-            req.headers["User-Agent"] = "Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0";
-        } else {
-            req.headers = {
-                     "User-Agent" : "Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0"};
+            req.auth = {user: node.credentials.username, password: node.credentials.password};
         }
         //
         //  Performing the request
         //
-        console.log(JSON.stringify(req, ' ', 2));
         return request(req, function(err, result, data) {
             if (err) {
                 // handled in callback
@@ -553,10 +577,24 @@ module.exports = function(RED) {
                 req.headers = {"User-Agent" : "Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0"};
             }
             //
+            //  Delegation
+            //
+            if (node.serverType === 'cloud') {
+                if (__delegation && (node.id === __delegation.nodeId)) {
+                    if ((req.method === 'PUT') || (req.method === "POST")) {
+                        //
+                        //  Adding Delegation
+                        //
+                        req.headers['X-LCONN-RUNAS'] = __delegation.userId;
+                        ICX.__log(__moduleName, __isDebug, 'Adding X_LCONN_RUNAS delegation to userId ' + __delegation.userId);
+                    }
+                }
+            }
+            //
             //  Dumping the Input Parameters
             //  We do BEFORE setting the Authorization in order to avoid writing Passwords or Secrets
             //
-            ICX.__logJson(__moduleName, true, 'RPN : Performing HTTP using the following parameters', req);
+            ICX.__logJson(__moduleName, __isDebug, 'RPN : Performing HTTP using the following parameters', req);
             //
             //  Check which authorization
             //
@@ -826,7 +864,7 @@ module.exports = function(RED) {
         //
         //  redirecting...
         //
-        console.log('ICLogin/auth : redirecting to ' + authURL);
+        ICX.__log(__moduleName, __isDebug, 'ICLogin/auth : redirecting to ' + authURL);
         res.redirect(authURL);
     });
     //
@@ -853,7 +891,7 @@ module.exports = function(RED) {
                 csrf = tmp[1];
             }
         });
-        console.log('ICLogin/callback : node id = ' + node_id);
+        ICX.__log(__moduleName, __isDebug, 'ICLogin/callback : node id = ' + node_id);
         //
         //  retrieve previously saved temporary credentials
         //
@@ -865,7 +903,7 @@ module.exports = function(RED) {
             return res.status(401).send(RED._("ic.error.token-mismatch"));
         }
         var theServer = credentials.server;
-        console.log('ICLogin/callback : credentials found for ' + node_id);
+        ICX.__log(__moduleName, __isDebug, 'ICLogin/callback : credentials found for ' + node_id);
         //
         //  perform the TOKEN endpoint
         //
@@ -883,11 +921,11 @@ module.exports = function(RED) {
             },
             function(err, result, data) {
                 if (err) {
-                    console.log("request error:" + err);
+                    ICX.__logJson(__moduleName, true, "request error:", err);
                     return res.send(RED._("ic.error.something-broke"));
                 }
                 if (data.error) {
-                    console.log("oauth error: " + data.error);
+                    ICX.__logJson(__moduleName, true, "oauth error:", data.error);
                     return res.send(RED._("ic.error.something-broke"));
                 }
                 var serverType = credentials.theServerType;
@@ -898,8 +936,7 @@ module.exports = function(RED) {
                 credentials.accessToken = creds.access_token;
                 credentials.refreshToken = creds.refresh_token;
                 credentials.expiresIn = creds.expires_in;
-                credentials.expireTime =
-                    parseInt(credentials.expiresIn) + (new Date().getTime());
+                credentials.expireTime = parseInt(credentials.expiresIn) + (new Date().getTime());
                 credentials.refreshTime = new Date().toUTCString();
                 credentials.tokenType = creds.token_type;
                 delete credentials.csrfToken;
@@ -913,13 +950,13 @@ module.exports = function(RED) {
                 //  Writing credentials in persistent store
                 //
                 var isBM = process.env.VCAP_SERVICES;
-                console.log('ICLogin/httpAdminGet : isBM = ', isBM);
+                ICX.__log(__moduleName, __isDebug, 'ICLogin/httpAdminGet : isBM = ', isBM);
                 if (!isBM) {
                     //
                     //  NOT on BlueMix
                     //
                     var outFile = _ICLogin2_oauthFileName(node_id);
-                    console.log('ICLogin/callback : Refreshing file record ' + outFile);
+                    ICX.__log(__moduleName, __isDebug, 'ICLogin/callback : Refreshing file record ' + outFile);
                     fs.writeFileSync(outFile, JSON.stringify(credentials, null, 2));
                     //
                     //  We can now get the NAME of the user in order to update the
@@ -935,7 +972,7 @@ module.exports = function(RED) {
                     //  Sine this is a new set of credentials, the "_rev" needs to be initiated
                     //  so we do not need to specify it here
                     //
-                    console.log('ICLogin/callback : Refreshing cloudant record ' + node_id);
+                    ICX.__log(__moduleName, __isDebug, 'ICLogin/callback : Refreshing cloudant record ' + node_id);
                     var credDB = _ICLogin2_oauthCloudantDB();
                     credDB.insert(newRec, function(err, body, header) {
                         if (err) {

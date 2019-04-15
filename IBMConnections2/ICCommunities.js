@@ -10,13 +10,38 @@ module.exports = function (RED) {
     const xml2js = require("xml2js");
     const imageSize = require('image-size');
     const __isDebug = ICX.__getDebugFlag();
-    var   __verboseOutput = __isDebug;
     const __moduleName = 'IC_Communities';
-    const mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-    const urlExp = /^(https?|chrome|localhost):\/\/[^\s$.?#].[^\s]*$/;
-    const winFilePath = /^([a-zA-Z]\:|\\\\[^\/\\:*?"<>|]+\\[^\/\\:*?"<>|]+)(\\[^\/\\:*?"<>|]+)+(\.[^\/\\:*?"<>|]+)$/;
-    const unixFilePath = /^(\/)?([^\/\0]+(\/)?)+$/;
-    const encodedImageExp = /^data:(image\/(gif|png|jpeg|jpg));base64,(.*)$/;
+    const __mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+    const __urlExp = /^(https?|chrome|localhost):\/\/[^\s$.?#].[^\s]*$/;
+    const __winFilePathExp = /^([a-zA-Z]\:|\\\\[^\/\\:*?"<>|]+\\[^\/\\:*?"<>|]+)(\\[^\/\\:*?"<>|]+)+(\.[^\/\\:*?"<>|]+)$/;
+    const __unixFilePathExp = /^(\/)?([^\/\0]+(\/)?)+$/;
+    const __encodedImageExp = /^data:(image\/(gif|png|jpeg|jpg));base64,(.*)$/;
+    const __allowedMemberRoles = ['owner', 'member', 'business-owner'];
+    const __allowedMemberActions = ['AddMember', 'RemoveMember'];
+    const __allowedWidgetActions = ['AddWidget', 'RemoveWidget'];
+    const __allowedWidgets = ["ImportantBookmarks",
+    "StatusUpdates",
+    "description",
+    "Files",
+    "Tags",
+    "RichContent",
+    "Wiki",
+    "Forum",
+    "Bookmarks",
+    "Blog",
+    "IdeationBlog",
+    "Gallery",
+    "Calendar",
+    "RichContent",
+    "FeaturedSurvey",
+    "Surveys",
+    "MembersSummary",
+    "Activities",
+    "SubcommunityNav",
+    "RelatedCommunities",
+    "Connections Engagement Center"];
+
+    var   __verboseOutput = __isDebug;
 
     console.log("*****************************************");
     console.log("* Debug mode is " + (__isDebug ? "enabled" : "disabled") + ' for module ' + __moduleName);
@@ -32,6 +57,7 @@ module.exports = function (RED) {
         if (entry.id) community.id = entry.id[0];
         if (entry['snx:communityType']) community.communityType = entry['snx:communityType'][0];
         if (entry['snx:isExternal']) community.isExternal = entry['snx:isExternal'][0];
+        if (entry['snx:listWhenRestricted']) community.listWhenRestricted = entry['snx:listWhenRestricted'][0];
         if (entry['snx:communityUuid']) community.Uuid = entry['snx:communityUuid'][0];
         if (entry['snx:membercount']) community.memberCount = entry['snx:membercount'][0];
         if (entry['snx:orgId']) community.orgId = entry['snx:orgId'][0];
@@ -52,6 +78,7 @@ module.exports = function (RED) {
         for (let i=0; i < entry.category.length; i++) {
             if (!entry.category[i]['$'].scheme) community.tags.push(entry.category[i]['$'].term);
         }
+        community.ref = '';
         if (entry.link) {
             community.links = {};
             for (let j = 0; j < entry.link.length; j++) {
@@ -133,6 +160,16 @@ module.exports = function (RED) {
         return widget;
     }
 
+    function createAuthorDocument(theName, theId, theMail, isAuthor) {
+        var theDocument = 
+        `${isAuthor ? "<author>" : "<contributor>"}
+        <name>${theName}</name>        
+        <email>${theMail}m</email>        
+        <snx:userid>${theId}</snx:userid>        
+        <snx:userState>active</snx:userState>        
+        ${isAuthor ? "</author>" : "</contributor>"}`;
+        return theDocument;
+    }
     function createAddMemberDocument(mailAddress, userId, name, role, orgId) {
         var isBusinessOwner = false;
         if (role === 'business-owner') isBusinessOwner = true;
@@ -158,16 +195,60 @@ module.exports = function (RED) {
         var theDocument =
         `<?xml version="1.0" encoding="UTF-8"?>
         <entry xmlns:snx="http://www.ibm.com/xmlns/prod/sn" xmlns="http://www.w3.org/2005/Atom">>        
-        <title type="text">${title}</title>
         <category term="widget" scheme="http://www.ibm.com/xmlns/prod/sn/type" />
         <snx:widgetDefId>${widgetId}</snx:widgetDefId>       
-        <snx:widgetCategory />
         <snx:hidden>false</snx:hidden>
+        <title type="text">${title}</title>
         ${selectLocation ? "<snx:location>" + location + "</snx:location>" : ""}
         </entry>`;
       return theDocument;
     }
+    function createAddCommunityDocument(commTitle, commDesc, commType, commExternal, commVisibility, theAuthor, theContributor) {
+        var isExternal = false;
+        var isListingVisible = false;
+        if (commType === 'private') {
+            if (commExternal === 'External') isExternal = true;
+            if (commVisibility === 'Visible') isListingVisible = true;
+        }
+        var theDocument =
+        `<entry xmlns="http://www.w3.org/2005/Atom" xmlns:app="http://www.w3.org/2007/app" xmlns:snx="http://www.ibm.com/xmlns/prod/sn">
+        <title type="text">${commTitle}</title>
+        <content type="html">${commDesc}</content>
+        <category term="community" scheme="http://www.ibm.com/xmlns/prod/sn/type"></category>
+        ${theAuthor}
+        ${theContributor}
+        <snx:communityType>${commType}</snx:communityType>
+        <snx:listWhenRestricted>${isListingVisible ? "true" : "false"}</snx:listWhenRestricted>
+        <snx:isExternal>${isExternal ? "true" : "false"}</snx:isExternal>
+        </entry>`;
+        return theDocument;
+    }
 
+ 
+    async function getBase64ImageFromUrl(imageUrl) {
+        const rp = require("request-promise-native");
+        var _include_headers = function(body, response, resolveWithFullResponse) {
+            return {'headers': response.headers, 'data': body};
+          };
+          
+        var options = {
+            method: 'GET',
+            uri: imageUrl,
+            transform: _include_headers,
+            encoding: null    // https://stackoverflow.com/questions/31289826/download-an-image-using-node-request-and-fs-promisified-with-no-pipe-in-node-j
+        };
+        try {
+            const res = await rp(options);
+
+            var buf = Buffer.from(res.data);
+            var base64 = 'data:' + res.headers['content-type'] + ';base64,' + buf.toString('base64')
+            //console.log(JSON.stringify(res.headers, ' ', 2));
+            //console.log(base64);
+            return base64;
+        } catch (error) {
+            return Promise.reject(error);
+        }
+    }
     async function getCommunityById(loginNode, communityId) {
         var theURL = loginNode.getServer + "/communities/service/atom/community/instance?communityUuid=" + communityId;
         var __msgText = 'error getting information for CommunityById2';
@@ -236,6 +317,41 @@ module.exports = function (RED) {
         } catch (error) {
             error.message = '{{' + __msgStatus + '}}\n' + error.message;
             ICX.__logJson(__moduleName, true, "updateCommunity : " + __msgText, error);
+            throw error;
+        }
+    }
+    async function createCommunity(loginNode, body, motherCommunityId) {
+        var theURL = '';
+        if (motherCommunityId === '') {
+            theURL = loginNode.getServer + "/communities/service/atom/communities/my";
+        } else {
+            //
+            //  SUBCommunity
+            //
+            theURL = loginNode.getServer + '/communities/service/atom/community/subcommunities?communityUuid=' + motherCommunityId;
+        }
+        var _include_headers = function(body, response, resolveWithFullResponse) {
+            return {'headers': response.headers, 'data': body};
+        };
+        var __msgText = 'error getting information for createCommunity';
+        var __msgStatus = 'No createCommunity';
+        try {
+            ICX.__log(__moduleName, true, 'createCommunity: executing on ' + theURL);
+            let response = await loginNode.rpn(
+                {
+                    url: theURL,
+                    method: "POST",
+                    transform: _include_headers,
+                    body: body,
+                    headers: {"Content-Type": "application/atom+xml"}
+                }                    
+            );
+            ICX.__logJson(__moduleName, __isDebug, "createCommunity OK", response);
+            let locationArray = response.headers.location.split('=');
+            return locationArray[1];
+        } catch (error) {
+            error.message = '{{' + __msgStatus + '}}\n' + error.message;
+            ICX.__logJson(__moduleName, true, "createCommunity : " + __msgText, error);
             throw error;
         }
     }
@@ -378,6 +494,27 @@ module.exports = function (RED) {
             throw error;
         }
     }
+    async function deleteCommunityWidget(loginNode, communityId, instanceId) {
+        var theURL = loginNode.getServer + "/communities/service/atom/community/widgets?communityUuid=" + communityId + '&widgetInstanceId=' + instanceId;
+        var __msgText = 'error getting information for deleteCommunityWidget';
+        var __msgStatus = 'No deleteCommunityWidget';
+        try {
+            ICX.__log(__moduleName, true, 'deleteCommunityWidget: executing on ' + theURL);
+            let response = await loginNode.rpn(
+                {
+                    url: theURL,
+                    method: "DELETE",
+                    headers: {"Content-Type": "application/atom+xml"}
+                }                    
+            );
+            ICX.__logJson(__moduleName, __isDebug, "deleteCommunityWidget OK", response);
+            return response;
+        } catch (error) {
+            error.message = '{{' + __msgStatus + '}}\n' + error.message;
+            ICX.__logJson(__moduleName, true, "deleteCommunityWidget : " + __msgText, error);
+            throw error;
+        }
+    }
     async function getCommunityImage(loginNode, communityId) {
         var theURL = loginNode.getServer + "/communities/service/html/image?communityUuid=" + communityId;
         var __msgText = 'error getting information for getCommunityImage';
@@ -511,7 +648,8 @@ module.exports = function (RED) {
         //  ICLogin node
         //
         this.login = RED.nodes.getNode(config.server);
-		var node = this;
+        var node = this;
+        const __urlQualifier = '?sortBy=modified&sortOrder=desc&ps=100';
         //
         //  Main Processing
         //
@@ -521,14 +659,15 @@ module.exports = function (RED) {
                 //
                 //  Server is a GLOBAL variable
                 //
-                var myURL  = node.login.getServer + "/communities/service/atom/communities/my?sortBy=modified&sortOrder=desc&ps=100";
+                var myURL  = node.login.getServer + "/communities/service/atom";
+                //var myURL  = node.login.getServer + "/communities/service/atom/communities/my";
                 if (node.login.authType === "oauth") myURL += '/oauth';
                 //
                 //  Get the Inputs
                 //
-                var theTag = ICX.__getOptionalInputString(__moduleName, config.communityTag, msg.communityTag, 'Tag', node);
+                var theTag = ICX.__getOptionalInputString(__moduleName, config.communityTag, msg.IC_communityTag, 'Tag', node);
                 if (theTag !== '') theTag = "&tag=" + theTag;
-                var theSearch = ICX.__getOptionalInputString(__moduleName, config.searchString, msg.searchString, 'Search', node);
+                var theSearch = ICX.__getOptionalInputString(__moduleName, config.searchString, msg.IC_searchString, 'Search', node);
                 if (theSearch !== '') theSearch = '&search="' + theSearch + '"';
                 var showLogo = false;
                 var showMembers = false;
@@ -549,6 +688,8 @@ module.exports = function (RED) {
                 //
                 switch (config.target) {
                     case "MyCommunities":
+                        myURL += '/communities/my';
+                        myURL += __urlQualifier;
                         myURL += theTag;
                         myURL += theSearch;
                         getCommunityList(node.login, myURL).then(async function(myData) {
@@ -583,6 +724,8 @@ module.exports = function (RED) {
                         });
                         break;
                     case "AllCommunities":
+                        myURL += '/communities/all';
+                        myURL += __urlQualifier;
                         myURL += theTag;
                         myURL += theSearch;
                         getCommunityList(node.login, myURL).then(async function(myData) {
@@ -617,10 +760,12 @@ module.exports = function (RED) {
                         });
                         break;
                     case "UserCommunities": {
-                            let theMail = ICX.__getMandatoryInputString(__moduleName, config.userId , msg.userId, '', 'UserId', msg, node);
+                            let theMail = ICX.__getMandatoryInputString(__moduleName, config.userId , msg.IC_userId, '', 'UserId', msg, node);
+                            myURL += '/communities/all';
+                            myURL += __urlQualifier;
                             myURL += theTag;
                             myURL += theSearch;
-                            if (mailExp.test(theMail)) {
+                            if (__mailExp.test(theMail)) {
                                 myURL += "&email=" + theMail;
                             } else {
                                 myURL += "&userId=" + theMail;
@@ -720,8 +865,7 @@ module.exports = function (RED) {
     function ICCommunitiesUpdate(config) {
         RED.nodes.createNode(this, config);
         //
-        //  Global to access the custom HTTP Request object available from the
-        //  ICLogin node
+        //  Global to access the custom HTTP Request object available from the ICLogin node
         //
         this.login = RED.nodes.getNode(config.server);
 		var node = this;
@@ -733,29 +877,74 @@ module.exports = function (RED) {
         this.on(
             'input',
             function (msg) {
+                var communityId = '';
+                var motherCommunityId = '';
+                var communityType = '';
+                var communityVisibility = '';
+                var communityExternal = '';
+                var communityTitle = '';
+                var communityDesc = '';
+                var communityTags = '';
+                var communityTagsReplace = false;
                 //
-                //  Server is a GLOBAL variable
+                //  Check Operation to be performed
                 //
-                var communityURL = node.login.getServer + "/communities";
-                if (node.login.authType === "oauth") myURL += '/oauth';
-                //
-                //  Check if CommunityId is specified
-                //
-                var communityId = ICX.__getMandatoryInputString(__moduleName, config.communityId , msg.IC_communityId, '', 'CommunityId', msg, node);
-                if (!communityId) return;
-                //
-                //  Get Community Title if present
-                //
-                var communityTitle = ICX.__getOptionalInputString(__moduleName, config.communityTitle, msg.IC_communityTitle, 'Community Title', node);
-                //
-                //  Get Community Desc if Present
-                //
-                var communityDesc = ICX.__getOptionalInputString(__moduleName, config.communityDesc, msg.IC_communityDesc, 'Community Desc', node);
+                var operationType = ICX.__getMandatoryInputStringFromSelect(__moduleName, config.newOrUpdate, msg.IC_newOrUpdate, 'Community Operation', ['Create', 'Update', 'SubCommunity'], msg, node);
+                if (!operationType) return;
+                if (operationType === 'Update') {
+                    //
+                    //  Check if CommunityId is specified. It is MANDATORY in this case
+                    //
+                    communityId = ICX.__getMandatoryInputString(__moduleName, config.communityId , msg.IC_communityId, '', 'CommunityId', msg, node);
+                    if (!communityId) return;
+                    //
+                    //  Get Community Title if present (optional)
+                    //
+                    communityTitle = ICX.__getOptionalInputString(__moduleName, config.communityTitle, msg.IC_communityTitle, 'Community Title', node);
+                    //
+                    //  Get Community Desc if Present (optional)
+                    //
+                    communityDesc = ICX.__getOptionalInputString(__moduleName, config.communityDesc, msg.IC_communityDesc, 'Community Desc', node);
+                } else {
+                    if (operationType === 'SubCommunity') {
+                        //
+                        //  Check if CommunityId is specified. It is MANDATORY in this case
+                        //
+                        motherCommunityId = ICX.__getMandatoryInputString(__moduleName, config.motherCommunityId , msg.IC_motherCommunityId, '', 'Mother CommunityId', msg, node);
+                        if (!motherCommunityId) return;
+                    }
+                    //
+                    //  Get Community Title (MANDATORY in this case)
+                    //
+                    communityTitle = ICX.__getMandatoryInputString(__moduleName, config.communityTitle, msg.IC_communityTitle, '', 'Community Title', msg, node);
+                    if (!communityTitle) return;
+                    //
+                    //  Get Community Desc (MANDATORY in this case)
+                    //
+                    communityDesc = ICX.__getMandatoryInputString(__moduleName, config.communityDesc, msg.IC_communityDesc, '', 'Community Desc', msg, node);
+                    if (!communityDesc) return;
+                    //
+                    //  Get Type of Community to be created
+                    //
+                    communityType = ICX.__getMandatoryInputStringFromSelect(__moduleName, config.communityType, msg.IC_communityType, 'Community Type', ['private', 'publicInviteOnly', 'public'], msg, node);
+                    if (!communityType) return;
+                    if (communityType === 'private') {
+                        //
+                        //  Open to Outside ?
+                        //
+                        communityExternal = ICX.__getMandatoryInputStringFromSelect(__moduleName, config.communityExternal, msg.IC_communityExternal, 'Community External', ['External', 'Internal'], msg, node);
+                        if (!communityExternal) return;
+                        //
+                        //  Visible for Listing ?
+                        //
+                        communityVisibility = ICX.__getMandatoryInputStringFromSelect(__moduleName, config.communityVisibility, msg.IC_communityVisibility, 'Community Visibility', ['Visible', 'Invisible'], msg, node);
+                        if (!communityVisibility) return;
+                    }
+                }
                 //
                 //  Get Community Tags (if present)
                 //
-                var communityTags = ICX.__getOptionalInputString(__moduleName, config.communityTags, msg.IC_communityTags, 'Community Tags', node);
-                var communityTagsReplace = false;
+                communityTags = ICX.__getOptionalInputString(__moduleName, config.communityTags, msg.IC_communityTags, 'Community Tags', node);
                 if (communityTags !== '') {
                     //
                     //  There are TAGS, either from Configuration Panel or form Msg
@@ -822,7 +1011,7 @@ module.exports = function (RED) {
                             //  Check if it is a syntactically valid path or URL
                             //
                             logoFrom = msg.IC_logoFrom.trim();
-                            if (logoFrom.match(urlExp) || logoFrom.match(unixFilePath) || logoFrom.match(winFilePath)) {
+                            if (logoFrom.match(__urlExp) || logoFrom.match(__unixFilePathExp) || logoFrom.match(__winFilePathExp)) {
                                 //
                                 //  The input is valid
                                 //  We will verify this later if it corresponds to an existing file
@@ -846,14 +1035,12 @@ module.exports = function (RED) {
                 var memberMgmt = config.target.trim();
                 var theMembers = [];
                 if (memberMgmt !== '') {
-                    const allowedRoles = ['owner', 'member', 'business-owner'];
-                    const allowedActions = ['AddMember', 'RemoveMember'];
                     if (memberMgmt !== 'fromMsg') {
                         //
                         //  Configuration available from Configuration Panel
                         //
                         if (memberMgmt !== 'none') {
-                            if (allowedActions.includes(memberMgmt)) {
+                            if (__allowedMemberActions.includes(memberMgmt)) {
                                 //
                                 //  Valid Value in Configuration Panel
                                 //  Retrieve Members now
@@ -868,7 +1055,7 @@ module.exports = function (RED) {
                                     //  get the ROLE
                                     //
                                     let theRole = config.userRole.trim();
-                                    if (allowedRoles.includes(theRole)) {
+                                    if (__allowedMemberRoles.includes(theRole)) {
                                         //
                                         //  Valid Role
                                         //  Build Final Array
@@ -915,7 +1102,7 @@ module.exports = function (RED) {
                                     //  attribute "Action" is present
                                     //
                                     let theAction = theMembers[i].action.trim();
-                                    if (allowedActions.includes(theMembers[i].action)) {
+                                    if (__allowedMemberActions.includes(theMembers[i].action)) {
                                         theMembers[i].action = theAction;
                                         theMembers[i].user = theMembers[i].user.trim();
                                         if (theAction === 'AddMember') {
@@ -924,7 +1111,7 @@ module.exports = function (RED) {
                                                 //  attribute "role" is present
                                                 //
                                                 let theRole = theMembers[i].role.trim();
-                                                if (allowedRoles.includes(theRole)) {
+                                                if (__allowedMemberRoles.includes(theRole)) {
                                                     theMembers[i].role = theRole;
                                                 } else {
                                                     //
@@ -975,34 +1162,12 @@ module.exports = function (RED) {
                 var widgetMgmt = config.target2.trim();
                 var theWidgets = [];
                 if (widgetMgmt !== '') {
-                    const allowedActions = ['AddWidget', 'RemoveWidget'];
-                    const allowedWidgets = ["ImportantBookmarks",
-                    "StatusUpdates",
-                    "description",
-                    "Files",
-                    "Tags",
-                    "RichContent",
-                    "Wiki",
-                    "Forum",
-                    "Bookmarks",
-                    "Blog",
-                    "IdeationBlog",
-                    "Gallery",
-                    "Calendar",
-                    "RichContent",
-                    "FeaturedSurvey",
-                    "Surveys",
-                    "MembersSummary",
-                    "Activities",
-                    "SubcommunityNav",
-                    "RelatedCommunities",
-                    "Connections Engagement Center"];
                     if (widgetMgmt !== 'fromMsg') {
                         //
                         //  Configuration available from Configuration Panel
                         //
                         if (widgetMgmt !== 'none') {
-                            if (allowedActions.includes(widgetMgmt)) {
+                            if (__allowedWidgetActions.includes(widgetMgmt)) {
                                 //
                                 //  Valid Value in Configuration Panel
                                 //  Retrieve Widgets now
@@ -1017,7 +1182,7 @@ module.exports = function (RED) {
                                     //  Build Final Array
                                     //
                                     for (let i=0; i < tmpWidgetsArray.length; i++) {
-                                        if (allowedWidgets.includes(tmpWidgetsArray[i].trim())) {
+                                        if (__allowedWidgets.includes(tmpWidgetsArray[i].trim())) {
                                             let tmp = {};
                                             tmp.widget = tmpWidgetsArray[i].trim();
                                             tmp.title = tmp.widget;
@@ -1059,12 +1224,17 @@ module.exports = function (RED) {
                                     //  attribute "Action" is present
                                     //
                                     let theAction = theWidgets[i].action.trim();
-                                    if (allowedActions.includes(theWidgets[i].action)) {
+                                    if (__allowedWidgetActions.includes(theWidgets[i].action)) {
                                         theWidgets[i].widget = theWidgets[i].widget.trim();
-                                        if (allowedWidgets.includes(theWidgets[i].widget)) {
+                                        if (__allowedWidgets.includes(theWidgets[i].widget)) {
                                             theWidgets[i].action = theAction;
                                             if (!theWidgets[i].title || (theWidgets[i].title.trim() === '')) {
                                                 theWidgets[i].title = theWidgets[i].widget;
+                                            }
+                                            if (theWidgets[i].id && (theWidgets[i].id.trim() !== '')) {
+                                                theWidgets[i].id = theWidgets[i].id.trim();
+                                            } else {
+                                                if (theWidgets[i].id) delete theWidgets[i].id;
                                             }
                                         } else {
                                             //
@@ -1098,7 +1268,7 @@ module.exports = function (RED) {
                     return;    
                 }
                 //
-                //  At this point, theWidgets is an array where each item is fully specified (widget and action)
+                //  At this point, theWidgets is an array where each item is fully specified (widget, title, action and optionally its instanceId)
                 //
                 //
                 //  Initialize UI
@@ -1113,202 +1283,42 @@ module.exports = function (RED) {
                         //  Since we neeed to modify the Community, it is better to retrieve it
                         //  We retrieve it with ALL the information that are required 
                         //
+                        if (operationType !== 'Update') {
+                            //
+                            //  Retrieve myself
+                            //
+                            let thisIsMe = await node.login.fromIdToMail(node.login.userId, true);
+                            let theAuthorDoc = createAuthorDocument(thisIsMe.name, thisIsMe.id, thisIsMe.mail, true);
+                            let theContributorDoc = createAuthorDocument(thisIsMe.name, thisIsMe.id, thisIsMe.mail, false);
+                            let newCommunityDoc = createAddCommunityDocument(communityTitle, '', communityType, communityExternal, communityVisibility, theAuthorDoc, theContributorDoc);
+                            try {
+                                if (operationType === 'Create') {
+                                    communityId = await createCommunity(node.login, newCommunityDoc, '');
+                                } else {
+                                    communityId = await createCommunity(node.login, newCommunityDoc, motherCommunityId);
+                                }
+                                ICX.__log(__moduleName, true, 'Community ' + communityId + '  succesfully created !!!');
+                                communityTitle = '';
+                            } catch (error) {
+                                throw error;
+                            }
+                        } else {
+
+                        }
+                        //
+                        //  Get the Details of the Communit to be updated or of the newly created Community
+                        //
                         __verboseOutput = true;
                         let thisCommunity = await getCommunityById(node.login, communityId);
                         __verboseOutput = __isDebug;
-                        let tmp_remoteApplications = null;
-                        let tmp_widgets = null;
-                        let tmp_communityLogo = null;
-                        let tmp_members = null;
                         if (thisCommunity) {
+                            let tmp_remoteApplications = null;
+                            let tmp_widgets = null;
+                            let tmp_communityLogo = null;
+                            let tmp_members = null;
                             //
-                            //  Deal with Community Logo
+                            //  Deal with the Community Metadata
                             //
-                            if (logoFrom !== 'none') {
-                                node.status({fill: "blue", shape: "dot", text: "Updating logo..."});
-                                let base64Image = '';
-                                let mime = '';
-                                if (logoBytes !== null) {
-                                    // 
-                                    //  We got the image from the Configuration Panel
-                                    //  We need to retrieve the MIME-TYPE and separate the encodedImage part of the string
-                                    //
-                                    let parsedImage = logoBytes.match(encodedImageExp);
-                                    if (parsedImage && parsedImage.length) {
-                                        mime = parsedImage[1];
-                                        base64Image = Buffer.from(parsedImage[3], 'base64');
-                                    }
-                                    //  
-                                    //  Following, TWO DIFFERENT WAYS to succesfully create an output file
-                                    //
-                                    //let fs = require('fs');
-                                    //fs.writeFile('zorro.jpeg', logoBytes, 'base64', function(err){node.error(err)});
-                                    //fs.writeFile('zorro2.jpeg', ttt,  function(err){node.error(err)});
-                                } else {
-                                    //
-                                    //  We get the image from the incoming msg element
-                                    //
-                                    if (logoFrom.match(urlExp)) {
-                                        //
-                                        //  The image comes from the Internet
-                                        //
-                                        logoBytes = await getBase64ImageFromUrl(logoFrom);
-                                        let parsedImage = logoBytes.match(encodedImageExp);
-                                        if (parsedImage && parsedImage.length) {
-                                            mime = parsedImage[1];
-                                            base64Image = Buffer.from(parsedImage[3], 'base64');
-                                        }
-                                    } else {
-                                        //
-                                        //  The image is a local file
-                                        //
-                                        logoBytes = await ICX.__readFile(logoFrom, 'base64');
-                                        base64Image = Buffer.from(logoBytes, 'base64');
-                                        mime = imageSize(logoFrom).type;
-                                        if (mime === 'jpg') mime = 'jpeg';
-                                        mime = 'image/' + mime;
-                                    }
-                                }
-                                //
-                                //  Now we are ready to change the logo
-                                //
-                                let aa = await updateCommunityImage(node.login, communityId, base64Image, mime);
-                                tmp_communityLogo = await getCommunityImage(node.login, communityId);
-                            } else {
-                                //
-                                //  Nothing to do with Logo
-                                //
-                            }
-                            //
-                            //  Deal with a Change to the Community Members
-                            //
-                            if (theMembers.length !== 0) {
-                                //
-                                //  Operations on Members need to be done
-                                //
-                                for (let i=0; i < theMembers.length; i++) {
-                                    let userDetails = null;
-                                    node.status({fill: "blue", shape: "dot", text: "User Details for " + theMembers[i].user});
-                                    if (theMembers[i].user.match(mailExp)) {
-                                        userDetails = await node.login.fromMailToId(theMembers[i].user, true);
-                                    } else {
-                                        userDetails = await node.login.fromIdToMail(theMembers[i].user, true);
-                                    }
-                                    //
-                                    //  We have the information to Add or Remove the member
-                                    //
-                                    if (theMembers[i].action === 'AddMember') {
-                                        //
-                                        //  Add Member
-                                        //
-                                        let memberDoc = createAddMemberDocument(userDetails.mail, userDetails.userid, userDetails.name, theMembers[i].role, thisCommunity.orgId);
-                                        ICX.__log(__moduleName, __isDebug, 'MemberDoc to be added: \n' + memberDoc);
-                                        try {
-                                            node.status({fill: "blue", shape: "dot", text: "Adding user " + theMembers[i].user + " as " + theMembers[i].role});
-                                            await addCommunityMember(node.login, communityId, memberDoc);
-                                        } catch(err) {
-                                            if (err.response.statusCode === 409) {
-                                                //
-                                                //  user in that role already exists
-                                                //  Ignore
-                                                //
-                                                node.warn('User ' + userDetails.name + ' is already ' + theMembers[i].role + ' of the community');
-                                            } else {
-                                                //
-                                                //  Serious Issue
-                                                //
-                                                throw err;
-                                            }
-                                        }
-                                    } else {
-                                        //
-                                        //  Remove Members
-                                        //
-                                        try {
-                                            node.status({fill: "blue", shape: "dot", text: "Removing user " + theMembers[i].user});
-                                            await deleteCommunityMember(node.login, communityId, userDetails.userid)
-                                        } catch(err) {
-                                            if (err.response.statusCode === 404) {
-                                                //
-                                                //  user is NOT member of the Community
-                                                //  Ignore
-                                                //
-                                                node.warn('User ' + userDetails.name + ' cannot be removed because not a member');
-                                            } else {
-                                                //
-                                                //  Serious Issue
-                                                //
-                                                throw err;
-                                            }
-                                         }
-                                    }
-                                }
-                                tmp_members = await getCommunityMembers(node.login, communityId);
-                            } else {
-                                //
-                                //  Nothing to do with Members
-                                //
-                            }
-                            //
-                            //  Deal with a Change to the Community Widgets
-                            //
-                            if (theWidgets.length !== 0) {
-                                //
-                                //  Operations on Widgets need to be done
-                                //
-                                for (let i=0; i < theWidgets.length; i++) {
-                                    if (theWidgets[i].action === 'AddWidget') {
-                                        //
-                                        //  Add Widget
-                                        //
-                                        let widgetDoc = createAddWidgetDocument(theWidgets[i].widget, theWidgets[i].widget, theWidgets[i].location);
-                                        ICX.__log(__moduleName, __isDebug, 'WidgetDoc to be added: \n' + widgetDoc);
-                                        try {
-                                            node.status({fill: "blue", shape: "dot", text: "Adding Widget " + theWidgets[i].widget});
-                                            await addCommunityWidget(node.login, communityId, widgetDoc);
-                                        } catch(err) {
-                                            if (err.response.statusCode === 409) {
-                                                //
-                                                //  user in that role already exists
-                                                //  Ignore
-                                                //
-                                                node.warn('Widget ' + theWidgets[i].widget + ' is already ..... of the community');
-                                            } else {
-                                                //
-                                                //  Serious Issue
-                                                //
-                                                throw err;
-                                            }
-                                        }
-                                    } else {
-                                        //
-                                        //  Remove Widget
-                                        //
-                                        try {
-                                            node.status({fill: "blue", shape: "dot", text: "Removing widget " + theWidgets[i].widget});
-                                            await deleteCommunityWidget(node.login, communityId, theWidgets[i].widget)
-                                        } catch(err) {
-                                            if (err.response.statusCode === 404) {
-                                                //
-                                                //  user is NOT member of the Community
-                                                //  Ignore
-                                                //
-                                                node.warn('Widget ' + theWidgets[i].widget + ' cannot be removed because not...');
-                                            } else {
-                                                //
-                                                //  Serious Issue
-                                                //
-                                                throw err;
-                                            }
-                                         }
-                                    }
-                                }
-                                tmp_widgets = await getCommunityWidgets(node.login, communityId);
-                            } else {
-                                //
-                                //  Nothing to do with Members
-                                //
-                            }
                             if ((communityTitle !== '') || (communityDesc !== '') || (communityTags !== '')) {
                                 //
                                 //  We have to modify something in the Community. So we need the Original Structure (thisCommunity.originalentry)
@@ -1360,12 +1370,290 @@ module.exports = function (RED) {
                                 //
                                 //  And, now, we can update the Community
                                 //
+                                node.status({fill: "blue", shape: "dot", text: "Updating community Details..."});
                                 thisCommunity = await updateCommunity(node.login, entry, communityId);
+                                ICX.__log(__moduleName, true, 'Community Details succesfully updated');
+                            }
+                            //
+                            //  Deal with Community Logo
+                            //
+                            if (logoFrom !== 'none') {
+                                let base64Image = '';
+                                let mime = '';
+                                if (logoBytes !== null) {
+                                    // 
+                                    //  We got the image from the Configuration Panel
+                                    //  We need to retrieve the MIME-TYPE and separate the encodedImage part of the string
+                                    //
+                                    let parsedImage = logoBytes.match(__encodedImageExp);
+                                    if (parsedImage && parsedImage.length) {
+                                        mime = parsedImage[1];
+                                        base64Image = Buffer.from(parsedImage[3], 'base64');
+                                    }
+                                    //  
+                                    //  Following, TWO DIFFERENT WAYS to succesfully create an output file
+                                    //
+                                    //let fs = require('fs');
+                                    //fs.writeFile('zorro.jpeg', logoBytes, 'base64', function(err){node.error(err)});
+                                    //fs.writeFile('zorro2.jpeg', ttt,  function(err){node.error(err)});
+                                } else {
+                                    //
+                                    //  We get the image from the incoming msg element
+                                    //
+                                    if (logoFrom.match(__urlExp)) {
+                                        //
+                                        //  The image comes from the Internet
+                                        //
+                                        logoBytes = await getBase64ImageFromUrl(logoFrom);
+                                        let parsedImage = logoBytes.match(__encodedImageExp);
+                                        if (parsedImage && parsedImage.length) {
+                                            mime = parsedImage[1];
+                                            base64Image = Buffer.from(parsedImage[3], 'base64');
+                                        }
+                                    } else {
+                                        //
+                                        //  The image is a local file
+                                        //
+                                        logoBytes = await ICX.__readFile(logoFrom, 'base64');
+                                        base64Image = Buffer.from(logoBytes, 'base64');
+                                        mime = imageSize(logoFrom).type;
+                                        if (mime === 'jpg') mime = 'jpeg';
+                                        mime = 'image/' + mime;
+                                    }
+                                }
+                                //
+                                //  Now we are ready to change the logo
+                                //
+                                node.status({fill: "blue", shape: "dot", text: "Updating logo..."});
+                                let aa = await updateCommunityImage(node.login, communityId, base64Image, mime);
+                                ICX.__log(__moduleName, true, 'New logo image successfully updated');
+                                tmp_communityLogo = await getCommunityImage(node.login, communityId);
+                            } else {
+                                //
+                                //  Nothing to do with Logo
+                                //
+                            }
+                            //
+                            //  Deal with a Change to the Community Members
+                            //
+                            if (theMembers.length !== 0) {
+                                //
+                                //  Operations on Members need to be done
+                                //
+                                for (let i=0; i < theMembers.length; i++) {
+                                    let userDetails = null;
+                                    node.status({fill: "blue", shape: "dot", text: "User Details for " + theMembers[i].user});
+                                    if (theMembers[i].user.match(__mailExp)) {
+                                        userDetails = await node.login.fromMailToId(theMembers[i].user, true);
+                                    } else {
+                                        userDetails = await node.login.fromIdToMail(theMembers[i].user, true);
+                                    }
+                                    //
+                                    //  We have the information to Add or Remove the member
+                                    //
+                                    if (theMembers[i].action === 'AddMember') {
+                                        //
+                                        //  Add Member
+                                        //
+                                        let memberDoc = createAddMemberDocument(userDetails.mail, userDetails.userid, userDetails.name, theMembers[i].role, thisCommunity.orgId);
+                                        ICX.__log(__moduleName, __isDebug, 'MemberDoc to be added: \n' + memberDoc);
+                                        try {
+                                            node.status({fill: "blue", shape: "dot", text: "Adding user " + theMembers[i].user + " as " + theMembers[i].role});
+                                            await addCommunityMember(node.login, communityId, memberDoc);
+                                            ICX.__log(__moduleName, true, 'User ' + userDetails.name  + ' Succesfully added as ' + theMembers[i].role);
+                                        } catch(err) {
+                                            if (err.response.statusCode === 409) {
+                                                //
+                                                //  user in that role already exists
+                                                //  Ignore
+                                                //
+                                                node.warn('User ' + userDetails.name + ' is already ' + theMembers[i].role + ' of the community');
+                                                ICX.__log(__moduleName, true, 'User ' + userDetails.name  + ' is already ' + theMembers[i].role + ' of the community');
+                                            } else {
+                                                //
+                                                //  Serious Issue
+                                                //
+                                                throw err;
+                                            }
+                                        }
+                                    } else {
+                                        //
+                                        //  Remove Members
+                                        //
+                                        try {
+                                            node.status({fill: "blue", shape: "dot", text: "Removing user " + theMembers[i].user});
+                                            await deleteCommunityMember(node.login, communityId, userDetails.userid)
+                                            ICX.__log(__moduleName, true, 'User ' + userDetails.name  + ' Succesfully removed from Community');
+                                        } catch(err) {
+                                            if (err.response.statusCode === 404) {
+                                                //
+                                                //  user is NOT member of the Community
+                                                //  Ignore
+                                                //
+                                                node.warn('User ' + userDetails.name + ' cannot be removed because not a member');
+                                                ICX.__log(__moduleName, true, 'User ' + userDetails.name + ' cannot be removed because not a member');
+                                            } else {
+                                                //
+                                                //  Serious Issue
+                                                //
+                                                throw err;
+                                            }
+                                         }
+                                    }
+                                }
+                                tmp_members = await getCommunityMembers(node.login, communityId);
+                            } else {
+                                //
+                                //  Nothing to do with Members
+                                //
+                            }
+                            //
+                            //  Deal with a Change to the Community Widgets
+                            //
+                            if (theWidgets.length !== 0) {
+                                //
+                                //  Operations on Widgets need to be done
+                                //
+                                let currentWidgets = null;
+                                let currentWidgets_table = [];
+                                for (let i=0; i < theWidgets.length; i++) {
+                                    if (theWidgets[i].action === 'AddWidget') {
+                                        //
+                                        //  Add Widget
+                                        //
+                                        let widgetDoc = createAddWidgetDocument(theWidgets[i].widget, theWidgets[i].title, theWidgets[i].location);
+                                        ICX.__log(__moduleName, __isDebug, 'WidgetDoc to be added: \n' + widgetDoc);
+                                        try {
+                                            node.status({fill: "blue", shape: "dot", text: "Adding Widget " + theWidgets[i].widget});
+                                            await addCommunityWidget(node.login, communityId, widgetDoc);
+                                            ICX.__log(__moduleName, true, 'Widget ' + theWidgets[i].widget + ' Succesfully added');
+                                        } catch(err) {
+                                            if (err.response.statusCode === 403) {
+                                                //
+                                                //  user in that role already exists
+                                                //  Ignore
+                                                //
+                                                node.warn('Widget ' + theWidgets[i].widget + ' is already ..... of the community');
+                                            } else {
+                                                //
+                                                //  Serious Issue
+                                                //
+                                                throw err;
+                                            }
+                                        }
+                                    } else {
+                                        //
+                                        //  Remove Widget
+                                        //  To remove a Widget, we need to get the InstanceId of the widget to be removed
+                                        //  Thus we need to retrieve the current list of widgets
+                                        //
+                                        if (!currentWidgets) {
+                                            currentWidgets = await getCommunityWidgets(node.login, communityId);
+                                            //
+                                            //  Create a simple table of widgets indexed by WidgetDef
+                                            //
+                                            for (let i=0; i < currentWidgets.length; i++) {
+                                                if (currentWidgets_table[currentWidgets[i].widgetDefId]) {
+                                                    //
+                                                    //  an instance of this already exists
+                                                    //
+                                                    currentWidgets_table[currentWidgets[i].widgetDefId] += ',' + currentWidgets[i].widgetInstanceId;
+                                                } else {
+                                                    currentWidgets_table[currentWidgets[i].widgetDefId] = currentWidgets[i].widgetInstanceId;
+                                                }
+                                            }
+                                        }
+                                        try {
+                                            if (currentWidgets_table[theWidgets[i].widget]) {
+                                                //
+                                                //  At least an instance of this Widget exists
+                                                //
+                                                let tmp = currentWidgets_table[theWidgets[i].widget].split(',');
+                                                if (tmp.length === 1) {
+                                                    //
+                                                    //  Only one instance. We can safely remove it
+                                                    //
+                                                    node.status({fill: "blue", shape: "dot", text: "Removing widget " + theWidgets[i].widget});
+                                                    await deleteCommunityWidget(node.login, communityId, currentWidgets_table[theWidgets[i].widget]);
+                                                    ICX.__log(__moduleName, true, 'The instance ' + currentWidgets_table[theWidgets[i].widget] + ' for widget ' + theWidgets[i].widget + ' has been removed');
+                                                    delete currentWidgets_table[theWidgets[i].widget];
+                                                } else {
+                                                    //
+                                                    //  Multiple instances of the widget
+                                                    //
+                                                    if (theWidgets[i].id) {
+                                                        //
+                                                        //  We know which instance to remove
+                                                        //
+                                                        let pos = tmp.indexOf(theWidgets[i].id);
+                                                        if (pos >= 0) {
+                                                            //
+                                                            //  Instance exists
+                                                            //
+                                                            node.status({fill: "blue", shape: "dot", text: "Removing one instance of widget " + theWidgets[i].widget});
+                                                            await deleteCommunityWidget(node.login, communityId, tmp[pos]);
+                                                            ICX.__log(__moduleName, true, 'The instance ' + tmp[pos] + ' for widget ' + theWidgets[i].widget + ' has been removed');
+                                                            tmp.splice(pos, 1);
+                                                            currentWidgets_table[theWidgets[i].widget] = tmp.join(',');
+                                                        } else {
+                                                            //
+                                                            //  That specific instance does not exist
+                                                            //
+                                                            node.status({fill: 'yellow', shape: 'dot', text: 'Widget ' + theWidgets[i].id + ' does not exist'});
+                                                            node.warn('The instance ' + theWidgets[i].id + ' for widget ' + theWidgets[i].widget + ' cannot be removed because it does not exist');
+                                                            ICX.__log(__moduleName, true, 'The instance ' + theWidgets[i].id + ' for widget ' + theWidgets[i].widget + ' cannot be removed because it does not exist');
+                                                        }
+                                                    } else {
+                                                        //
+                                                        //  No ID specified. We are removing ALL INSTANCES
+                                                        //
+                                                        node.warn('Removing ALL INSTANCES for widget ' + theWidgets[i].widget + ' since ID was not specified');
+                                                        ICX.__log(__moduleName, true, 'Removing ALL INSTANCES for widget ' + theWidgets[i].widget + ' since ID was not specified');
+                                                        for (let j=0; j < tmp.length; j++) {
+                                                            node.status({fill: "blue", shape: "dot", text: "Removing " + j + "^ instance of widget " + theWidgets[i].widget});
+                                                            await deleteCommunityWidget(node.login, communityId, tmp[j]);
+                                                            ICX.__log(__moduleName, true, 'The instance ' + tmp[j] + ' for widget ' + theWidgets[i].widget + ' has been removed');
+                                                        }
+                                                        delete currentWidgets_table[theWidgets[i].widget];
+                                                    }
+                                                }
+                                            } else {
+                                                //
+                                                //  That Widget DOES NOT exist, so it cannot be removed
+                                                //
+                                                node.status({fill: 'yellow', shape: 'dot', text: 'Widget ' + theWidgets[i].widget + ' does not exist'});
+                                                node.warn('No instance for widget ' + theWidgets[i].widget + ' exist, so it cannot be removed');
+                                                ICX.__log(__moduleName, true, 'No instance for widget ' + theWidgets[i].widget + ' exist, so it cannot be removed');
+                                            }
+                                        } catch(err) {
+                                            if (err.response.statusCode === 400) {
+                                                //
+                                                //  user is NOT member of the Community
+                                                //  Ignore
+                                                //
+                                                node.warn('Widget ' + theWidgets[i].widget + ' cannot be removed because not...');
+                                            } else {
+                                                //
+                                                //  Serious Issue
+                                                //
+                                                throw err;
+                                            }
+                                         }
+                                    }
+                                }
+                                tmp_widgets = await getCommunityWidgets(node.login, communityId);
+                                tmp_remoteApplications = await getCommunityApplications(node.login, communityId);
+                            } else {
+                                //
+                                //  Nothing to do with Members
+                                //
                             }
                             //
                             //  Prepare the output
                             //
                             if (tmp_members) thisCommunity.members = tmp_members;
+                            if (tmp_widgets) thisCommunity.widgets = tmp_widgets;
+                            if (tmp_remoteApplications) thisCommunity.remoteApplications = tmp_remoteApplications;
                             if (tmp_communityLogo) thisCommunity.logo = tmp_communityLogo;
                             msg.payload = thisCommunity;
                             node.status({});
@@ -1386,281 +1674,12 @@ module.exports = function (RED) {
                     ICX.__logError(__moduleName, "ERROR getting tttt", null, error, msg, node);
                     return;    
                 });
-/*
-                //
-                //  Get Widget Mgmt Information
-                //
-                var widgetMgmt = ICX.__getMandatoryInputStringFromSelect(__moduleName, config.target2, msg.IC_communityWidgets, 'Widget Mgmt', ['none', 'AddWidget', 'RemoveWidget'], msg, node);
-                if (!widgetMgmt) return;
-
-                //
-                //  Now deal with Members
-                //
-                if (config.target !== 'none') {
-                    if (config.target !== 'fromMsg') {
-                        //
-                        //  We need to parse the inputs from the configuration panel
-                        //
-                        let theIds = config.userId.trim();
-                        if (theIds !== '') {
-                            let theIdsArray = theIds.split(',');
-                            tttt().then(async function() {
-                                try {
-                                    for (let index=0; index < theIdsArray.length; index++) {
-                                        theIdsArray[index] = theIdsArray[index].trim();
-                                        if (mailExp.test(theIdsArray[index])) {
-                                            //
-                                            //  Mail address. Need to be converted
-                                            //
-                                            console.log('--> ' + index);
-                                            let toto = await node.login.fromMailToId(theIdsArray[index], node);
-                                            //console.log(JSON.stringify(toto, ' ', 2));
-                                            if (toto) theIdsArray[index] = toto.userid;
-                                            console.log('----> ' + index + ': ' + theIdsArray[index])
-                                        } else {
-                                            //
-                                            //  It is already an ID
-                                            //
-                                        }
-                                    }
-                                    console.log(JSON.stringify(theIdsArray, ' ', 2));
-                                } catch(theError) {
-                                    node.status({fill: "red", shape: "dot", text: theError.message});
-                                    node.error(theError, msg);
-                                }
-                            });
-                        }
-                    }
-                }
-*/
-/*
-                myURL += "/community/members?communityUuid=" + communityId;
-                getCommunityMembers(msg, myURL);
-                //
-                //  Check if the user to be added/removed is specified
-                //
-                var userId = '';
-                var communityImage = '';
-                if (config.target === "AddMember" || config.target ==="RemoveMember") {
-                    if ((config.email == '') &&
-                        ((msg.userId == undefined) || (msg.userId == ''))) {
-                        //
-                        //  There is an issue
-                        //
-                        console.log("Missing UserId Information");
-                        node.status({ fill: "red", shape: "dot", text: "Missing UserId" });
-                        node.error('Missing UserId', msg);
-                        return;
-                    } else {
-                        if (config.userId != '') {
-                            userId = config.userId.trim();
-                        } else {
-                            userId = msg.userId.trim();
-                        }
-                    }
-                } else {
-                    if ((msg.communityImage == undefined || msg.communityImage == '')) {
-                        //
-                        //  There is an issue
-                        //
-                        console.log("Missing communityImage Information");
-                        node.status({fill: "red", shape: "dot", text: "Missing communityImage"});
-                        node.error('Missing communityImage', msg);
-                        return;
-                    } else {
-                        communityImage = msg.communityImage;
-                    }
-                }
-            
-                //
-                //  Initialize the display
-                //
-                node.status({fill: "blue", shape: "dot", text: "Updating..."});
-                switch (config.target) {
-                    case "AddMember":
-                        var theLine = '';
-                        if (mailExp.test(userId)) {
-                            //
-                            //  add By Mail
-                            //
-                            theLine = '<email>' + userId + '</email>';
-                        } else {
-                            //
-                            //  Retrieve by Uuid
-                            //
-                            theLine = '<snx:userid xmlns:snx="http://www.ibm.com/xmlns/prod/sn">' + userId + '</snx:userid>';
-                        }
-                        myURL += "/service/atom/community/members?communityUuid=" + communityId;
-                        //
-                        // add new Member
-                        //
-                        addCommunityMember(msg, myURL, config.userRole, theLine);
-                        break;
-                    case "RemoveMember":
-                        myURL += "/service/atom/community/members?communityUuid=" + communityId;
-                        if (mailExp.test(userId)) {
-                            //
-                            //  add By Mail
-                            //
-                            myURL += '&email=' + userId;
-                        } else {
-                            //
-                            //  Retrieve by Uuid
-                            //
-                            myURL += '&userid=' + userId;
-                        }
-                        //
-                        // remove Member
-                        //
-                        removeCommunityMember(msg, myURL);
-                        break;
-                    case "ChangeImage":
-                        myURL += "/service/html/image?communityUuid=" + communityId;
-                        changeImage(msg, myURL, communityId, communityImage);
-                        break;
-                }
-                */
             }
         );
     }
 
     RED.nodes.registerType("ICCommunitiesUpdate", ICCommunitiesUpdate);
 
-    function ICCommunityNew(config) {
-        RED.nodes.createNode(this,config);
-        //
-        //  Global to access the custom HTTP Request object available from the
-        //  ICLogin node
-        //
-        this.login = RED.nodes.getNode(config.server);
-        var node = this;
-
-        function createCommunity(theMsg, theURL, commTitle, commDesc) {
-            var theBody = '';
-            theBody += '<entry xmlns="http://www.w3.org/2005/Atom" xmlns:app="http://www.w3.org/2007/app" xmlns:snx="http://www.ibm.com/xmlns/prod/sn">';
-            theBody += '<title type="text">' + commTitle + '</title>';
-            theBody += '<content type="html">' + commDesc + '</content>';
-            theBody += '<category term="community" scheme="http://www.ibm.com/xmlns/prod/sn/type"></category>';
-            theBody += '<snx:communityType>private</snx:communityType>';
-            theBody += ' <snx:isExternal>true</snx:isExternal>';
-            theBody += '</entry>';
-
-            node.login.request({
-                url: theURL,
-                method: "POST",
-                body: theBody,
-                headers: {"Content-Type": "application/atom+xml"}
-            },
-            function (error, response, body) {
-                if (error) {
-                    if (response.statusCode == 409) {
-                        console.log("createCommunity : community already exists");
-                        node.status({fill: "red", shape: "dot", text: "community already exists"});
-                        node.error(error.toString(), theMsg);
-                    } else {
-                        console.log("createCommunity : error creating community");
-                        node.status({fill: "red", shape: "dot", text: "error createCommunity"});
-                        node.error(error.toString(), theMsg);
-                    }
-                } else {
-                    console.log('createCommunity: run');
-                    theMsg.statusCode = response.statusCode;
-                    theMsg.statusMessage = response.statusMessage;
-                    let communityLocation = response.headers.location;
-                    if ((response.statusCode >= 201) && (response.statusCode < 300)) {
-                        console.log("createCommunity OK (" + response.statusCode + ")");
-                        console.log(body);
-                        console.log(communityLocation);
-                        theMsg.payload = communityLocation.split('communityUuid=')[1];
-                        node.status({});
-                        node.send(theMsg);
-                    } else {
-                        console.log("createCommunity NOT OK (" + response.statusCode + ")");
-                        console.log(body);
-                        console.log(theURL);
-                        node.status({fill: "red", shape: "dot", text: "Err3 " + response.statusMessage});
-                        node.error(response.statusCode + ' : ' + response.statusMessage, theMsg);
-                    }
-                }
-            });
-        }
-
-        this.on(
-            'input',
-            function(msg) {
-                var loginNode = RED.nodes.getNode(config.server);
-                //
-                //  Server is a GLOBAL variable
-                //
-                var server = loginNode.getServer;
-                var myURL = server + "/communities";
-                if (node.login.authType === "oauth") myURL += '/oauth';
-                let communityTitle = '';
-                let communityDescription = '';
-                if ((config.communityTitle == '') &&
-                    ((msg.communityTitle == undefined || msg.communityTitle == ''))) {
-                    //
-                    //  There is an issue
-                    //
-                    console.log("Missing CommunityTitle Information");
-                    node.status({fill: "red", shape: "dot", text: "Missing CommunityTitle"});
-                    node.error('Missing CommunityTitle', msg);
-                    return;
-                } else if ((config.communityDescription == '') &&
-                    ((msg.communityDescription == undefined || msg.communityDescription == ''))) {
-                    //
-                    //  There is an issue
-                    //
-                    console.log("Missing communityDescription Information");
-                    node.status({fill: "red", shape: "dot", text: "Missing communityDescription"});
-                    node.error('Missing communityDescription', msg);
-                    return;
-                } else {
-                    if (config.communityTitle != '') {
-                        communityTitle = config.communityTitle.trim();
-                    } else {
-                        communityTitle = msg.communityTitle.trim();
-                    }
-                    if (config.communityDescription != '') {
-                        communityDescription = config.communityDescription.trim();
-                    } else {
-                        communityDescription = msg.communityDescription.trim();
-                    }
-                    node.status({fill: "blue", shape: "dot", text: "Creating..."});
-                    myURL += "/service/atom/communities/my";
-                    createCommunity(msg, myURL, communityTitle, communityDescription);
-                }
-            }
-        )
-    }
-
-    RED.nodes.registerType("ICCommunityNew", ICCommunityNew);
-
-
-    async function getBase64ImageFromUrl(imageUrl) {
-        const rp = require("request-promise-native");
-        var _include_headers = function(body, response, resolveWithFullResponse) {
-            return {'headers': response.headers, 'data': body};
-          };
-          
-        var options = {
-            method: 'GET',
-            uri: imageUrl,
-            transform: _include_headers,
-            encoding: null    // https://stackoverflow.com/questions/31289826/download-an-image-using-node-request-and-fs-promisified-with-no-pipe-in-node-j
-        };
-        try {
-            const res = await rp(options);
-
-            var buf = Buffer.from(res.data);
-            var base64 = 'data:' + res.headers['content-type'] + ';base64,' + buf.toString('base64')
-            //console.log(JSON.stringify(res.headers, ' ', 2));
-            //console.log(base64);
-            return base64;
-        } catch (error) {
-            return Promise.reject(error);
-        }
-    }
     //
     //  Http Endpoint to get the current IMG URL of the logo
     //

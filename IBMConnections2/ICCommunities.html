@@ -180,30 +180,26 @@ SPDX-License-Identifier: Apache-2.0
    <div class="form-row" id="output_options">
     <b><legend style="font-size: 14px">Output options</legend></b>
 
-    <div class="form-row">
-            <label for="node-input-showMembers" style="width: initial"><i class="fa fa-users" /> Show Members</label>
-            <input type="checkbox" name="showMembers" id="node-input-showMembers" style="width: initial" />
+        <div class="form-row">
+                <label for="node-input-showMembers" style="width: initial"><i class="fa fa-users" /> Show Members</label>
+                <input type="checkbox" name="showMembers" id="node-input-showMembers" style="width: initial" />
+        </div>
+
+        <div class="form-row">
+                <label for="node-input-showLogo" style="width: initial"><i class="fa fa-image" /> Show Logo</label>
+                <input type="checkbox" name="showLogo" id="node-input-showLogo" style="width: initial" />
+        </div>
+
+        <div class="form-row">
+                <label for="node-input-showApplications" style="width: initial"><i class="fa fa-cubes" /> Show Applications</label>
+                <input type="checkbox" name="showApplications" id="node-input-showApplications" style="width: initial" />
+        </div>
+
+        <div class="form-row">
+                <label for="node-input-showWidgets" style="width: initial"><i class="fa fa-cog" /> Show Widgets</label>
+                <input type="checkbox" name="showWidgets" id="node-input-showWidgets" style="width: initial" />
+        </div>
     </div>
-
-    <div class="form-row">
-            <label for="node-input-showLogo" style="width: initial"><i class="fa fa-image" /> Show Logo</label>
-            <input type="checkbox" name="showLogo" id="node-input-showLogo" style="width: initial" />
-    </div>
-
-    <div class="form-row">
-            <label for="node-input-showApplications" style="width: initial"><i class="fa fa-cubes" /> Show Applications</label>
-            <input type="checkbox" name="showApplications" id="node-input-showApplications" style="width: initial" />
-    </div>
-
-    <div class="form-row">
-            <label for="node-input-showWidgets" style="width: initial"><i class="fa fa-cog" /> Show Widgets</label>
-            <input type="checkbox" name="showWidgets" id="node-input-showWidgets" style="width: initial" />
-    </div>
-</div>
-
-
-
-
 
     <br />
 
@@ -216,81 +212,182 @@ SPDX-License-Identifier: Apache-2.0
  </script>
 
 <script type="text/x-red" data-help-name="ICCommunitiesGet">
-   <p>Retrieves a list of Communities based on selection criteria.</p>
-   <p>It can retrieve:
-       <ul>
-           <li><b>All Public Communities</b>, possibly filtered by <i>tag</i></li>
-           <li><b>All User's Communities</b>, possibly filtered by <i>tag</i></li>
-           <li><b>The Members of a given Community</b></li>
-           <li><b>The detailed information</b> for a given Community</li>
-       </ul>
-   </p>
-   <p><i>Inputs:</i>
-       <ul>
-           <li><code>msg.userId</code> : if set, it contains the <b>email</b> or the <b>userId</b> of a user for whom to search communities.</li>
-           <li><code>msg.communityTag</code> : the name of a <b>single tag</b> used for filtering the search criteria.</li>
-           <li><code>msg.searchString</code> : the content of a well formed search string used for filtering the search criteria.</li>
-           <li><code>msg.communityId</code> : in case <b>members of a community</b> need to be retrieved, the ID of the Community.</li>
-       </ul>
-   </p>
-   <p><i>Returns:</i>
-       <ul>
-           <li>When a list of Communities is retrieved, code>msg.payload</code> is an array of objects where each object
-               has the following propertiese:
-               <ul>
-                   <li><b>title</b> the name of the retrieved Community</li>
-                   <li><b>id</b> the ID of the retrieved Community</li>
-                   <li><b>ref</b> the href for the <i>self</i> link</li>
-                   <li><b>communityType</b>, can be <i>public</i> etc...</li>
-                   <li><b>isExternal</b>, true or false to indicate if the Community is open to external users</li>
-                   <li><b>Uuid</b>, the UUID of the Community </li>
-                   <li><b>links</b>, an object containing all the links from the ATOM entry. Each link is identified by
-                       its <code>rel</code> attribute and has the value represented by its <code>ref</code> attribute.
-                   </li>
-                   <li><b>content</b>, the <b>HTML</b> description for the Community</li>
-                   <li><b>summary</b>, the <b>Text</b> description for the Community</li>
-                   <li><b>entry</b> the ATOM representation of the retrieved Community</li>
-                   <li><b>originalentry</b> the raw JSON representation of the ATOM entry</li>
-               </ul>
-               The Array is empty in case no Community is found.
-           </li>
-           <li>When a list of Members is retrieved, <code>msg.payload</code> is an array of objects where each object
-               has the following properties:
-               <ul>
-                   <li><b>name</b> the name of the retrieved person</li>
-                   <li><b>userState</b>"active" or "inactive" </li>
-                   <li><b>userid</b> the ID of the retrieved person (only if <code>userState = active</code>)</li>
-                   <li><b>mail</b> the mail of the retrieved person (only if <code>userState = active</code>) - set to
-                       <code>UNDEFINED@UNDEFINED.COM</code> in case it cannot be retrieved</li>
-                   <li><b>role</b> the Role (member, owner) of the retrieved person (only if <code>userState =
-                           active</code>)</li>
-                   <li><b>orgId</b> the organization Id of the retrieved person (only if <code>userState =
-                           active</code>)</li>
-                   <li><b>isExternal</b> if the member is external (only if <code>userState = active</code>)</li>
-               </ul>
-               The Array is empty in case no Member is found.
-           </li>
-           <li>When a specific community is retrieved, <code>msg.payload</code> is a single object with the following
-               properties:
-               <ul>
-                   <li><b>title</b> the name of the retrieved Community</li>
-                   <li><b>id</b> the ID of the retrieved Community</li>
-                   <li><b>ref</b> the href for the <i>self</i> link</li>
-                   <li><b>communityType</b>, can be <i>public</i> etc...</li>
-                   <li><b>isExternal</b>, true or false to indicate if the Community is open to external users</li>
-                   <li><b>Uuid</b>, the UUID of the Community </li>
-                   <li><b>links</b>, an object containing all the links from the ATOM entry. Each link is identified by
-                       its <code>rel</code> attribute and has the value represented by its <code>ref</code> attribute.
-                   </li>
-                   <li><b>content</b>, the <b>HTML</b> description for the Community</li>
-                   <li><b>summary</b>, the <b>Text</b> description for the Community</li>
-                   <li><b>entry</b> the ATOM representation of the retrieved Community</li>
-                   <li><b>originalentry</b> the raw JSON representation of the ATOM entry</li>
-               </ul>
-               The object is empty if no match is found.
-           </li>
-       </ul>
-   </p>
+    <p>
+        A node that retrieves the details of one or more IBM Connections Communities, based on the following:
+        <ul>
+            <li><b>All Public Communities</b>, possibly filtered by <i>tag</i> or by a well-formed <i>search string</i>
+            </li>
+            <li><b>All User's Communities</b>, possibly filtered by <i>tag</i> or by a well-formed <i>search string</i>
+                <br />
+                It is possible to
+                <ul>
+                    <li>
+                        get <b>My Communities</b> i.e. the Communities for the user whose credentials are used by the node
+                    </li>
+                    <li>
+                        or the Communities of another user whose <i>ID</i> or <i>email address</i> are provided
+                    </li>
+                </ul>
+            </li>
+            <li><b>The detailed information</b> for a given Community</li>
+            <li><b>The details of all Members</b> of a given Community</li>
+        </ul>
+    </p>
+
+
+
+    <h3>Note</h3>
+        If the processing fails or if mandatory inputs are missing, the node terminates with an error. 
+        <br />
+        The error object is the <strong>incoming msg object</strong> with the additional <code>msg.ICX_fatal</code> object which represents the reason for the error
+        <br />
+        You may want to catch errors using the <b style="color:red">standard NodeRed CATCH Node</b>.
+
+    <h3>Inputs</h3>
+        <dl class="message-properties">
+            <dt class="optional">msg.IC_userId
+                <span class="property-type">string</span>
+            </dt>
+            <dd>
+                When you chose the <b>User Communities</b> option in the node's Configuration Panel, then you can set the incoming 
+                <code>msg.IC_userId</code> attribute to be either the <code>id</code> or the <code>email address</code> of the user whose Communities you want to retrieve.
+                <br />
+                The node will automatically understands if an <code>id</code> or an <code>email address</code> are entered. No validation is done on this value until
+                the operation is executed.
+                <br />
+                The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_userId</code> attribute.
+            </dd>
+
+            <dt class="optional">msg.IC_communityId
+                <span class="property-type">string</span>
+            </dt>
+            <dd>
+                When you chose the <b>Community by Id</b> or the <b>Members</b> options in the node's Configuration Panel, then you can set the incoming 
+                <code>msg.IC_communityId</code> attribute to be either the <code>id</code> of the Community you want to retrieve.
+                <br />
+                The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_communityId</code> attribute.
+            </dd>
+
+            <dt class="optional">msg.IC_communityTag
+                <span class="property-type">string</span>
+            </dt>
+            <dd>
+                When you chose the <b>All Communities</b>, the <b>My Communities</b> or the <b>User Communities</b> options in the node's Configuration Panel, then you can set the incoming 
+                <code>msg.IC_communityTag</code> attribute to be the value of <b>a single tag</b> that will be used to filter the resuls from the API.
+                <br />
+                The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_communityTag</code> attribute.
+            </dd>
+
+            <dt class="optional">msg.IC_communitySearch
+                <span class="property-type">string</span>
+            </dt>
+            <dd>
+                When you chose the <b>All Communities</b>, the <b>My Communities</b> or the <b>User Communities</b> options in the node's Configuration Panel, then you can set the incoming 
+                <code>msg.IC_communitySearch</code> attribute to be <b>a well formed search string</b> that will be used to filter the resuls from the API.
+                <br />
+                The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_communitySearch</code> attribute.
+            </dd>
+
+            <dt class="optional">Show Logo
+                <span class="property-type">checbox</span>
+            </dt>
+            <dd>
+                You can check the <b>Show Logo</b> in the node's Configuration Panel checkbox to ask the node to retrieve the image corresponding to the Community Logo. 
+                <br />
+                In this case, a <code>logo</code> attribute will be added to the output message for each retrieved community. You can, the, use code similar 
+                to the following one to write the image file on disk:
+                <br />
+                <code>fs.writeFile('communityImage.jpeg', msg.payload[i].logo, 'binary', function(err){.... </code>
+                <br />
+                You can only set this property from the <b>node's Configuration Panel</b>.
+            </dd>
+
+            <dt class="optional">Show Members
+                <span class="property-type">checbox</span>
+            </dt>
+            <dd>
+                You can check the <b>Show Members</b> in the node's Configuration Panel checkbox to ask the node to retrieve the details of all the members of each retrieved Community. 
+                <br />
+                In this case, a <code>members</code> attribute will be added to the output message for each retrieved community. The structure of the output will look like the following one:
+                <br />
+                <img src="icons/node-red-contrib-ibmconnections/communityShowMembers.png" />
+                <br />
+                You can only set this property from the <b>node's Configuration Panel</b>.
+            </dd>
+
+            <dt class="optional">Show Widgets
+                <span class="property-type">checbox</span>
+            </dt>
+            <dd>
+                You can check the <b>Show Widgets</b> in the node's Configuration Panel checkbox to ask the node to retrieve the details of all the widgets of each retrieved Community. 
+                <br />
+                In this case, a <code>widgets</code> attribute will be added to the output message for each retrieved community. The structure of the output will look like the following one:
+                <br />
+                <img src="icons/node-red-contrib-ibmconnections/communityShowWidgets.png" />
+                <br />
+                You can only set this property from the <b>node's Configuration Panel</b>.
+            </dd>
+
+            <dt class="optional">Show Applications
+                <span class="property-type">checbox</span>
+            </dt>
+            <dd>
+                You can check the <b>Show Applications</b> in the node's Configuration Panel checkbox to ask the node to retrieve the details of all the Applications of each retrieved Community. 
+                <br />
+                In this case, a <code>remoteApplications</code> attribute will be added to the output message for each retrieved community. The structure of the output will look like the following one:
+                <br />
+                <img src="icons/node-red-contrib-ibmconnections/communityShowApplications.png" />
+                <br />
+                You can only set this property from the <b>node's Configuration Panel</b>.
+            </dd>
+    
+        </dl>
+
+    <h3>Outputs</h3>
+        <dl class="message-properties">
+            <dt>msg.payload
+                <span class="property-type">Object</span>
+            </dt>
+            <dd>
+                When you select <b>Community By ID</b> in the node's Configuration Panel, all the details of the given community are returned as represented here below:
+                <br />
+                <img src="icons/node-red-contrib-ibmconnections/communityDetails.png" />
+                <br />
+                Note that the <code>logo</code>, <code>members</code>, <code>widgets</code> and <code>remoteApplications</code> can also be returned as part of this
+                output in case you selected the corrsponding checkboxes in the node's Configuration Panel.
+                <br />
+                If the <code>ICDebug=true</code> environment variable is set, two additional attributes are also returned:
+                <ul>
+                    <li>
+                        <code>entry</code> representing the ATOM result from the IBM Connections API
+                    </li>
+                    <li>
+                        <code>originalentry</code> representing the JSON representation of the ATOM result from the IBM Connections API
+                    </li>
+                </ul>
+            </dd>
+
+            <dt>msg.payload
+                <span class="property-type">Array of Objects</span>
+            </dt>
+            <dd>
+                When you select <b>All Communities</b>, the <b>My Communities</b> or the <b>User Communities</b> options in the node's Configuration Panel, all the details of the given communities are returned.
+                <br />
+                The result is an Array of Objects, where each object has the exact same structure as the output for the <b>Community by ID</b> option described above.
+                <br />
+                Obviously, the additional attributes described above also apply to each item in the Array.
+            </dd>
+
+            <dt>msg.payload
+                <span class="property-type">Object</span>
+            </dt>
+            <dd>
+                When you select <b>Community Members</b> in the node's Configuration Panel, all the details for all the members of the given community are returned as represented here below:
+                <br />
+                <img src="icons/node-red-contrib-ibmconnections/communityMembers.png" />
+            </dd>
+    
+        </dl>
 </script>
 
 <script type="text/javascript">
@@ -303,9 +400,9 @@ SPDX-License-Identifier: Apache-2.0
             icon: "ibmconnections.png",
             color: "#FFFFFF",
             label: function() {
-                    return this.name ||'Update Communities';
+                    return this.name ||'New/Update Communities';
                     },
-            paletteLabel : "Update Communities",
+            paletteLabel : "New/Update Communities",
             defaults : {
                 name: {
                     value: ""
@@ -315,7 +412,27 @@ SPDX-License-Identifier: Apache-2.0
                     required: true,
                     type: "ICLogin2"
                 },
+                newOrUpdate: {
+                    value : "Create",
+                    required: true
+                },
+                communityType: {
+                    value : "public",
+                    required: false
+                },
+                communityVisibility: {
+                    value: "Visible",
+                    required: false
+                },
+                communityExternal: {
+                    value: "Internal",
+                    required: false
+                },
                 communityId: {
+                    value : "",
+                    required: false
+                },
+                motherCommunityId: {
                     value : "",
                     required: false
                 },
@@ -377,6 +494,42 @@ SPDX-License-Identifier: Apache-2.0
             oneditprepare: __IC_updateFormCommunitiesUpdate
         });
 
+        function __IC_communityTypeValue() {
+            switch (document.querySelector("#node-input-communityType").value) {
+                case "private" :
+                    document.querySelector("#communityRestrictedSelection").style.display = "inherit";
+                    break;
+                case "publicInviteOnly" :
+                    document.querySelector("#communityRestrictedSelection").style.display = "none";
+                    break;
+                case "public" :
+                    document.querySelector("#communityRestrictedSelection").style.display = "none";
+                    break;
+                case "fromMsg" :
+                    document.querySelector("#communityRestrictedSelection").style.display = "none";
+                    break;
+            }
+        }
+        function __IC_communityChangeOp() {
+            switch (document.querySelector("#node-input-newOrUpdate").value) {
+                case "Create" :
+                    document.querySelector("#communityCreateOptions").style.display = "inherit";
+                    document.querySelector("#subCommunityRow").style.display = "none";
+                    document.querySelector("#communityRow").style.display = "none";
+                    break;
+                case "SubCommunity" :
+                    document.querySelector("#communityCreateOptions").style.display = "inherit";
+                    document.querySelector("#subCommunityRow").style.display = "inherit";
+                    document.querySelector("#communityRow").style.display = "none";
+                    break;
+                case "Update" :
+                    document.querySelector("#communityCreateOptions").style.display = "none";
+                    document.querySelector("#subCommunityRow").style.display = "none";
+                    document.querySelector("#communityRow").style.display = "inherit";
+                    break;
+            }
+            __IC_communityTypeValue();
+        }
         function __IC_changeMembersValue() {
             switch (document.querySelector("#node-input-target").value) {
                 case "AddMember" :
@@ -443,6 +596,22 @@ SPDX-License-Identifier: Apache-2.0
             //
             //  Taking care of new parameters
             //
+            if (!this.newOrUpdate) {
+                this.imageFrom = 'Create';
+                document.querySelector("#node-input-newOrUpdate").value = 'Create';
+            }
+            if (!this.communityType) {
+                this.communityType = 'public';
+                document.querySelector("#node-input-communityType").value = 'public';
+            }
+            if (!this.communityVisibility) {
+                this.communityVisibility = 'Visible';
+                document.querySelector("#node-input-communityVisibility").value = 'Visible';
+            }
+            if (!this.communityExternal) {
+                this.communityExternal = 'Internal';
+                document.querySelector("#node-input-communityExternal").value = 'Internal';
+            }
             if (!this.imageFrom) {
                 this.imageFrom = 'none';
                 document.querySelector("#node-input-imageFrom").value = 'none';
@@ -490,9 +659,16 @@ SPDX-License-Identifier: Apache-2.0
             var imageFromInputField = $("#node-input-imageFrom")[0];
             imageFromInputField.addEventListener('change', __IC_changeImageFromValue);
 
+            var newOrUpdateField = $("#node-input-newOrUpdate")[0];
+            newOrUpdateField.addEventListener('change', __IC_communityChangeOp);
+
+            var communityTypeField = $("#node-input-communityType")[0];
+            communityTypeField.addEventListener('change', __IC_communityTypeValue);
+
             //
             //  Initial Visual Setup
             //
+            __IC_communityChangeOp();
             __IC_changeMembersValue();
             __IC_changeWidgetsValue();
             __IC_changeImageFromValue();
@@ -620,9 +796,59 @@ SPDX-License-Identifier: Apache-2.0
         <input type="text" id="node-input-server" placeholder="Server">
     </div>
     
+    <div class="form-row">
+        <label for="node-input-newOrUpdate"><i class="fa fa-briefcase"></i> Operation</label>
+        <select id="node-input-newOrUpdate">
+            <option value="Create">Create Community</option>
+            <option value="SubCommunity">Create SUBCommunity</option>
+            <option value="Update">Update Community</option>
+        </select>
+        <br />
+    </div>
+
+    <div id="communityCreateOptions">
+        <div class="form-row" id="communityTypeSelection">
+            <label for="node-input-communityType"><i class="fa fa-key"></i> Type</label>
+            <select id="node-input-communityType">
+                <option value="private">Restricted</option>
+                <option value="publicInviteOnly">Moderated</option>
+                <option value="public">Public</option>
+                <option value="fromMsg">--set from msg.IC_communityType--</option>
+            </select>
+            <br />
+        </div>
+
+        <div class="form-row" id="communityRestrictedSelection">
+            <div class="form-row" id="communityVisibility">
+                <label for="node-input-communityVisibility"><i class="fa fa-low-vision"></i> Visibility</label>
+                <select id="node-input-communityVisibility">
+                    <option value="Invisible">Not Visible in List</option>
+                    <option value="Visible">Visible in List</option>
+                    <option value="fromMsg">--set from msg.IC_communityVisibility--</option>
+                </select>
+                <br />
+            </div>
+            <div class="form-row" id="communityExternal">
+                <label for="node-input-communityExternal"><i class="fa fa-low-vision"></i> External</label>
+                <select id="node-input-communityExternal">
+                    <option value="External">Open to External</option>
+                    <option value="Internal">Organization Only</option>
+                    <option value="fromMsg">--set from msg.IC_communityExternal--</option>
+                </select>
+                <br />
+            </div>
+        </div>
+        
+        <div class="form-row" id="subCommunityRow">
+            <label for="node-input-motherCommunityId"><i class="fa fa-users"></i> Comm. Id</label>
+            <input type="text" id="node-input-motherCommunityId" placeholder="ID of the mother Community"></input>
+            <br />
+        </div>
+    </div>
+        
     <div class="form-row" id="communityRow">
         <label for="node-input-communityId"><i class="fa fa-users"></i> Comm. Id</label>
-        <input type="text" id="node-input-communityId" placeholder="ID"></input>
+        <input type="text" id="node-input-communityId" placeholder="ID of the Community to be modified"></input>
         <br />
     </div>
 
@@ -717,8 +943,8 @@ SPDX-License-Identifier: Apache-2.0
             
     <div class="form-row" id="thePreview">
         <label for="theImageLocal"><i class="fa fa-camera-retro"></i> Preview</label>
-        <img id="theImageLocal" style="display:none; width: 110px; height: 110px: objevt-fit: contain; vertical-align: middle" />
-        <img id="theImageInternet" style="display:none; width: 110px; height: 110px: objevt-fit: contain; vertical-align: middle" />
+        <img id="theImageLocal" style="display:none; width: 110px; height: 110px: object-fit: contain; vertical-align: middle; border-radius: 75%" />
+        <img id="theImageInternet" style="display:none; width: 110px; height: 110px: object-fit: contain; vertical-align: middle; border-radius: 75%" />
         <p id="theP" style="display:none; width: 70%; vertical-align: middle" />
         <br />
     </div>
@@ -753,9 +979,9 @@ SPDX-License-Identifier: Apache-2.0
    <p><i>Inputs:</i>
    <ul>
    <li><code>msg.userId</code> : if set, it contains the <b>email</b> or the <b>userId</b> of the user to be added or removed from the Community.<br/>
-   The configuration panel can override or replace this value</li>
+   The node's Configuration Panel can override or replace this value</li>
    <li><code>msg.communityId</code> : the ID of the Community to which the member needs to be added or removed.<br/>
-   The configuration panel can override or replace this value</li>
+   The node's Configuration Panel can override or replace this value</li>
    <li><code>msg.communityImage</code> : the raw image to upload. <b>NOTE : </b> relevant only for changing the community image, currently only PNG is supported</b></li>
    </ul></p>
    <p><i>Returns:</i>
@@ -765,76 +991,3 @@ SPDX-License-Identifier: Apache-2.0
    </ul>
    </p>
 </script>
-
-<script type="text/javascript">
-    RED.nodes.registerType(
-        'ICCommunityNew',
-        {
-            category:"IBMsocial",
-            inputs: 1,
-            outputs: 1,
-            icon: "ibmconnections.png",
-            color: "#FFFFFF",
-            label: function() {
-                return this.name ||'Create Community';
-            },
-            paletteLabel: "Create Community",
-            defaults: {
-                name: {
-                    value: ""
-                },
-                server: {
-                            value : "",
-                            required: true,
-                            type: "ICLogin2"
-                },
-                communityTitle: {
-                    value: "",
-                    required: false
-                },
-                communityDescription: {
-                    value: "",
-                    required: false
-                }
-            }
-        });
-</script>
- 
- <script type="text/x-red" data-template-name="ICCommunityNew">
-     <div class="form-row">
-         <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
-         <input type="text" id="node-input-server" placeholder="Server">
-     </div>
- 
-     <div class="form-row" id="communityTitle">
-         <label for="node-input-communityTitle"><i class="fa fa-tag"></i> Title</span></label>
-         <input type="text" id="node-input-communityTitle" ></input>
-         <br />
-     </div>
- 
-     <br />
-     <div class="form-row">
-         <label for="node-input-communityDescription"><i class="fa fa-tag"></i> Description</span></label>
-         <input type="text" id="node-input-communityDescription" ></input>
-     </div>
- 
-     <br />
-     <div class="form-row">
-         <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
-         <input type="text" id="node-input-name" ></input>
-     </div>
- </script>
- 
- <script type="text/x-red" data-help-name="ICCommunityNew">
-     <p>Creates a new Community</p>
-     <p><i>Inputs:</i>
-     <ul>
-     <li><code>msg.communityTitle</code> : if set, it contains the title for the community. <b>NOTE : </b>the checkbox in the configuration panel needs to be set for this parameter to be taken in consideration</li>
-     <li><code>msg.communityDescription</code> : if set, it contains the description for the community. <b>NOTE : </b>the checkbox in the configuration panel needs to be set for this parameter to be taken in consideration</li>
-     </ul></p>
-     <p><i>Returns:</i>
-     <ul>
-     <li><code>msg.payload</code>. This is the ID of the created community</li>
-     </ul>
-     </p>
-  </script>

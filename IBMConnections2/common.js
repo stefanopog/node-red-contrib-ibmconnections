@@ -40,6 +40,22 @@ function __getDebugFlag() {
     }
 }
 //
+//  Understand X-LCONN-RUNAS clause
+//
+function __getLConnRunAs() {
+    var LConnRunAs = process.env.IC_LCONN_RUN_AS;
+    var delegationMapping = {};
+    if (typeof LConnRunAs === "string") {
+        let tmp = LConnRunAs.split(':');
+        if (tmp.length === 2) {
+            delegationMapping.nodeId = tmp[0];
+            delegationMapping.userId = tmp[1];
+            return delegationMapping;
+        }
+    }
+    return null;
+}
+//
 //  Promise-based wrapper fro XML Parser
 //
 function __getXmlAttribute (xml, options) {    // __getXmlAttribute(entry, {explicitArray: false});
@@ -173,7 +189,7 @@ function __getMandatoryInputStringFromSelect(moduleName, fromConfig, fromMsg, la
     //  with the addition of the "fromMsg" value.
     //  In case the Configuration Panel is set to be "fromMsg", then the value is taken from the input msg. attribute
     //
-    //  In case the final value is not in the input "values" paramter array, a NULL value is returned
+    //  In case the final value is not in the input "values" parameter array, a NULL value is returned
     //
     var theValue = null;
     if ((fromConfig.trim() === '') && (!fromMsg || (fromMsg.trim() === ''))) {
@@ -436,4 +452,5 @@ module.exports = {__log,
                   __getXmlAttribute,
                   __readFile,
                   __writeFile,
-                  __getDebugFlag};
+                  __getDebugFlag,
+                  __getLConnRunAs};
