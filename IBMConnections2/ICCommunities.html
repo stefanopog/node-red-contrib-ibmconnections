@@ -234,14 +234,14 @@ SPDX-License-Identifier: Apache-2.0
         </ul>
     </p>
 
-
-
     <h3>Note</h3>
         If the processing fails or if mandatory inputs are missing, the node terminates with an error. 
         <br />
-        The error object is the <strong>incoming msg object</strong> with the additional <code>msg.ICX_fatal</code> object which represents the reason for the error
+        The error object is the <strong>incoming msg object</strong> with the additional <code>msg.ICX_fatal</code> attribute which represents the reason for the error. 
+        The <code>msg.error</code> output attribute may also be present depending on the processing at the moment of the error.
         <br />
-        You may want to catch errors using the <b style="color:red">standard NodeRed CATCH Node</b>.
+        You may want to catch errors using the <b style="color:red">standard NodeRed CATCH Node</b> as show in the example here below:
+        <img src="icons/node-red-contrib-ibmconnections/communityErrorCatching.png" />
 
     <h3>Inputs</h3>
         <dl class="message-properties">
@@ -975,19 +975,274 @@ SPDX-License-Identifier: Apache-2.0
  </script>
 
 <script type="text/x-red" data-help-name="ICCommunitiesUpdate">
-  <p>This node is able to <b>Add</b> or <b>Remove</b> members from a Community</p>
-   <p><i>Inputs:</i>
-   <ul>
-   <li><code>msg.userId</code> : if set, it contains the <b>email</b> or the <b>userId</b> of the user to be added or removed from the Community.<br/>
-   The node's Configuration Panel can override or replace this value</li>
-   <li><code>msg.communityId</code> : the ID of the Community to which the member needs to be added or removed.<br/>
-   The node's Configuration Panel can override or replace this value</li>
-   <li><code>msg.communityImage</code> : the raw image to upload. <b>NOTE : </b> relevant only for changing the community image, currently only PNG is supported</b></li>
-   </ul></p>
-   <p><i>Returns:</i>
-   <ul>
-   <li><b>msg.statusCode</b> the statusCode of the operation</li>
-   <li><b>msg.statusMessage</b> the statusMessage of the operation</li>
-   </ul>
-   </p>
+    <p>
+        A node that allows you to either <b style="color:red">Create</b> a new IBM Connections Community (either main Community or SubCommunity) or to <b style="color:red">Update</b> an existing one. 
+        <br />
+        The following functionalities are available in both cases (<i>Create</i> or <i>Update</i>):
+        <ul>
+            <li>
+                Set the <b>Title</b> and the <b>Description</b> of the Community
+            </li>
+            <li>
+                Set the <b>Tags</b> associated to the Commmunity
+            </li>
+            <li>
+                Set or modify the <b>list of Members</b> of the Community
+            </li>
+            <li>
+                Set or modify the <b>logo</b> of the Community
+            </li>
+            <li>
+                Set or modify <b>the list of Widgets</b> associated to the Community
+            </li>
+        </ul>
+    </p>
+
+
+
+    <h3>Note</h3>
+        If the processing fails or if mandatory inputs are missing, the node terminates with an error. 
+        <br />
+        The error object is the <strong>incoming msg object</strong> with the additional <code>msg.ICX_fatal</code> attribute which represents the reason for the error. 
+        The <code>msg.error</code> output attribute may also be present depending on the processing at the moment of the error.
+        <br />
+        You may want to catch errors using the <b style="color:red">standard NodeRed CATCH Node</b> as show in the example here below:
+        <img src="icons/node-red-contrib-ibmconnections/communityErrorCatching.png" />
+
+        <h3>Inputs</h3>
+            <dl class="message-properties">
+                <dt class="optional">Operation
+                    <span class="property-type">enumerated</span>
+                </dt>
+                <dd>
+                    This node allows you to <b style="color:red">Create a new Community</b>, <b style="color:red">Create a SubCommunity</b> or <b style="color:red">Update</b> an existing Community.
+                    <br />
+                    The additional inputs may apply only to one of the above mentioned operations.
+                </dd>
+    
+                <dt class="optional">msg.IC_communityType
+                    <span class="property-type">enumerated</span>
+                </dt>
+                <dd>
+                    In case you want to <b>Create a New Community</b> or <b>Create a Subcommuity</b>, you need to specify which type of Community to create.
+                    This attribute allows you to choose among the following values: <code>private</code>, <code>public</code> and <code>publicInviteOnly</code> (which corresponds to a <i>Moderated</i> Community).
+                    <br />
+                    The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_communityType</code> attribute.
+                </dd>
+    
+                <dt class="optional">msg.IC_communityVisibility
+                    <span class="property-type">enumerated</span>
+                </dt>
+                <dd>
+                    In case you choose to <b>Create a New </b><b style="color:red">restricted</b><b> Community or Subcommunity</b>, you need to specify if that Community
+                    should be visible when Listing from non members. This enumerated attribute allows you to choose between the <code>Visible</code> or <code>Invisible</code> 
+                    values.
+                    <br />
+                    The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_communityVisibility</code> attribute.
+                </dd>
+    
+                <dt class="optional">msg.IC_communityExternal
+                    <span class="property-type">string</span>
+                </dt>
+                <dd>
+                    In case you choose to <b>Create a New </b><b style="color:red">restricted</b><b> Community or Subcommunity</b>, you need to specify if that Community
+                    should be open to External Members. This enumerated attribute allows you to choose between the <code>External</code> or <code>Internal</code> 
+                    values.
+                    <br />
+                    The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_communityExternal</code> attribute.
+                </dd>
+
+                <dt class="optional">msg.IC_motherCommunityId
+                    <span class="property-type">string</span>
+                </dt>
+                <dd>
+                    In case you choose to <b style="color:red">Create a Subcommunity</b>, you need to specify which is the ID of the mother Community for which this 
+                    SubCommunity will be created.
+                    values.
+                    <br />
+                    The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_motherCommunityId</code> attribute.
+                </dd>
+
+                <dt class="optional">msg.IC_communityId
+                    <span class="property-type">string</span>
+                </dt>
+                <dd>
+                    In case you choose to <b style="color:red">Update an existing Community</b>, you need to specify which is the ID of the Community to be updated.
+                     <br />
+                    The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_communityId</code> attribute.
+                </dd>
+                    
+                <dt class="optional">msg.IC_communityTitle
+                        <span class="property-type">string</span>
+                </dt>
+                <dd>
+                    You can specify a Community Title for any operation (Create or Update).
+                    <br />
+                    The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_communityTitle</code> attribute.
+                </dd>
+
+                <dt class="optional">msg.IC_communityDesc
+                        <span class="property-type">string</span>
+                </dt>
+                <dd>
+                    You can specify a Community Description for any operation (Create or Update). 
+                    <br />
+                    This node supports  entering an <i style="color:red">HTML string</i> for the Description.
+                    <br />
+                    The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_communityDesc</code> attribute.
+                </dd>
+                    
+                <dt class="optional">msg.IC_communityTags
+                        <span class="property-type">comma-separated string</span>
+                </dt>
+                <dd>
+                    You can specify a list of Tags to be assigned to the Community to create or to Update. The tags are specified as a comma-separated list of values. By default 
+                    the Tags are added to any other existing Tag for the Community.
+                    <br />
+                    When using the <code>msg.msg.IC_communityTags</code> attribute to specify the Tags, you can enclose the comma-separated string in normal parentheses (<code>( )</code>.) 
+                    in this case the specified list of Tags will replace any other existing Tag assigned to the Community.
+                    <br />
+                    This same behavior, on the node's Configuration Panel, is achieved by checking the <b>Replace</b> checkbox.
+                    <br />
+                    The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_communityTitle</code> attribute.
+                </dd>
+
+                <dt class="optional">Replace
+                    <span class="property-type">checbox</span>
+                </dt>
+                <dd>
+                    When specifying Tags using the node's Configuration Panel, you can force the node to replace any existing Tag with the list of tags specified
+                    on the Configuration Panel by checking this checkbox. 
+                    <br />
+                    You can only set this property from the <b>node's Configuration Panel</b>.
+                </dd>
+    
+                <dt class="optional">IC_communityMembers
+                    <span class="property-type">Array of Objects</span>
+                </dt>
+                <dd>
+                    You can <b style="color:red">Add</b> or  <b style="color:red">Remove</b> one or more users as members of the Community. You can do this in two ways:
+                    <ul>
+                        <li>
+                            Using the node's Configuration Panel. <br />
+                            In this case, once you select the <code>Add Member</code> option from the dropdown, you will be able to enter a <b>comma-separated string</b> of users, specified
+                            either as <b>ID</b> or as <b>email address</b> (the node will be able to understand both). <br />
+                            You will also be able to chose the role to be assigned to all the users specified by the comma-separated string. <br />
+                            In case you choose the <code>Remove Member</code> option from the dropdown, you will only be allowed to specify the comma-separated list of users to be removed, as <i>Role</i>
+                            would not have any influence.
+                        </li>
+                        <li>
+                            Using the <code>msg.IC_communityMembers</code> array attribute.<br />
+                            This approach is more flexible in the sense that it allows you to specify for <b>each</b> user to be added which role to apply. The format of the array
+                            is similar to the one shown below:
+                            <img src="icons/node-red-contrib-ibmconnections/communityAddMembers.png" />
+                        </li>
+                    </ul>
+                    When adding a Member, if the user is already a member of the community with that role, a WARNING will be generated.
+                    <br />
+                    Likewise, when removing a user who is not Membr of a Community, a WARNING will be generated.
+                    <br />
+                    The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_communityMembers</code> attribute.
+                </dd>
+    
+                <dt class="optional">IC_communityWidgets
+                    <span class="property-type">Array of Objects</span>
+                </dt>
+                <dd>
+                    You can <b style="color:red">Add</b> or <b style="color:red">Remove</b> one or more Widgets to/from a Community. You can do this in two ways:
+                    <ul>
+                        <li>
+                            Using the node's Configuration Panel. <br />
+                            In this case, once you select the <code>Add Widget</code> option from the dropdown, you will be able to enter a <b>comma-separated string</b> of widgets, specified
+                            by their <i>widgetDefId</i> . 
+                        </li>
+                        <li>
+                            Using the <code>msg.IC_communityWidgets</code> array attribute.<br />
+                            This approach is more flexible in the sense that it allows you to specify for <b>each</b> Widget to be added :
+                            <ul>
+                                <li>
+                                    which action to perform (<b>AddWidget</b> or <b>RemoveWidget</b>): using the <code>.action</code> attribute
+                                </li>
+                                <li>
+                                    which location to use when Adding that Widget (<b>col1</b>, <b>col2</b> or <b>col3</b>): using the <code>.location</code> attribute
+                                </li>
+                                <li>
+                                    Which title to provide when Adding the Widget: using the <code>.title</code> attribute
+                                </li>
+                                <li>
+                                    Which instance to Remove in case of Widgets having multiple instances (suc as the <i>Rich Content</i> widget): using the <code>.id</code> attribute
+                                </li>
+                            </ul>
+                            The format of the array is similar to the one shown below:
+                            <img src="icons/node-red-contrib-ibmconnections/communityAddWidgets.png" />
+                        </li>
+                    </ul>
+                    When adding a Widget whose type only allows one instance and which is already present in the Community, a WARNING will be generated.
+                    <br />
+                    If you  <b>do NOT specify</b> the instance Id of the Widget to be Removed and this Widget has multiple occurrences in the Community, all the instances will be removed.
+                    <br />
+                    The list of Widgets that can be added/removed is the following (case-sensitive): <i>ImportantBookmarks, StatusUpdates, description, Files, Tags, 
+                        RichContent, Wiki, Forum, Bookmarks, Blog, IdeationBlog, Gallery, Calendar, RichContent, FeaturedSurvey, Surveys, MembersSummary, Activities, SubcommunityNav, RelatedCommunities, Connections Engagement Center</i>
+                    <br />
+                    The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_communityWidgets</code> attribute.
+                </dd>
+        
+                <dt class="optional">msg.IC_logoFrom
+                    <span class="property-type">string</span>
+                </dt>
+                <dd>
+                    You can upload a <b>logo image</b> for your Community. You can do this in two ways:
+                    <ul>
+                        <li>
+                            Using the node's Configuration Panel.<br />
+                            You can either chose to import an image from the local computer running your NodeRed editor or to provide an URL for an image available on your intranet or on the internet.
+                            <br />
+                            The image content, in both cases, is automatically loaded and saved as part of the node instance. In this way, it will be available to any other instances of the NodeRed editor (running on different computers, for instance)
+                            but, also, from the server where NodeRed will be executing.
+                            <br />
+                            The image content for a local file or for a URL will be saved separately, thus allowing you to change mind at any time.
+                            <br />
+                            You can change the local image by clicking on the icon or you can change the URL image by updating the input text box and tabbing out of it.
+                        </li>
+                        <li>
+                            Using the <code>msg.IC_logoFrom</code> attribute. <br />
+                            In this case the input attribute can either contain a string representing an image file as an absolute filepath for the server running NodeRed, or 
+                            it can contain the URL of an image file available on the intranet or the internet. <br />
+                            In this case the server will be in charge of loading the image content as it will process the instance of the node.
+                        </li>
+                    </ul>
+                    <br />
+                    The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_logoFrom</code> attribute.
+               </dd>
+            </dl>
+    
+        <h3>Outputs</h3>
+            <dl class="message-properties">
+                <dt>msg.payload
+                    <span class="property-type">Object</span>
+                </dt>
+                <dd>
+                    The basic output of the Create or Update operation is very similar to the output of the <b style="color:red">Get Commmunities</b> node when the 
+                    <b>Get Community by ID</b> is chosen.
+                    <br />
+                    <img src="icons/node-red-contrib-ibmconnections/communityDetails.png" />
+                    <br />
+                    <b>Note:</b><br />
+                    If the Logo will be added/updated, if members will be added/removed and if widgets will be added/removed, the output will provide information about the changed 
+                    properties of the Community. In the picture below, I updated the logo, the members and the widgets of a Community: chek the <code>.logo, .members, .widgets and .remoteApplications</code> attributes of the output:
+                    <img src="icons/node-red-contrib-ibmconnections/communityUpdateFullOutput.png" />
+                </dd>      
+            </dl>
+    
+        <h3>Warnings</h3>
+            <dl class="message-properties">
+                <dt>Warnings
+                    <span class="property-type">information</span>
+                </dt>
+                <dd>
+                    Here is an example of the warnings that can be raised during the processing of an <b>Update</b> operations.
+                    <img src="icons/node-red-contrib-ibmconnections/communityUpdateWarnings.png" />
+                </dd>       
+            </dl>
+ 
 </script>

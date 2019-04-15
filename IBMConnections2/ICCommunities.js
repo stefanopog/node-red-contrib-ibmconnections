@@ -859,7 +859,6 @@ module.exports = function (RED) {
             }
         );
     }
-
     RED.nodes.registerType("ICCommunitiesGet", ICCommunitiesGet);
 
     function ICCommunitiesUpdate(config) {
@@ -870,7 +869,7 @@ module.exports = function (RED) {
         this.login = RED.nodes.getNode(config.server);
 		var node = this;
 
-        async function tttt() {
+        async function mainProcessing() {
             return;
         }
 
@@ -1054,7 +1053,12 @@ module.exports = function (RED) {
                                     //
                                     //  get the ROLE
                                     //
-                                    let theRole = config.userRole.trim();
+                                    let theRole = '';
+                                    if (memberMgmt === 'AddMember') {
+                                        ltheRole = config.userRole.trim();
+                                    } else {
+                                        theRole = 'none';
+                                    }
                                     if (__allowedMemberRoles.includes(theRole)) {
                                         //
                                         //  Valid Role
@@ -1277,7 +1281,7 @@ module.exports = function (RED) {
                 //
                 //  Start Processing....
                 //
-                tttt().then(async function() {
+                mainProcessing().then(async function() {
                     try {
                         //
                         //  Since we neeed to modify the Community, it is better to retrieve it
@@ -1288,9 +1292,20 @@ module.exports = function (RED) {
                             //  Retrieve myself
                             //
                             let thisIsMe = await node.login.fromIdToMail(node.login.userId, true);
+                            //
+                            //  Prepare ATOM Entry to create the Community
+                            //
                             let theAuthorDoc = createAuthorDocument(thisIsMe.name, thisIsMe.id, thisIsMe.mail, true);
                             let theContributorDoc = createAuthorDocument(thisIsMe.name, thisIsMe.id, thisIsMe.mail, false);
                             let newCommunityDoc = createAddCommunityDocument(communityTitle, '', communityType, communityExternal, communityVisibility, theAuthorDoc, theContributorDoc);
+                            //
+                            //  Create New Community or SubCommunity
+                            //  Note:
+                            //      Supporting an HTML Description imposes escaping the HTML string.
+                            //      I preferred to defer the Description to an UPDATE operation that will do later
+                            //      So, during creation we ONLY set the TITLE
+                            //
+                            //
                             try {
                                 if (operationType === 'Create') {
                                     communityId = await createCommunity(node.login, newCommunityDoc, '');
@@ -1298,15 +1313,24 @@ module.exports = function (RED) {
                                     communityId = await createCommunity(node.login, newCommunityDoc, motherCommunityId);
                                 }
                                 ICX.__log(__moduleName, true, 'Community ' + communityId + '  succesfully created !!!');
+                                //
+                                //  We say that the Title has already been set
+                                //
                                 communityTitle = '';
                             } catch (error) {
                                 throw error;
                             }
-                        } else {
-
+                            //
+                            //  For a Create or SubCommunity operation, we did not get the communityId as an input.
+                            //  But now we have it: it is the result of the Create operation !!
+                            //
                         }
                         //
-                        //  Get the Details of the Communit to be updated or of the newly created Community
+                        //  Get the Details of the Community to be updated or of the newly created Community
+                        //  This will be the basis or the output.
+                        //  We FORCE the __verboseOutput to TRUE in order to get the "entry" and "originalentry" information out of the 
+                        //  "getCommunityById" call. We need the "originalentry" in order to reuse it as a basis for the ATOM entry to be sent 
+                        //  when updating the Community
                         //
                         __verboseOutput = true;
                         let thisCommunity = await getCommunityById(node.login, communityId);
@@ -1533,7 +1557,7 @@ module.exports = function (RED) {
                                                 //  user in that role already exists
                                                 //  Ignore
                                                 //
-                                                node.warn('Widget ' + theWidgets[i].widget + ' is already ..... of the community');
+                                                node.warn('Widget ' + theWidgets[i].widget + ' is already assigned to this  community');
                                             } else {
                                                 //
                                                 //  Serious Issue
@@ -1626,19 +1650,11 @@ module.exports = function (RED) {
                                                 ICX.__log(__moduleName, true, 'No instance for widget ' + theWidgets[i].widget + ' exist, so it cannot be removed');
                                             }
                                         } catch(err) {
-                                            if (err.response.statusCode === 400) {
-                                                //
-                                                //  user is NOT member of the Community
-                                                //  Ignore
-                                                //
-                                                node.warn('Widget ' + theWidgets[i].widget + ' cannot be removed because not...');
-                                            } else {
-                                                //
-                                                //  Serious Issue
-                                                //
-                                                throw err;
-                                            }
-                                         }
+                                            //
+                                            //  Serious Issue
+                                            //
+                                            throw err;
+                                        }
                                     }
                                 }
                                 tmp_widgets = await getCommunityWidgets(node.login, communityId);
@@ -1666,12 +1682,12 @@ module.exports = function (RED) {
                             return;    
                         } 
                     } catch (error) {
-                        ICX.__logError(__moduleName, "ERROR INSIDE tttt", null, error, msg, node);
+                        ICX.__logError(__moduleName, "ERROR INSIDE mainProcessing", null, error, msg, node);
                         return;    
                     }
                 })
                 .catch(error => {
-                    ICX.__logError(__moduleName, "ERROR getting tttt", null, error, msg, node);
+                    ICX.__logError(__moduleName, "ERROR getting mainProcessing", null, error, msg, node);
                     return;    
                 });
             }
