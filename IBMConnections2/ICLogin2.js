@@ -8,8 +8,9 @@ module.exports = function(RED) {
     "use strict";
     const ICX = require('./common.js');
     const __isDebug = ICX.__getDebugFlag();
-    const __delegation = ICX.__getLConnRunAs();
+    //const __delegation = ICX.__getLConnRunAs();
     const __moduleName = 'IC_Login2';
+    const __X_LCONN_RUNAS = "X_CONN_RUNAS";
   
     console.log("*****************************************");
     console.log("* Debug mode is " + (__isDebug ? "enabled" : "disabled") + ' for module ' + __moduleName);
@@ -38,7 +39,25 @@ module.exports = function(RED) {
     function _ICLogin2_oauthFileName(nodeId) {
         return './' + nodeId + '_cred.json';
     }
-
+    //
+    //  Managing DELEGATION
+    //
+    function __getLConnRunAs(theContext, nodeId) {
+        if (typeof theContext === "string") {
+            let tmp = theContext.split(':');
+            if (tmp.length === 2) {
+                if (tmp[0] === nodeId) {
+                    return tmp[1];
+                } else {
+                    return '';
+                }
+            } else {
+                return '';
+            }
+        } else {
+            return ''
+        }
+    }
     //
     //  Node-RED Configuration function
     //
@@ -474,20 +493,6 @@ module.exports = function(RED) {
         if (typeof req !== 'object') {
             req = { url: req };
         }
-/*
-        console.log('*********************************************');
-        console.log('*********************************************');
-        console.log('*********************************************');
-        console.log('*********************************************');
-        console.log('*********************************************');
-        var globalContext = this.context().global;
-        console.log(JSON.stringify(globalContext.get('stefano'), ' ', 2));
-        console.log('*********************************************');
-        console.log('*********************************************');
-        console.log('*********************************************');
-        console.log('*********************************************');
-        console.log('*********************************************');
-*/
         //
         //  Setting HTTP Method
         //
@@ -502,15 +507,41 @@ module.exports = function(RED) {
         }
         //
         //  Delegation
-        //
+        //        
         if (node.serverType === 'cloud') {
-            if (__delegation && (node.id === __delegation.nodeId)) {
-                if ((req.method === 'PUT') || (req.method === "POST")) {
+            if ((req.method === 'PUT') || (req.method === "POST")) {
+                //
+                //  Check if we need to apply DELEGATION from FLOW CONTEXT
+                //
+                let flowContext = this.context().flow;
+                if (flowContext) {
+                    let runAsCtx = flowContext.get(__X_LCONN_RUNAS);
+                    if (runAsCtx) {
+                        let delegationId = __getLConnRunAs(runAsCtx, node.id);
+                        if (delegationId !== '') {
+                            //
+                            //  Adding Delegation
+                            //
+                            req.headers['X-LCONN-RUNAS'] = delegationId;
+                            ICX.__log(__moduleName, __isDebug, 'Adding X_LCONN_RUNAS delegation to userId ' + delegationId);
+                        }
+                    }
+                } else {
                     //
-                    //  Adding Delegation
+                    //  Check if we need to apply DELEGATION from FLOW CONTEXT
                     //
-                    req.headers['X-LCONN-RUNAS'] = __delegation.userId;
-                    ICX.__log(__moduleName, __isDebug, 'Adding X_LCONN_RUNAS delegation to userId ' + __delegation.userId);
+                    let globalContext = this.context().global;
+                    let runAsCtx = globalContext.get(__X_LCONN_RUNAS);
+                    if (runAsCtx) {
+                        let delegationId = __getLConnRunAs(runAsCtx, node.id);
+                        if (delegationId !== '') {
+                            //
+                            //  Adding Delegation
+                            //
+                            req.headers['X-LCONN-RUNAS'] = delegationId;
+                            ICX.__log(__moduleName, __isDebug, 'Adding X_LCONN_RUNAS delegation to userId ' + delegationId);
+                        }
+                    }
                 }
             }
         }
@@ -592,15 +623,41 @@ module.exports = function(RED) {
             }
             //
             //  Delegation
-            //
+            //        
             if (node.serverType === 'cloud') {
-                if (__delegation && (node.id === __delegation.nodeId)) {
-                    if ((req.method === 'PUT') || (req.method === "POST")) {
+                if ((req.method === 'PUT') || (req.method === "POST")) {
+                    //
+                    //  Check if we need to apply DELEGATION from FLOW CONTEXT
+                    //
+                    let flowContext = this.context().flow;
+                    if (flowContext) {
+                        let runAsCtx = flowContext.get(__X_LCONN_RUNAS);
+                        if (runAsCtx) {
+                            let delegationId = __getLConnRunAs(runAsCtx, node.id);
+                            if (delegationId !== '') {
+                                //
+                                //  Adding Delegation
+                                //
+                                req.headers['X-LCONN-RUNAS'] = delegationId;
+                                ICX.__log(__moduleName, __isDebug, 'Adding X_LCONN_RUNAS delegation to userId ' + delegationId);
+                            }
+                        }
+                    } else {
                         //
-                        //  Adding Delegation
+                        //  Check if we need to apply DELEGATION from FLOW CONTEXT
                         //
-                        req.headers['X-LCONN-RUNAS'] = __delegation.userId;
-                        ICX.__log(__moduleName, __isDebug, 'Adding X_LCONN_RUNAS delegation to userId ' + __delegation.userId);
+                        let globalContext = this.context().global;
+                        let runAsCtx = globalContext.get(__X_LCONN_RUNAS);
+                        if (runAsCtx) {
+                            let delegationId = __getLConnRunAs(runAsCtx, node.id);
+                            if (delegationId !== '') {
+                                //
+                                //  Adding Delegation
+                                //
+                                req.headers['X-LCONN-RUNAS'] = delegationId;
+                                ICX.__log(__moduleName, __isDebug, 'Adding X_LCONN_RUNAS delegation to userId ' + delegationId);
+                            }
+                        }
                     }
                 }
             }
