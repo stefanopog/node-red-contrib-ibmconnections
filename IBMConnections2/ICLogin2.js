@@ -505,6 +505,9 @@ module.exports = function(RED) {
         } else {
             req.headers = {"User-Agent" : "Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0"};
         }
+        let camo = node.context();
+        let zorro = node.context().flow;
+        let zorro2 = node.context().global;
         //
         //  Delegation
         //        
@@ -513,7 +516,7 @@ module.exports = function(RED) {
                 //
                 //  Check if we need to apply DELEGATION from FLOW CONTEXT
                 //
-                let flowContext = this.context().flow;
+                let flowContext = node.context().flow;
                 if (flowContext) {
                     let runAsCtx = flowContext.get(__X_LCONN_RUNAS);
                     if (runAsCtx) {
@@ -530,7 +533,7 @@ module.exports = function(RED) {
                     //
                     //  Check if we need to apply DELEGATION from FLOW CONTEXT
                     //
-                    let globalContext = this.context().global;
+                    let globalContext = node.context().global;
                     let runAsCtx = globalContext.get(__X_LCONN_RUNAS);
                     if (runAsCtx) {
                         let delegationId = __getLConnRunAs(runAsCtx, node.id);
@@ -629,7 +632,7 @@ module.exports = function(RED) {
                     //
                     //  Check if we need to apply DELEGATION from FLOW CONTEXT
                     //
-                    let flowContext = this.context().flow;
+                    let flowContext = node.context().flow;
                     if (flowContext) {
                         let runAsCtx = flowContext.get(__X_LCONN_RUNAS);
                         if (runAsCtx) {
@@ -646,7 +649,7 @@ module.exports = function(RED) {
                         //
                         //  Check if we need to apply DELEGATION from FLOW CONTEXT
                         //
-                        let globalContext = this.context().global;
+                        let globalContext = node.context().global;
                         let runAsCtx = globalContext.get(__X_LCONN_RUNAS);
                         if (runAsCtx) {
                             let delegationId = __getLConnRunAs(runAsCtx, node.id);
@@ -692,142 +695,134 @@ module.exports = function(RED) {
             }
         });
     }
-    function __getUserDetail(record, idOnly) {
-        var person = {};
-        //
-        //  This function retrieves the photo "sp_XX:div" from the VCARD
-        //
-        var tmp = record.id[0];
-        person.key = tmp.split(':entry')[1];
-        person.userid = record.contributor[0]['snx:userid'][0];
-        person.mail = record.contributor[0]['email'][0];
-        person.name = record.contributor[0]['name'][0];
-        if (!idOnly) {
-            let kk = (function (a) { return a[Object.keys(a)[1]];})(record.content[0]);
-            const dom = new JSDOM(builder.buildObject(kk[0]));        
-            person.vcard = builder.buildObject(record.content[0]);
-            if (dom.window.document.querySelector("div.title").textContent) {
-                person.title = dom.window.document.querySelector("div.title").textContent;
+    function __getUserDetail(inputArray, inputClass, inputObject) {
+        for (let i=0; i < inputArray.length; i++) {
+            //
+            //  Parsing current level
+            //
+            let currentClass = '';
+            if (inputArray[i].className) {
+                //
+                //  There is a new Attributes. 
+                //
+                currentClass = inputArray[i].className;
+                //
+                //  Is it a leaf or a node ?
+                //                       
+                if (inputArray[i].children && (inputArray[i].children.length > 0)) {
+                    //
+                    //  It is a node
+                    //
+                    if (inputObject[currentClass]) {
+                        //
+                        //  Another object with that name exists. 
+                        //  So it is an array
+                        //
+                        if (Array.isArray(inputObject[currentClass])) {
+                            //
+                            //  Already an Array..
+                            //
+                        } else {
+                            //
+                            //  Not yet an Array. Create one
+                            let tmp = inputObject[currentClass];
+                            inputObject[currentClass] = [];
+                            inputObject[currentClass].push(tmp);
+                        }
+                        let newObject = {};
+                        inputObject[currentClass].push(newObject);
+                        __getUserDetail(inputArray[i].children, inputClass + '.' + currentClass, newObject);
+                    } else {
+                        //
+                        //  No existing object.
+                        //  Create one
+                        //
+                        inputObject[currentClass] = {};
+                        __getUserDetail(inputArray[i].children, inputClass + '.' + currentClass, inputObject[currentClass]);
+                    }
+                } else {
+                    //
+                    //  Leaf
+                    //
+                    inputObject[currentClass] = inputArray[i].innerHTML;
+                }
             } else {
-                person.title = 'UNDEFINED';
-            }
-            try {
-                let tmp = dom.window.document.querySelector("img.photo").src;
-                tmp = tmp.split('&')[0];
-                person.photo = tmp;
                 //
-                //  We will deal ASYNCHRONOUSLY with downloading each photo
+                //  No className, so no new attribute
                 //
-                /*
-                asyncTasks.push(function(_dummyCallback) {
-                                    _getPhotoBytes(person, tmp, _dummyCallback);
-                                }
-                );
-                */
-            } catch (err) {
-                console.log('error trying to get Photo for user ' + person.name + '. Error is ' + err.message);
-                console.log(record.content[0]);
-                person.photo = '';
-                node.warn('No photo for ' +  person.name);
+                if (inputArray[i].children && (inputArray[i].children.length > 0)) {
+                    //
+                    //  It is a node
+                    //
+                    __getUserDetail(inputArray[i].children, inputClass, inputObject);
+                } else {
+                    //
+                    //  Leaf
+                    //  Nothing to do 
+                    //
+                    //console.log('=================================');
+                    //console.log('===== Nothing to do =============');
+                    //console.log(inputArray[i].innerHTML);
+                    //console.log('=================================');
+                }
             }
         }
-        return person;                                     
     }
-
-    ICLogin2.prototype.fromMailToId = async function (mailAddress, idOnly=false) {
-        var __msgText = 'error getting profile for ' + mailAddress;
+    ICLogin2.prototype.getUserInfosFromMail = async function (mailAddress, withLinkroll=false, withPhoto=false) {
+        var __msgText = 'getUserInfosFromMail: error getting profile for ' + mailAddress;
         var __msgStatus = 'error getting profile';
+        ICX.__log(__moduleName, true, 'getUserInfosFromMail: convert ' + mailAddress + ' to ID');
+        //
+        //  Build the URL
+        //
+        var myURL = this.getServer + "/profiles";
+        if (this.authType === "oauth") myURL += '/oauth';
+        if (this.serverType === "cloud") {
+            myURL += "/atom/search.do?search=" + mailAddress + '&format=full&output=hcard&labels=true';
+        } else {
+            myURL += "/atom/profile.do?email=" + mailAddress + '&format=full&output=hcard&labels=true';
+        }
         try {
             //
             //  Get the Profile Entry
             //
-            ICX.__log(__moduleName, true, 'fromMailToId: convert ' + mailAddress + ' to ID');
-            let myURL = this.getServer + "/profiles";
-            if (this.authType === "oauth") myURL += '/oauth';
-            if (this.serverType === "cloud") {
-                myURL += "/atom/search.do?search=" + mailAddress + '&format=full';
-            } else {
-                myURL += "/atom/profile.do?email=" + mailAddress;
-            }
-            let response = await this.rpn(
-                {
-                    url: myURL,
-                    method: "GET",
-                    headers: {"Content-Type": "application/atom+xml"}
-                }                    
-            );
-            ICX.__logJson(__moduleName, __isDebug, "fromMailToId OK", response);
-            //
-            //  Parse the Profile Entry
-            //
-            __msgText = 'Parser error in for ' + mailAddress;
-            __msgStatus = 'Parser Error';
-            ICX.__log(__moduleName, true, 'fromMailToId: Parsing XML Feed for ' + mailAddress);
-            let result = await ICX.__getXmlAttribute(response);
-            if (result.feed.entry) {
-                let myData = __getUserDetail(result.feed.entry[0], idOnly);
-                ICX.__log(__moduleName, true, 'fromMailToId: Succesfully Parsed entry for ' + mailAddress);
-                if (!idOnly) {
-                    //
-                    //  Get the LINKS associated to the Profile
-                    //
-                    __msgText = 'fromMailToId : error getting Linkroll for ' + mailAddress;
-                    __msgStatus = 'error getting Linkroll';
-                    ICX.__log(__moduleName, true, 'fromMailToId: getting Profile Links for ' + mailAddress);
-                    let linksURL = this.getServer + "/profiles";
-                    if (this.authType === "oauth") theURL += '/oauth';
-                    linksURL += '/atom/profileExtension.do?key=' + myData.key + '&extensionId=profileLinks';
-                    let response2 = await this.rpn(
-                        {
-                            url: linksURL,
-                            method: "GET",
-                            headers: {"Content-Type": "application/atom+xml"}
-                        }                    
-                    );
-                    if (response2 !== '') {
-                        ICX.__logJson(__moduleName, __isDebug, "fromMailToId : Links OK", response2);
-                        //
-                        //  Parse Linkrool
-                        //
-                        __msgText = 'Parser error in fromMailToId Linkroll!';
-                        __msgStatus = 'Linkroll Parser Error';
-                        ICX.__log(__moduleName, true, 'fromMailToId: Parsing XML Linkroll Feed for ' + mailAddress);
-                        let result2 = await ICX.__getXmlAttribute(response2);
-                        let links = [];
-                        for (let i=0; i < result2.linkroll.link.length; i++) {
-                            let theLink = {};
-                            theLink.name = result.linkroll.link[i]["$"].name;
-                            theLink.url = result.linkroll.link[i]["$"].url;
-                            links.push(theLink);
-                        }
-                        myData.linkroll = links;
-                    } else {
-                        ICX.__log(__moduleName, __isDebug, "fromMailToId : No Links found");
-                    }
-                }
-                return myData;
-            } else {
-                ICX.__log(__moduleName, true, 'fromMailToId: No ENTRY found for ' + mailAddress);
-                return null;
-            }
+            let userDetails = await this.getUserInfos(myURL, mailAddress, withLinkroll, withPhoto);
+            return userDetails;
         } catch (error) {
             error.message = '{{' + __msgStatus + '}}\n' + error.message;
-            ICX.__logJson(__moduleName, true, "fromMailToId : " + __msgText, error);
+            ICX.__logJson(__moduleName, true, "getUserInfosFromMail : " + __msgText, error);
             throw error;
         }
     }
-
-    ICLogin2.prototype.fromIdToMail = async function (userId, idOnly=false) {
-        var __msgText = 'error getting profile for ' + userId;
+    ICLogin2.prototype.getUserInfosFromId = async function (userId, withLinkroll=false, withPhoto=false) {
+        var __msgText = 'getUserInfosFromId: error getting profile for ' + userId;
+        var __msgStatus = 'error getting profile';
+        //
+        //  Build the URL
+        //
+        ICX.__log(__moduleName, true, 'getUserInfosFromId: convert ' + userId + ' to Mail');
+        var myURL = this.getServer + "/profiles";
+        if (this.authType === "oauth") myURL += '/oauth';
+        myURL += "/atom/profile.do?userid=" + userId + '&format=full&output=hcard&labels=true';
+        try {
+            //
+            //  Get the Profile Entry
+            //
+            let userDetails = await this.getUserInfos(myURL, userId, withLinkroll, withPhoto);
+            return userDetails;
+        } catch (error) {
+            error.message = '{{' + __msgStatus + '}}\n' + error.message;
+            ICX.__logJson(__moduleName, true, "getUserInfosFromId : " + __msgText, error);
+            throw error;
+        }
+    }
+    ICLogin2.prototype.getUserInfos = async function(myURL, theUser, withLinkroll=false, withPhoto=false) {
+        var __msgText = 'getUserInfos: error getting profile for ' + theUser;
         var __msgStatus = 'error getting profile';
         try {
             //
             //  Get the Profile Entry
             //
-            ICX.__log(__moduleName, true, 'fromIdToMail: convert ' + userId + ' to Mail');
-            let myURL = this.getServer + "/profiles";
-            if (this.authType === "oauth") myURL += '/oauth';
-            myURL += "/atom/profile.do?userid=" + userId;
             let response = await this.rpn(
                 {
                     url: myURL,
@@ -835,27 +830,55 @@ module.exports = function(RED) {
                     headers: {"Content-Type": "application/atom+xml"}
                 }                    
             );
-            ICX.__logJson(__moduleName, __isDebug, "fromIdToMail OK", response);
+            ICX.__logJson(__moduleName, __isDebug, "getUserInfos OK", response);
             //
-            //  Parse the Profile Entry
+            //  Parse using JSDOM
             //
-            __msgText = 'Parser error in for ' + userId;
+            __msgText = 'getUserInfos: Parser error in for ' + theUser;
             __msgStatus = 'Parser Error';
-            ICX.__log(__moduleName, true, 'fromIdToMail: Parsing XML Feed for ' + userId);
-            let result = await ICX.__getXmlAttribute(response);
-            if (result.feed.entry) {
-                let myData = __getUserDetail(result.feed.entry[0], idOnly);
-                ICX.__log(__moduleName, true, 'fromIdToMail: Succesfully Parsed entry for ' + userId);
-                if (!idOnly) {
+            let theFeed = new JSDOM(response, {contentType: 'application/xml'});
+            let entries = theFeed.window.document.querySelectorAll("entry");
+            let theResult = [];
+            //
+            //  Parse through Array
+            //
+            for (let i=0; i < entries.length; i++) {
+                let attributes = entries[i].querySelectorAll(".vcard > div");
+                let userDetailObject = {};
+                userDetailObject.allAttributes = {};
+                __getUserDetail(attributes, '', userDetailObject.allAttributes);
+                if (userDetailObject.allAttributes['photo'] !== undefined) {
+                    userDetailObject.allAttributes['photo'] = theFeed.window.document.querySelector(".photo").src;
+                }
+                if (userDetailObject.allAttributes['fn url'] !== undefined ) {
+                    userDetailObject.allAttributes['fn url'] = theFeed.window.document.querySelector(".fn.url").href;
+                }
+                if (userDetailObject.allAttributes['sound url'] !== undefined ) {
+                    userDetailObject.allAttributes['sound url'] = theFeed.window.document.querySelector(".sound.url").href;
+                }
+                //
+                //  Backward Compatibility
+                //
+                userDetailObject.userid = userDetailObject.allAttributes.uid;
+                userDetailObject.mail = userDetailObject.allAttributes.email;
+                userDetailObject.title = userDetailObject.allAttributes.title;
+                userDetailObject.photo = userDetailObject.allAttributes.photo;
+                userDetailObject.key = userDetailObject.allAttributes['x-profile-key'],
+                userDetailObject.name = userDetailObject.allAttributes.n['given-name'] + ' ' + userDetailObject.allAttributes.n['family-name'];
+                ICX.__logJson(__moduleName, __isDebug, 'JSDOM Parsed user object', userDetailObject);
+                //
+                //  Check for other details about the user
+                //
+                if (withLinkroll) {
                     //
                     //  Get the LINKS associated to the Profile
                     //
-                    __msgText = 'fromIdToMail : error getting Linkroll for ' + userId;
+                    __msgText = 'getUserInfos : error getting Linkroll for ' + userDetailObject.name;
                     __msgStatus = 'error getting Linkroll';
-                    ICX.__log(__moduleName, true, 'fromIdToMail: getting Profile Links for ' + userId);
+                    ICX.__log(__moduleName, true, 'getUserInfos: getting Profile Links for ' + userDetailObject.name);
                     let linksURL = this.getServer + "/profiles";
-                    if (this.authType === "oauth") theURL += '/oauth';
-                    linksURL += '/atom/profileExtension.do?key=' + myData.key + '&extensionId=profileLinks';
+                    if (this.authType === "oauth") linksURL += '/oauth';
+                    linksURL += '/atom/profileExtension.do?key=' + userDetailObject.key + '&extensionId=profileLinks';
                     let response2 = await this.rpn(
                         {
                             url: linksURL,
@@ -864,34 +887,68 @@ module.exports = function(RED) {
                         }                    
                     );
                     if (response2 !== '') {
-                        ICX.__logJson(__moduleName, __isDebug, "fromIdToMail : Links OK", response2);
+                        ICX.__logJson(__moduleName, __isDebug, "getUserInfos : Linkroll OK", response2);
                         //
                         //  Parse Linkrool
                         //
-                        __msgText = 'Parser error in fromIdToMail Linkroll!';
+                        __msgText = 'Parser error in getUserInfos Linkroll!';
                         __msgStatus = 'Linkroll Parser Error';
-                        ICX.__log(__moduleName, true, 'fromIdToMail: Parsing XML Linkroll Feed for ' + userId);
+                        ICX.__log(__moduleName, true, 'getUserInfos: Parsing XML Linkroll Feed for ' + userDetailObject.name);
                         let result2 = await ICX.__getXmlAttribute(response2);
-                        let links = [];
-                        for (let i=0; i < result2.linkroll.link.length; i++) {
-                            let theLink = {};
-                            theLink.name = result.linkroll.link[i]["$"].name;
-                            theLink.url = result.linkroll.link[i]["$"].url;
-                            links.push(theLink);
+                        if (result2.linkroll.link) {
+                            let links = [];
+                            for (let i=0; i < result2.linkroll.link.length; i++) {
+                                let theLink = {};
+                                theLink.name = result2.linkroll.link[i]["$"].name;
+                                theLink.url = result2.linkroll.link[i]["$"].url;
+                                links.push(theLink);
+                            }
+                            userDetailObject.linkroll = links;
+                        } else {
+                            userDetailObject.linkroll = null;
+                            ICX.__log(__moduleName, __isDebug, "getUserInfos : No Links found in Linkroll");
                         }
-                        myData.linkroll = links;
                     } else {
-                        ICX.__log(__moduleName, __isDebug, "fromIdToMail : No Links found");
+                        userDetailObject.linkroll = null;
+                        ICX.__log(__moduleName, __isDebug, "getUserInfos : No Links found in Linkroll");
                     }
                 }
-                return myData;
+                if (withPhoto) {
+                    //
+                    //  Get the Profile Photo
+                    //
+                    __msgText = 'getUserInfos : error getting Profile Photo for ' + userDetailObject.name;
+                    __msgStatus = 'error getting Profile Photo';
+                    ICX.__log(__moduleName, true, 'getUserInfos: getting Profile Photo for ' + userDetailObject.name);
+                    userDetailObject.photoBytes = await this.rpn(
+                        {
+                            url: userDetailObject.photo,
+                            method: "GET",
+                            headers: {"Content-Type": "image/*"},
+                            encoding: 'binary'
+                        }                    
+                    );
+                }
+                theResult.push(userDetailObject);
+            }
+            if ((theUser === 'TAGS') || (theUser === 'KEYWORDS') || (theUser === 'SEARCH')) {
+                ICX.__logJson(__moduleName, __isDebug, 'Person Details for ' + theUser, theResult);
+                return theResult;
             } else {
-                ICX.__log(__moduleName, true, 'fromIdToMail: No ENTRY found for ' + userId);
-                return null;
+                //
+                //  Only one user expected
+                //
+                if (entries.length > 0) {
+                    ICX.__logJson(__moduleName, __isDebug, 'Person Details for ' + theUser, theResult[0]);
+                    return theResult[0];
+                } else {
+                    ICX.__log(__moduleName, __isDebug, 'NO information found for Person  ' + theUser);
+                    return null;
+                }
             }
         } catch (error) {
             error.message = '{{' + __msgStatus + '}}\n' + error.message;
-            ICX.__logJson(__moduleName, true, "fromIdToMail : " + __msgText, error);
+            ICX.__logJson(__moduleName, true, "getUserInfos : " + __msgText, error);
             throw error;
         }
     }
@@ -1080,3 +1137,47 @@ module.exports = function(RED) {
         _ICLogin2_whoAmI(node_id, credentials, server, res, 'basic', req.query.serverType);
     });
 };
+/*
+
+Initial JSDOM Algorithm
+========================
+function thePrint(classList, element) {
+    if (classList !== '') {
+        console.log('---> ' + classList + ' = ' + element.innerHTML);
+    }
+}
+for (let i=0; i< attributes.length; i++) {
+    let classList = '';
+    if (attributes[i].className) classList = attributes[i].className;
+    if (attributes[i].children && (attributes[i].children.length > 0)) {
+        //
+        //  potentially there are important children
+        //
+        if (classList !== '') classList += '.';
+        for (let j=0; j < attributes[i].children.length; j++) {
+            let firstLevel = attributes[i].children[j];
+            let firstLevelClassList = classList;
+            if (firstLevel.className) firstLevelClassList += firstLevel.className;
+            if (firstLevel.children && (firstLevel.children.length > 0)) {
+                if (firstLevel.className) firstLevelClassList += '.';
+                for (let k=0; k < firstLevel.children.length; k++) {
+                    let secondLevel = firstLevel.children[k];
+                    let secondLevelClassList = firstLevelClassList;
+                    if (secondLevel.className) secondLevelClassList += secondLevel.className;
+                    thePrint(secondLevelClassList, secondLevel);
+                }
+            } else {
+                //
+                //  No Child
+                //
+                thePrint(firstLevelClassList, firstLevel);
+            }
+        }
+    } else {
+        //
+        //  There is NO CHILD
+        //
+        thePrint(classList, attributes[i]);
+    }
+}
+*/

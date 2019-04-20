@@ -86,7 +86,33 @@ function __writeFile(path, dataopts = 'utf8') {
         })
     })
 }
+//
+//  Get Connections Images (Profile, Community etc)
+//
+async function __getBase64ImageFromUrl(imageUrl) {
+    const rp = require("request-promise-native");
+    var _include_headers = function(body, response, resolveWithFullResponse) {
+        return {'headers': response.headers, 'data': body};
+      };
+      
+    var options = {
+        method: 'GET',
+        uri: imageUrl,
+        transform: _include_headers,
+        encoding: null    // https://stackoverflow.com/questions/31289826/download-an-image-using-node-request-and-fs-promisified-with-no-pipe-in-node-j
+    };
+    try {
+        const res = await rp(options);
 
+        var buf = Buffer.from(res.data);
+        var base64 = 'data:' + res.headers['content-type'] + ';base64,' + buf.toString('base64')
+        //console.log(JSON.stringify(res.headers, ' ', 2));
+        //console.log(base64);
+        return base64;
+    } catch (error) {
+        return Promise.reject(error);
+    }
+}
 //
 //  Common Logging function
 //
@@ -113,8 +139,30 @@ function __logJson(moduleName, isDebug, logMsg, jsonObj, isConfig=false) {
 
 function __logError(moduleName, theString, config, error, theMsg, theNode) {
     var errString = moduleName + ' : ' + theString;
-    console.log(moduleName + ' : ' + errString);
+    console.log(errString);
     theNode.status({fill: "red", shape: "dot", text: errString});
+    if (config) console.log(JSON.stringify(config, ' ', 2));
+    if (error) {
+        console.log(moduleName + ' : Error Follows : ');
+        console.log(JSON.stringify(error, ' ', 2));
+        theMsg.ICX_fatal = JSON.parse(JSON.stringify(error));
+        theNode.error(error, theMsg);
+    } else {
+        if (config) {
+            theMsg.ICX_fatal = {
+                message: errString,
+                details: config};
+        } else {
+            theMsg.ICX_fatal = {
+                message: errString
+            };
+            theNode.error(errString, theMsg);
+        }
+    }
+}
+function __logError2(moduleName, theString, config, error, theMsg, theNode) {
+    var errString = moduleName + ' : ' + theString;
+    console.log(errString);
     if (config) console.log(JSON.stringify(config, ' ', 2));
     if (error) {
         console.log(moduleName + ' : Error Follows : ');
@@ -441,6 +489,7 @@ function __getNameValueArray(inputString) {
 module.exports = {__log, 
                   __logJson, 
                   __logError, 
+                  __logError2, 
                   __logWarning, 
                   __getOptionValue, 
                   __getMandatoryInputStringFromSelect, 
@@ -453,4 +502,5 @@ module.exports = {__log,
                   __readFile,
                   __writeFile,
                   __getDebugFlag,
-                  __getLConnRunAs};
+                  __getLConnRunAs,
+                  __getBase64ImageFromUrl};

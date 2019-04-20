@@ -225,30 +225,6 @@ module.exports = function (RED) {
     }
 
  
-    async function getBase64ImageFromUrl(imageUrl) {
-        const rp = require("request-promise-native");
-        var _include_headers = function(body, response, resolveWithFullResponse) {
-            return {'headers': response.headers, 'data': body};
-          };
-          
-        var options = {
-            method: 'GET',
-            uri: imageUrl,
-            transform: _include_headers,
-            encoding: null    // https://stackoverflow.com/questions/31289826/download-an-image-using-node-request-and-fs-promisified-with-no-pipe-in-node-j
-        };
-        try {
-            const res = await rp(options);
-
-            var buf = Buffer.from(res.data);
-            var base64 = 'data:' + res.headers['content-type'] + ';base64,' + buf.toString('base64')
-            //console.log(JSON.stringify(res.headers, ' ', 2));
-            //console.log(base64);
-            return base64;
-        } catch (error) {
-            return Promise.reject(error);
-        }
-    }
     async function getCommunityById(loginNode, communityId) {
         var theURL = loginNode.getServer + "/communities/service/atom/community/instance?communityUuid=" + communityId;
         var __msgText = 'error getting information for CommunityById2';
@@ -1291,7 +1267,7 @@ module.exports = function (RED) {
                             //
                             //  Retrieve myself
                             //
-                            let thisIsMe = await node.login.fromIdToMail(node.login.userId, true);
+                            let thisIsMe = await node.login.getUserInfosFromId(node.login.userId, false, false);
                             //
                             //  Prepare ATOM Entry to create the Community
                             //
@@ -1428,7 +1404,7 @@ module.exports = function (RED) {
                                         //
                                         //  The image comes from the Internet
                                         //
-                                        logoBytes = await getBase64ImageFromUrl(logoFrom);
+                                        logoBytes = await ICX.__getBase64ImageFromUrl(logoFrom);
                                         let parsedImage = logoBytes.match(__encodedImageExp);
                                         if (parsedImage && parsedImage.length) {
                                             mime = parsedImage[1];
@@ -1468,9 +1444,9 @@ module.exports = function (RED) {
                                     let userDetails = null;
                                     node.status({fill: "blue", shape: "dot", text: "User Details for " + theMembers[i].user});
                                     if (theMembers[i].user.match(__mailExp)) {
-                                        userDetails = await node.login.fromMailToId(theMembers[i].user, true);
+                                        userDetails = await node.login.getUserInfosFromMail(theMembers[i].user, false, false);
                                     } else {
-                                        userDetails = await node.login.fromIdToMail(theMembers[i].user, true);
+                                        userDetails = await node.login.getUserInfosFromId(theMembers[i].user, false, false);
                                     }
                                     //
                                     //  We have the information to Add or Remove the member
@@ -1703,7 +1679,7 @@ module.exports = function (RED) {
         ICX.__logJson(__moduleName, __isDebug, 'Get Image Executing with these parameters : ', req.query);
         if (req.query && req.query.link) {
             let body = {};
-            getBase64ImageFromUrl(req.query.link)
+            ICX.__getBase64ImageFromUrl(req.query.link)
                 .then(result => {
                     ICX.__log(__moduleName, __isDebug, 'Get Image was Successfull');
                     res.status(200);
