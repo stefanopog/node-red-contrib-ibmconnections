@@ -138,29 +138,18 @@ SPDX-License-Identifier: Apache-2.0
     <br/>
 
 
-       <label><b>Output Options</b></label>
-        <hr />
+    <label><b>Output Options</b></label>
+    <hr />
 
+    <div class="form-row">
+        <label for="node-input-photoBytes"><i class="fa fa-odnoklassniki" style="width: initial"></i> full photo</label>
+        <input style="display: inline-block; width: initial; vertical-align: top;" type="checkbox" name="photoBytes" id="node-input-photoBytes"></input>
+    </div>
+    <div class="form-row" id="linkRow">
+        <label for="node-input-links"><i class="fa fa-odnoklassniki" style="width: initial"></i> Linkroll</label>
+        <input style="display: inline-block; width: initial; vertical-align: top;" type="checkbox" name="links" id="node-input-links"></input>
+    </div>
 
-    <table style="width: 100%">
-        <tr>
-            <td>
-                <div class="form-row">
-                    <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="photoBytes" id="node-input-photoBytes"></input>
-                    <label for="node-input-photoBytes"><i class="fa fa-odnoklassniki"></i> full photo</label>
-                </div>
-            </td>
-            <td>
-                <div class="form-row" id="linkRow">
-                    <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="links" id="node-input-links"></input>
-                    <label for="node-input-links"><i class="fa fa-odnoklassniki"></i> Linkroll</label>
-                </div>
-            </td>
-        </tr>
-    </table>
-
-    <br/>
-    <br/>
     <hr/>
     <br/>
     <div class="form-row">
@@ -181,17 +170,17 @@ SPDX-License-Identifier: Apache-2.0
     </p>
     <p>
     A set of users can also be retrieved by <b>TAG</b>: in that case, the comma-separated list of tags is the way in which one or more users are returned.
-    <br>This list can be specified either in the configuration panel or using the <code>msg.tags</code> property in the input message.
+    <br>This list can be specified either in the configuration panel or using the <code>msg.IC_tags</code> property in the input message.
     </p>
     <p>
     A set of users can also be retrieved by <b>KEYWORD</b>: in that case, the syntax is the same as the one used by the IBM Connections user interface.
-    <br>This value can be specified either in the configuration panel or using the <code>msg.keywords</code> property in the input message.
+    <br>This value can be specified either in the configuration panel or using the <code>msg.IC_keywords</code> property in the input message.
     </p>
     <p>
     A set of users can also be retrieved by using a <b>FREE SYNTAX</b>: this is very technical and requires the understanding of the IBM Connections Profiles Search API. <br/>
     The "Free Syntax" can contain anything that using the IBM Connections Profiles Search API can be specified after <i>/profiles/atom/search.do?</i>.
     <br>This gives the possibility to build a very flexible and custom search string.
-    <br>The value for this parameter can be specified either in the configuration panel or using the <code>msg.freeSyntax</code> property in the input message.
+    <br>The value for this parameter can be specified either in the configuration panel or using the <code>msg.IC_freeSyntax</code> property in the input message.
     </p>
     <br/>
    <p><i>Returns:</i>
@@ -205,12 +194,9 @@ SPDX-License-Identifier: Apache-2.0
                 <li><code>key</code></li>
                 <li><code>photo</code></li>
                 <li><code>photoBytes</code>. This is a buffer representing the content of the photo image.</li>
-                <li><code>vcard</code></li>
                 <li><code>linkroll</code></li>
             </ul>
         </li>
-        <li><code>msg.status</code> : the statusCode from the Connections APIs or ZERO if a processing error occurred</li>
-        <li><code>msg.error</code> : if an error is returned from APIs or if a processing error occurred, it is reported here. Otherwise it is empty</li>
     </ul>
     </p>
     <p>

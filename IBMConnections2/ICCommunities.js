@@ -1658,7 +1658,7 @@ module.exports = function (RED) {
                             return;    
                         } 
                     } catch (error) {
-                        ICX.__logError(__moduleName, "ERROR INSIDE mainProcessing", null, error, msg, node);
+                        ICX.__logError(__moduleName, ICX.__getInfoFromError(error, "ERROR INSIDE mainProcessing"), null, error, msg, node);
                         return;    
                     }
                 })

@@ -22,8 +22,8 @@ module.exports = function(RED) {
         this.login = RED.nodes.getNode(config.server);
 		var node = this;
 
-        var mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-        var server = node.login.getServer;
+        const mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+        const server = node.login.getServer;
 
         
         async function mainProcessing() {
@@ -33,8 +33,8 @@ module.exports = function(RED) {
         this.on(
             'input', 
             function(msg) {
-                var myURL = "";
-                node.status({fill:"blue",shape:"dot",text:"Retrieving..."});
+                let myURL = server  + "/profiles";
+                if (node.login.authType === "oauth") myURL += '/oauth';
                 //
                 //  Prepare for callbacks
                 //
@@ -45,8 +45,15 @@ module.exports = function(RED) {
                         //
                         let theKeywords = ICX.__getMandatoryInputString(__moduleName, config.mykeywords , msg.IC_keywords, '', 'Keywords', msg, node);
                         if (!theKeywords) return;
-                        myURL = server  + "/profiles";
-                        if (node.login.authType === "oauth") myURL += '/oauth';
+                        let tmpKeywords = theKeywords.split(',');
+                        for (let k=0; k < tmpKeywords.length; k++) {
+                            tmpKeywords[k] = tmpKeywords[k].trim();
+                        }
+                        theKeywords = tmpKeywords.join();
+                        if (!theKeywords) return;
+                        //
+                        //  Build URL
+                        //
                         myURL += "/atom/search.do?sortBy=relevance&search=" + theKeywords + '&format=full&ps=1000&output=hcard&labels=true';
                         //
                         // get Profile By Keywords
@@ -58,7 +65,7 @@ module.exports = function(RED) {
                                 node.status({});
                                 node.send(msg);     
                             } catch (error) {
-                                ICX.__logError(__moduleName, "ERROR INSIDE mainProcessing", null, error, msg, node);
+                                ICX.__logError(__moduleName, ICX.__getInfoFromError(error, "ERROR INSIDE mainProcessing"), null, error, msg, node);
                                 return;    
                             }
                         })
@@ -73,8 +80,15 @@ module.exports = function(RED) {
                         //
                         let theTags = ICX.__getMandatoryInputString(__moduleName, config.mytags , msg.IC_tags, '', 'Tags', msg, node);
                         if (!theTags) return;
-                        myURL = server  + "/profiles";
-                        if (node.login.authType === "oauth") myURL += '/oauth';
+                        let tmpTags = theTags.split(',');
+                        for (let k=0; k < tmpTags.length; k++) {
+                            tmpTags[k] = tmpTags[k].trim();
+                        }
+                        theTags = tmpTags.join();
+                        if (!theTags) return;
+                        //
+                        //  Build URL
+                        //
                         myURL += "/atom/search.do?profileTags=" + theTags + '&format=full&ps=1000&output=hcard&labels=true';
                         //
                         // get Profile By Tags
@@ -86,7 +100,7 @@ module.exports = function(RED) {
                                 node.status({});
                                 node.send(msg);     
                             } catch (error) {
-                                ICX.__logError(__moduleName, "ERROR INSIDE mainProcessing", null, error, msg, node);
+                                ICX.__logError(__moduleName, ICX.__getInfoFromError(error, "ERROR INSIDE mainProcessing"), null, error, msg, node);
                                 return;    
                             }
                         })
@@ -101,8 +115,9 @@ module.exports = function(RED) {
                         //
                         let freeSyntax = ICX.__getMandatoryInputString(__moduleName, config.freesyntax , msg.IC_freesyntax, '', 'Free Syntax', msg, node);
                         if (!freeSyntax) return;
-                        myURL = server  + '/profiles';
-                        if (node.login.authType === "oauth") myURL += "/oauth";
+                        //
+                        //  Build URL
+                        //
                         myURL += '/atom/search.do?' + freeSyntax +'&format=full&output=hcard&labels=true';
                         //
                         // get Profile By Keywords
@@ -114,7 +129,7 @@ module.exports = function(RED) {
                                 node.status({});
                                 node.send(msg);     
                             } catch (error) {
-                                ICX.__logError(__moduleName, "ERROR INSIDE mainProcessing", null, error, msg, node);
+                                ICX.__logError(__moduleName, ICX.__getInfoFromError(error, "ERROR INSIDE mainProcessing"), null, error, msg, node);
                                 return;    
                             }
                         })
@@ -134,7 +149,7 @@ module.exports = function(RED) {
                                 node.status({});
                                 node.send(msg);     
                             } catch (error) {
-                                ICX.__logError(__moduleName, "ERROR INSIDE mainProcessing", null, error, msg, node);
+                                ICX.__logError(__moduleName, ICX.__getInfoFromError(error, "ERROR INSIDE mainProcessing"), null, error, msg, node);
                                 return;    
                             }
                         })
@@ -160,7 +175,7 @@ module.exports = function(RED) {
                                 node.status({});
                                 node.send(msg);     
                             } catch (error) {
-                                ICX.__logError(__moduleName, "ERROR INSIDE mainProcessing", null, error, msg, node);
+                                ICX.__logError(__moduleName, ICX.__getInfoFromError(error, "ERROR INSIDE mainProcessing"), null, error, msg, node);
                                 return;    
                             }
                         })

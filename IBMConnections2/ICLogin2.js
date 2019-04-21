@@ -857,6 +857,18 @@ module.exports = function(RED) {
                     userDetailObject.allAttributes['sound url'] = theFeed.window.document.querySelector(".sound.url").href;
                 }
                 //
+                //  Links
+                //
+                let links2 = entries[i].querySelectorAll("link");
+                userDetailObject.links = [];
+                for (let j=0; j < links2.length; j++) {
+                    let tmp = {};
+                    tmp.href = links2[j].getAttribute('href');
+                    tmp.type = links2[j].getAttribute('type');
+                    tmp.rel = links2[j].getAttribute('rel');
+                    userDetailObject.links.push(tmp);
+                }
+                //
                 //  Backward Compatibility
                 //
                 userDetailObject.userid = userDetailObject.allAttributes.uid;
@@ -865,6 +877,14 @@ module.exports = function(RED) {
                 userDetailObject.photo = userDetailObject.allAttributes.photo;
                 userDetailObject.key = userDetailObject.allAttributes['x-profile-key'],
                 userDetailObject.name = userDetailObject.allAttributes.n['given-name'] + ' ' + userDetailObject.allAttributes.n['family-name'];
+                if (userDetailObject.allAttributes.categories) {
+                    userDetailObject.tags = userDetailObject.allAttributes.categories.split(',');
+                    for (let j=0; j < userDetailObject.tags.length; j++) {
+                        userDetailObject.tags[j] = userDetailObject.tags[j].trim();
+                    }
+                } else {
+                    userDetailObject.tags = [];
+                }
                 ICX.__logJson(__moduleName, __isDebug, 'JSDOM Parsed user object', userDetailObject);
                 //
                 //  Check for other details about the user
@@ -939,6 +959,17 @@ module.exports = function(RED) {
                 //  Only one user expected
                 //
                 if (entries.length > 0) {
+                    //
+                    //  Complete the Links
+                    //
+                    let links1 = theFeed.window.document.querySelectorAll("feed > link");
+                    for (let j=0; j < links1.length; j++) {
+                        let tmp = {};
+                        tmp.href = links1[j].getAttribute('href');
+                        tmp.type = links1[j].getAttribute('type');
+                        tmp.rel = links1[j].getAttribute('rel');
+                        theResult[0].links.push(tmp);
+                    }
                     ICX.__logJson(__moduleName, __isDebug, 'Person Details for ' + theUser, theResult[0]);
                     return theResult[0];
                 } else {

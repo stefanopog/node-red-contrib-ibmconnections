@@ -140,7 +140,7 @@ function __logJson(moduleName, isDebug, logMsg, jsonObj, isConfig=false) {
 function __logError(moduleName, theString, config, error, theMsg, theNode) {
     var errString = moduleName + ' : ' + theString;
     console.log(errString);
-    theNode.status({fill: "red", shape: "dot", text: errString});
+    theNode.status({fill: "red", shape: "dot", text: theString});
     if (config) console.log(JSON.stringify(config, ' ', 2));
     if (error) {
         console.log(moduleName + ' : Error Follows : ');
@@ -188,6 +188,19 @@ function __logWarning(moduleName, theString, theNode) {
     __log(moduleName, __isDebug, warnString);
     theNode.status({fill: "yellow", shape: "dot", text: warnString});
     if (__isDebug) theNode.warn(warnString);
+}
+
+function __getInfoFromError(theError, theString) {
+    const zzzz = /{{([^}}\n]*)}}\n/g;
+    var yyyy = theError.message.match(zzzz);
+    if (yyyy && (yyyy.length > 0)) {
+        for (let k=0; k < yyyy.length; k++) {
+            yyyy[k] = yyyy[k].replace('{{', '').replace('}}\n', '');
+        }
+        return yyyy.join(' | ');
+    } else {
+        return theString;
+    }
 }
 
 function __getOptionValue(moduleName, theLimits, theOption, fromConfig, fromMsg, theNode) {
@@ -491,6 +504,7 @@ module.exports = {__log,
                   __logError, 
                   __logError2, 
                   __logWarning, 
+                  __getInfoFromError,
                   __getOptionValue, 
                   __getMandatoryInputStringFromSelect, 
                   __getMandatoryInputString, 
