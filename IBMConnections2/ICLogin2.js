@@ -857,16 +857,33 @@ module.exports = function(RED) {
                     userDetailObject.allAttributes['sound url'] = theFeed.window.document.querySelector(".sound.url").href;
                 }
                 //
-                //  Links
+                //  Links (from ENTRY)
                 //
                 let links2 = entries[i].querySelectorAll("link");
-                userDetailObject.links = [];
+                userDetailObject.links = {};
                 for (let j=0; j < links2.length; j++) {
                     let tmp = {};
                     tmp.href = links2[j].getAttribute('href');
                     tmp.type = links2[j].getAttribute('type');
-                    tmp.rel = links2[j].getAttribute('rel');
-                    userDetailObject.links.push(tmp);
+                    let rel = links2[j].getAttribute('rel').replace('http://www.ibm.com/xmlns/prod/sn/', '');
+                    if (userDetailObject.links[rel]) {
+                        if (Array.isArray(userDetailObject.links[rel])) {
+                            //
+                            //  Already an Array
+                            //
+                            userDetailObject.links[rel].push(tmp);
+                        } else {
+                            //
+                            //  Not yet an array. Transform it
+                            //  
+                            let oldTmp = userDetailObject.links[rel];
+                            userDetailObject.links[rel] = [];
+                            userDetailObject.links[rel].push(oldTmp);
+                            userDetailObject.links[rel].push(tmp);
+                        }
+                    } else {
+                        userDetailObject.links[rel] = tmp;
+                    }
                 }
                 //
                 //  Backward Compatibility
@@ -877,6 +894,9 @@ module.exports = function(RED) {
                 userDetailObject.photo = userDetailObject.allAttributes.photo;
                 userDetailObject.key = userDetailObject.allAttributes['x-profile-key'],
                 userDetailObject.name = userDetailObject.allAttributes.n['given-name'] + ' ' + userDetailObject.allAttributes.n['family-name'];
+                //
+                //  Tags
+                //
                 if (userDetailObject.allAttributes.categories) {
                     userDetailObject.tags = userDetailObject.allAttributes.categories.split(',');
                     for (let j=0; j < userDetailObject.tags.length; j++) {
@@ -960,15 +980,48 @@ module.exports = function(RED) {
                 //
                 if (entries.length > 0) {
                     //
-                    //  Complete the Links
+                    //  Complete the Links (from FEED)
                     //
                     let links1 = theFeed.window.document.querySelectorAll("feed > link");
                     for (let j=0; j < links1.length; j++) {
                         let tmp = {};
                         tmp.href = links1[j].getAttribute('href');
                         tmp.type = links1[j].getAttribute('type');
-                        tmp.rel = links1[j].getAttribute('rel');
-                        theResult[0].links.push(tmp);
+                        let rel = links1[j].getAttribute('rel').replace('http://www.ibm.com/xmlns/prod/sn/', '');
+                        //if (rel === 'ext-attr') tmp.attribute = links1[j].getAttribute('snx:extensionId');
+                        if (theResult[0].links[rel]) {
+                            if (rel === 'ext-attr') {
+                                //
+                                //  Extended Attribute
+                                //
+                                theResult[0].links[rel][links1[j].getAttribute('snx:extensionId')] = tmp;
+                            } else {
+                                //
+                                //  Not an extended attribute
+                                //
+                                if (Array.isArray(theResult[0].links[rel])) {
+                                    //
+                                    //  Already an Array
+                                    //
+                                    theResult[0].links[rel].push(tmp);
+                                } else {
+                                    //
+                                    //  Not yet an array. Transform it
+                                    //  
+                                    let oldTmp = theResult[0].links[rel];
+                                    theResult[0].links[rel] = [];
+                                    theResult[0].links[rel].push(oldTmp);
+                                    theResult[0].links[rel].push(tmp);
+                                }
+                            }
+                        } else {
+                            if (rel === 'ext-attr') {
+                                theResult[0].links[rel] = {};
+                                theResult[0].links[rel][links1[j].getAttribute('snx:extensionId')] = tmp;
+                            } else {
+                                theResult[0].links[rel] = tmp;
+                            }
+                        }
                     }
                     ICX.__logJson(__moduleName, __isDebug, 'Person Details for ' + theUser, theResult[0]);
                     return theResult[0];
