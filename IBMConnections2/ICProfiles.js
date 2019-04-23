@@ -168,7 +168,7 @@ module.exports = function(RED) {
                             try {
                                 node.status({fill:"blue",shape:"dot",text:"Retrieving " + mailAddr + "..."});
                                 if (mailExp.test(mailAddr)) {
-                                    msg.payload = await node.login.fromMailToId(mailAddr, config.links, config.photoBytes);
+                                    msg.payload = await node.login.getUserInfosFromMail(mailAddr, config.links, config.photoBytes);
                                 } else {
                                     msg.payload = await node.login.getUserInfosFromId(mailAddr, config.links, config.photoBytes);
                                 }
