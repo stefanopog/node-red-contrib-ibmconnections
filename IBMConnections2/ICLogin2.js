@@ -891,7 +891,7 @@ module.exports = function(RED) {
                 {
                     url: theURL,
                     method: "GET",
-                    headers: {"Content-Type": "application/atom+xml"},
+                    headers: {"Content-Type": "application/atom+xml", "User-Agent" : "Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0"},
                     auth: theAuth
                 },
             );
