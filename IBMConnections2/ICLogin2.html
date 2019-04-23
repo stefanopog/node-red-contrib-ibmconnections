@@ -61,7 +61,7 @@ SPDX-License-Identifier: Apache-2.0
         //
         //  re-enable the "setups" otherwise the current value will not be stored
         //
-        $("#setups *").prop('disabled', false);
+        $("#node-config-input-serverType").css({"pointer-events": "none", "cursor": "not-allowed", "background-color": "lightgrey", "opacity":"0.65"});   //.prop('disabled', false);
         //
         //  Clean the timer
         //
@@ -85,6 +85,7 @@ SPDX-License-Identifier: Apache-2.0
         //  service functions
         //
         function _updateIC_loginDisplayName(displayName, authType) {
+            debugger;
             //
             //  Once the node has been created, we cannot change anymore:
             //      - the choice (on prem/ cloud)
@@ -92,12 +93,10 @@ SPDX-License-Identifier: Apache-2.0
             //      - the OnPrem URL
             //      - the type of authorization that has been chosen
             //
-            $("#setups *").prop('disabled', true);
-            $("#cloudServer *").prop('disabled', true);
-            $("#premServer *").prop('disabled', true);
-            $("#authType *").prop('disabled', true);
-
-            debugger;
+            $("#node-config-input-serverType").css({"pointer-events": "none", "cursor": "not-allowed", "background-color": "lightgrey", "opacity":"0.65"}); //.prop('disabled', true);
+            $("#node-config-input-cloudServer").css({"pointer-events": "none", "cursor": "not-allowed", "background-color": "lightgrey", "opacity":"0.65"});   //.prop('disabled', true);
+            $("#node-config-input-server").css({"pointer-events": "none", "cursor": "not-allowed", "background-color": "lightgrey", "opacity":"0.65"});   //.prop('disabled', true);
+            $("#node-config-input-authType").css({"pointer-events": "none", "cursor": "not-allowed", "background-color": "lightgrey", "opacity":"0.65"});   //.prop('disabled', true);
             //
             //  We hide the credentials boxes
             //
@@ -116,7 +115,6 @@ SPDX-License-Identifier: Apache-2.0
             $("#node-config-start-oauth").toggleClass("disabled", ((v1.length === 0) || (v2.length === 0) || (v2 === '__PWRD__')));
         }
         function _updateIC_startBasicButton(e) {
-            debugger;
             var v1 = $("#node-config-input-username").val();
             var v2 = $("#node-config-input-password").val();
             $("#node-config-start-basic").toggleClass("disabled", ((v1.length === 0) || (v2.length === 0) || (v2 === '__PWRD__')));
@@ -166,14 +164,14 @@ SPDX-License-Identifier: Apache-2.0
             const oauthId = $("#node-config-input-oauthId").val();
             const oauthSecret = $("#node-config-input-oauthSecret").val();
             let myServer = '';
-            if ($("#node-config-input-serverType").val() === 'cloud') {
+            if (document.querySelector("#node-config-input-serverType").value  === 'cloud') {
                 myServer = $("#node-config-input-cloudServer").val();
             } else {
                 myServer = $("#node-config-input-server").val()
             }
             const url = 'ic-credentials/oauth?' +
                 'id=' + id + '&clientId=' + oauthId +
-                '&serverType=' + $("#node-config-input-serverType").val() +
+                '&serverType=' + document.querySelector("#node-config-input-serverType").value  +
                 '&server=' + myServer +
                 "&clientSecret=" + oauthSecret +
                 "&callback=" + encodeURIComponent(callback);
@@ -198,10 +196,10 @@ SPDX-License-Identifier: Apache-2.0
             const username = $("#node-config-input-username").val();
             const password = $("#node-config-input-password").val();
             let myServer = '';
-            if (document.querySelector("#node-config-input-serverType").value === 'cloud') {
-                myServer = document.querySelector("#node-config-input-cloudServer").value;
+            if (document.querySelector("#node-config-input-serverType").value  === 'cloud') {
+                myServer = $("#node-config-input-cloudServer").val();
             } else {
-                myServer = document.querySelector("#node-config-input-server").value;
+                myServer = $("#node-config-input-server").val();
             }
             const url = 'ic-credentials/basic?' +
                         'id=' + id + '&username=' + username +
@@ -300,14 +298,14 @@ SPDX-License-Identifier: Apache-2.0
 <div class="form-row" id="cloudServer">
     <label for="node-config-input-cloudServer"><i class="fa fa-arrow-circle-right"></i> Instance</label>
     <select id="node-config-input-cloudServer">
-                <option value="europe">European DC</option>
-                <option value="america">North America DC</option>
-            </select>
+        <option value="europe">European DC</option>
+        <option value="america">North America DC</option>
+    </select>
 </div>
 
 <div class="form-row" id="premServer">
     <label for="node-config-input-server"><i class="fa fa-server"></i> Server</label>
-    <input type="text" id="node-config-input-server" placeholder="Server">
+    <input type="text" id="node-config-input-server" placeholder="Server URL">
 </div>
 
 <br />

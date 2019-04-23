@@ -59,46 +59,6 @@ module.exports = function(RED) {
         }
     }
     //
-    //  Node-RED Configuration function
-    //
-    function ICLogin2(config) {
-		RED.nodes.createNode(this, config);
-
-		this.server      = config.server;
-		this.serverType  = config.serverType;
-		this.cloudServer = config.cloudServer;
-        this.authType    = config.authType;
-        this.displayName = config.displayName;
-        this.userId      = this.credentials.userId;
-		this.username    = this.credentials.username;
-		this.password    = this.credentials.password;
-		this.oauthId     = this.credentials.oauthId;
-		this.oauthSecret = this.credentials.oauthSecret;
-
-        this.getServer   = _ICLogin2_getServer(this.serverType, this.cloudServer, this.server);
-        //this.getContext  = _ICLogin2_getContext(this.server, this.serverType);
-
-        ICX.__log(__moduleName, __isDebug, "###############################################");
-        ICX.__logJson(__moduleName, __isDebug, "Credentials for [" + this.id + "] " + (this.name ? this.name : ""), this.credentials);
-        ICX.__log(__moduleName, __isDebug, "###############################################");
-
-    }
-    //
-    //  Exporting modules
-    //
-    RED.nodes.registerType("ICLogin2", ICLogin2,{
-                            credentials: {
-									username: {type:"text"},
-									password: {type:"password"},
-                                    oauthId: {type: "text"},
-                                    oauthSecret: {type: "password"},
-                                    expireTime: {type:"password"},
-                                    expiresIn: {type:"password"},
-                                    refreshTime: {type:"password"},
-                                    displayName: {type: "text"},
-                                    theServerType: {type: "text"}
-                        }});
-    //
     //  Debugging functions
     //
     function _ICLogin2_dumpCallback(err, result, data) {
@@ -173,129 +133,80 @@ module.exports = function(RED) {
         }
     }
     //
+    //  Recursive Function to parse a Profiles feed
     //
-    //
-    function _ICLogin2_parseServiceEntry(entry) {
-        var svc = {};
-        if (entry.title && entry.title[0]['_']) {
-            svc.title = entry.title[0]['_'];
-        } else if (entry.title && entry.title[0]) {
-            svc.title = entry.title[0];
-        }
-        if (entry.link) {
-            svc.href = entry.link[0]['$'].href;
-        }
-        return svc;
-    }
-
-    //
-    //  Getting information about the logging in user
-    //
-    function _ICLogin2_whoAmI(node_id, credentials, theServer, res, authType, serverType) {
-        var xml2js = require("xml2js");
-        var parser = new xml2js.Parser();
-        var theAuth;
-        var theURL;
-        if (authType === 'basic') {
-            theAuth = {user: credentials.username, password: credentials.password};
-            theURL = theServer + '/profiles/atom/profileService.do';
-        } else {
-            theAuth = {bearer: credentials.accessToken};
-            if (serverType === "cloud") {
-                theURL = theServer + '/profiles/oauth/atom/profileService.do';
-            } else {
-                theURL = theServer + '/profiles/oauth/atom/profileService.do';
-            }
-        }
-        //
-        //  Fetching "serviceconfig" document
-        //
-        request.get(
-            {url: theServer + '/activities/serviceconfigs',
-             method: 'GET',
-             headers:{
-                //"Content-Type" : "application/atom+xml; charset=UTF-8",
-                "User-Agent" : "Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0"
-             },
-             auth : theAuth
-            },
-            function(err1, response1, body1) {
-                if (err1) {
-                    console.log('fetching IC serviceconfig failed _whoAmI: ' + err1);
-                    return res.send(RED._("ic.error.svcconfig-fetch-failed"));
-                }
-                if (response1.statusCode >= 400) {
-                    console.log('fetching IC serviceconfig failed _whoAmI: ' +
-                                response1.statusCode + ": " + response1.message);
-                    console.log(JSON.stringify(response1, ' ', 2));
-                    return res.send(RED._("ic.error.svcconfig-fetch-failedd"));
-                }
+    function __getUserDetail(inputArray, inputClass, inputObject) {
+        for (let i=0; i < inputArray.length; i++) {
+            //
+            //  Parsing current level
+            //
+            let currentClass = '';
+            if (inputArray[i].className) {
                 //
-                //  Parse the Atom document
+                //  There is a new Attributes. 
                 //
-                parser.parseString(body1, function (err2, result2) {
-                    if (err2) {
-                        console.log("Parser Error svcconfig _whoAmI : " + err2);
-                        return res.send(RED._("ic.error.svcconfig-fetch-failed"));
-                    }
-                    var myData = new Array();
-                    if (result2.feed.entry) {
-                        var i=0;
-                        for (i = 0; i < result2.feed.entry.length; i++) {
-                            myData.push(_ICLogin2_parseServiceEntry(result2.feed.entry[i]));
+                currentClass = inputArray[i].className;
+                //
+                //  Is it a leaf or a node ?
+                //                       
+                if (inputArray[i].children && (inputArray[i].children.length > 0)) {
+                    //
+                    //  It is a node
+                    //
+                    if (inputObject[currentClass]) {
+                        //
+                        //  Another object with that name exists. 
+                        //  So it is an array
+                        //
+                        if (Array.isArray(inputObject[currentClass])) {
+                            //
+                            //  Already an Array..
+                            //
+                        } else {
+                            //
+                            //  Not yet an Array. Create one
+                            let tmp = inputObject[currentClass];
+                            inputObject[currentClass] = [];
+                            inputObject[currentClass].push(tmp);
                         }
+                        let newObject = {};
+                        inputObject[currentClass].push(newObject);
+                        __getUserDetail(inputArray[i].children, inputClass + '.' + currentClass, newObject);
                     } else {
-                        console.log("Parser Error svcconfig _whoAmI : NO ENTRY found");
-                        return res.send(RED._("ic.error.svcconfig-fetch-failed"));
+                        //
+                        //  No existing object.
+                        //  Create one
+                        //
+                        inputObject[currentClass] = {};
+                        __getUserDetail(inputArray[i].children, inputClass + '.' + currentClass, inputObject[currentClass]);
                     }
-                    console.log('This is the instance ServiceConfig document');
-                    console.log(JSON.stringify(myData, ' ', 2));
+                } else {
                     //
-                    //  Fetch user details
+                    //  Leaf
                     //
-                    request2.get(
-                        {url: theURL,
-                         method: "GET",
-                         headers:{
-                            "Content-Type" : "application/atom+xml", //; charset=UTF-8",
-                            "User-Agent" : "Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0"
-                         },
-                         auth: theAuth
-                        },
-                        function(err, response, body) {
-                            if (err) {
-                                console.log('fetching IC profile failed _whoAmI: ' + err);
-                                return res.send(RED._("ic.error.profile-fetch-failed"));
-                            }
-                            if (response.statusCode >= 400) {
-                                console.log('fetching IC profile failed _whoAmI: ' +
-                                            response.statusCode + ": " + response.message);
-                                console.log(JSON.stringify(response, ' ', 2));
-                                return res.send(RED._("ic.error.profile-fetch-failed"));
-                            }
-                            parser.parseString(body, function (err, result) {
-                                if (err) {
-                                    console.log("Parser Error _whoAmI : " + err);
-                                    return res.send(RED._("ic.error.profile-fetch-failed"));
-                                }
-                                if (result.service.workspace[0]['atom:title'][0]['_']) {
-                                    //
-                                    //  We set the "displayName" property of the credentials
-                                    //
-                                    credentials.displayName = result.service.workspace[0]['atom:title'][0]['_'];
-                                    credentials.userId = result.service.workspace[0].collection[0]['snx:userid'][0];
-                                    RED.nodes.addCredentials(node_id, credentials);
-                                    return res.send(RED._("ic.error.authorized"));
-                                } else {
-                                    console.log("Missing atom:title element _whoAmI" + err);
-                                    return res.send(RED._("ic.error.profile-fetch-failed"));
-                                }
-                            });
-                        }
-                    );
-                });
+                    inputObject[currentClass] = inputArray[i].innerHTML;
+                }
+            } else {
+                //
+                //  No className, so no new attribute
+                //
+                if (inputArray[i].children && (inputArray[i].children.length > 0)) {
+                    //
+                    //  It is a node
+                    //
+                    __getUserDetail(inputArray[i].children, inputClass, inputObject);
+                } else {
+                    //
+                    //  Leaf
+                    //  Nothing to do 
+                    //
+                    //console.log('=================================');
+                    //console.log('===== Nothing to do =============');
+                    //console.log(inputArray[i].innerHTML);
+                    //console.log('=================================');
+                }
             }
-        );
+        }
     }
     //
     //  get full Connections server URL
@@ -505,9 +416,6 @@ module.exports = function(RED) {
         } else {
             req.headers = {"User-Agent" : "Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0"};
         }
-        let camo = node.context();
-        let zorro = node.context().flow;
-        let zorro2 = node.context().global;
         //
         //  Delegation
         //        
@@ -694,79 +602,6 @@ module.exports = function(RED) {
                 return reject(err);
             }
         });
-    }
-    function __getUserDetail(inputArray, inputClass, inputObject) {
-        for (let i=0; i < inputArray.length; i++) {
-            //
-            //  Parsing current level
-            //
-            let currentClass = '';
-            if (inputArray[i].className) {
-                //
-                //  There is a new Attributes. 
-                //
-                currentClass = inputArray[i].className;
-                //
-                //  Is it a leaf or a node ?
-                //                       
-                if (inputArray[i].children && (inputArray[i].children.length > 0)) {
-                    //
-                    //  It is a node
-                    //
-                    if (inputObject[currentClass]) {
-                        //
-                        //  Another object with that name exists. 
-                        //  So it is an array
-                        //
-                        if (Array.isArray(inputObject[currentClass])) {
-                            //
-                            //  Already an Array..
-                            //
-                        } else {
-                            //
-                            //  Not yet an Array. Create one
-                            let tmp = inputObject[currentClass];
-                            inputObject[currentClass] = [];
-                            inputObject[currentClass].push(tmp);
-                        }
-                        let newObject = {};
-                        inputObject[currentClass].push(newObject);
-                        __getUserDetail(inputArray[i].children, inputClass + '.' + currentClass, newObject);
-                    } else {
-                        //
-                        //  No existing object.
-                        //  Create one
-                        //
-                        inputObject[currentClass] = {};
-                        __getUserDetail(inputArray[i].children, inputClass + '.' + currentClass, inputObject[currentClass]);
-                    }
-                } else {
-                    //
-                    //  Leaf
-                    //
-                    inputObject[currentClass] = inputArray[i].innerHTML;
-                }
-            } else {
-                //
-                //  No className, so no new attribute
-                //
-                if (inputArray[i].children && (inputArray[i].children.length > 0)) {
-                    //
-                    //  It is a node
-                    //
-                    __getUserDetail(inputArray[i].children, inputClass, inputObject);
-                } else {
-                    //
-                    //  Leaf
-                    //  Nothing to do 
-                    //
-                    //console.log('=================================');
-                    //console.log('===== Nothing to do =============');
-                    //console.log(inputArray[i].innerHTML);
-                    //console.log('=================================');
-                }
-            }
-        }
     }
     ICLogin2.prototype.getUserInfosFromMail = async function (mailAddress, withLinkroll=false, withPhoto=false) {
         var __msgText = 'getUserInfosFromMail: error getting profile for ' + mailAddress;
@@ -1036,6 +871,47 @@ module.exports = function(RED) {
             throw error;
         }
     }
+    async function whoAmI(credentials, theServer, authType) {
+        var __msgText = 'whoAmI: error executing whoAmI';
+        var __msgStatus = 'error executing whoAmI';
+        var theAuth;
+        var theURL = theServer;
+        if (authType === 'basic') {
+            theAuth = {user: credentials.username, password: credentials.password};
+            theURL += '/profiles/atom/profileService.do';
+        } else {
+            theAuth = {bearer: credentials.accessToken};
+            theURL += '/profiles/oauth/atom/profileService.do';
+        }
+        try {
+            //
+            //  Get the Profile Entry
+            //
+            let response = await rpn(
+                {
+                    url: theURL,
+                    method: "GET",
+                    headers: {"Content-Type": "application/atom+xml"},
+                    auth: theAuth
+                },
+            );
+            ICX.__logJson(__moduleName, __isDebug, "whoAmI OK", response);
+            //
+            //  Parse using JSDOM
+            //
+            __msgText = 'whoAmI: Parser error';
+            __msgStatus = 'Parser Error';
+            let theService = new JSDOM(response, {contentType: 'application/xml'});
+            let theCollection = theService.window.document.querySelectorAll("service > workspace > collection");
+            let displayName = theCollection[0].querySelectorAll('atom\\:title')[0].innerHTML;
+            let userId      = theCollection[0].querySelectorAll('snx\\:userid')[0].innerHTML;
+            return {displayName: displayName, userId : userId};
+        } catch (error) {
+            error.message = '{{' + __msgStatus + '}}\n' + error.message;
+            ICX.__logJson(__moduleName, true, "whoAmI : " + __msgText, error);
+            throw error;
+        }
+    }
     //
     //  Implementing first leg of OAuth 2.0
     //
@@ -1174,7 +1050,16 @@ module.exports = function(RED) {
                     //  We can now get the NAME of the user in order to update the
                     //  "displayName" in the UI
                     //
-                    _ICLogin2_whoAmI(node_id, credentials, theServer, res, 'oauth', serverType);
+                    whoAmI(credentials, theServer, 'oauth').then(async userDetails => {
+                        credentials.displayName = userDetails.displayName;
+                        credentials.userId = userDetails.userId;
+                        RED.nodes.addCredentials(node_id, credentials);
+                        return res.send(RED._("ic.error.authorized"));
+                    })
+                    .catch(error => {
+                        ICX.__logJson(__moduleName, true, "ERROR getting whoAmI", error);
+                        return res.status(error.statusCode).send(ICX.__getInfoFromError(error, "ERROR INSIDE WHOAMI"));    
+                    });       
                 } else {
                     //
                     //  on BlueMix
@@ -1194,7 +1079,16 @@ module.exports = function(RED) {
                             //  We can now get the NAME of the user in order to update the
                             //  "displayName" in the UI
                             //
-                            _ICLogin2_whoAmI(node_id, credentials, theServer, res, 'oauth', serverType);
+                            whoAmI(credentials, theServer, 'oauth').then(async userDetails => {
+                                credentials.displayName = userDetails.displayName;
+                                credentials.userId = userDetails.userId;
+                                RED.nodes.addCredentials(node_id, credentials);
+                                return res.send(RED._("ic.error.authorized"));
+                            })
+                            .catch(error => {
+                                ICX.__logJson(__moduleName, true, "ERROR getting whoAmI", error);
+                                return res.status(error.statusCode).send(ICX.__getInfoFromError(error, "ERROR INSIDE WHOAMI"));    
+                            });       
                         }
                     });
                 }
@@ -1218,8 +1112,58 @@ module.exports = function(RED) {
             server: server
         };
         RED.nodes.addCredentials(node_id, credentials);
-        _ICLogin2_whoAmI(node_id, credentials, server, res, 'basic', req.query.serverType);
+        
+        whoAmI(credentials, server, 'basic').then(async userDetails => {
+            credentials.displayName = userDetails.displayName;
+            credentials.userId = userDetails.userId;
+            RED.nodes.addCredentials(node_id, credentials);
+            return res.send(RED._("ic.error.authorized"));
+        })
+        .catch(error => {
+            ICX.__logJson(__moduleName, true, "ERROR getting whoAmI", error);
+            return res.status(error.statusCode).send(ICX.__getInfoFromError(error, "ERROR INSIDE WHOAMI"));    
+        });       
     });
+    //
+    //  Node-RED Configuration function
+    //
+    function ICLogin2(config) {
+		RED.nodes.createNode(this, config);
+
+		this.server      = config.server;
+		this.serverType  = config.serverType;
+		this.cloudServer = config.cloudServer;
+        this.authType    = config.authType;
+        this.displayName = config.displayName;
+        this.userId      = this.credentials.userId;
+		this.username    = this.credentials.username;
+		this.password    = this.credentials.password;
+		this.oauthId     = this.credentials.oauthId;
+		this.oauthSecret = this.credentials.oauthSecret;
+
+        this.getServer   = _ICLogin2_getServer(this.serverType, this.cloudServer, this.server);
+        //this.getContext  = _ICLogin2_getContext(this.server, this.serverType);
+
+        ICX.__log(__moduleName, __isDebug, "###############################################");
+        ICX.__logJson(__moduleName, __isDebug, "Credentials for [" + this.id + "] " + (this.name ? this.name : ""), this.credentials);
+        ICX.__log(__moduleName, __isDebug, "###############################################");
+
+    }
+    //
+    //  Exporting modules
+    //
+    RED.nodes.registerType("ICLogin2", ICLogin2,{
+                            credentials: {
+									username: {type:"text"},
+									password: {type:"password"},
+                                    oauthId: {type: "text"},
+                                    oauthSecret: {type: "password"},
+                                    expireTime: {type:"password"},
+                                    expiresIn: {type:"password"},
+                                    refreshTime: {type:"password"},
+                                    displayName: {type: "text"},
+                                    theServerType: {type: "text"}
+                        }});
 };
 /*
 
