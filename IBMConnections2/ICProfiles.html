@@ -49,50 +49,58 @@ SPDX-License-Identifier: Apache-2.0
                     value: false,
                     required: false
                 },
+                audio: {
+                    value: false,
+                    required: false
+                },
                 links: {
                     value: false,
                     required: false
                 },
             },
-            oneditprepare: updateFormProfilesGet
+            oneditprepare: __IC_updateFormProfilesGet
         });
 
-   function updateFormProfilesGet() {
+    function __IC_updateFormProfilesGet() {
+        if ((this.audio === undefined) || (this.audio === null)) {
+            this.audio = false;
+            document.querySelector("#node-input-audio").value = false;
+            document.querySelector("#node-input-audio").checked = false;
+        }
+        __IC_updateTargetProfilesGet();
+    }
+
+    function __IC_updateTargetProfilesGet() {
        switch (document.querySelector("#node-input-target").value) {
            case 'person' :
 	           document.querySelector("#targetRow").style.display = "inline";
                document.querySelector("#tagRow").style.display = "none";
                document.querySelector("#keywordRow").style.display = "none";
                document.querySelector("#syntaxRow").style.display = "none";
-               document.querySelector("#linkRow").style.display = "inline";
                break;
            case 'myself' :
                document.querySelector("#targetRow").style.display = "none";
                document.querySelector("#tagRow").style.display = "none";
                document.querySelector("#keywordRow").style.display = "none";
                document.querySelector("#syntaxRow").style.display = "none";
-               document.querySelector("#linkRow").style.display = "inline";
                break;
            case 'byTag' :
                document.querySelector("#targetRow").style.display = "none";
                document.querySelector("#tagRow").style.display = "inline";
                document.querySelector("#keywordRow").style.display = "none";
                document.querySelector("#syntaxRow").style.display = "none";
-               document.querySelector("#linkRow").style.display = "none";
                break;
            case 'byKeyword' :
                document.querySelector("#targetRow").style.display = "none";
                document.querySelector("#tagRow").style.display = "none";
                document.querySelector("#keywordRow").style.display = "inline";
                document.querySelector("#syntaxRow").style.display = "none";
-               document.querySelector("#linkRow").style.display = "none";
               break;
            case 'syntaxSearch' :
                document.querySelector("#targetRow").style.display = "none";
                document.querySelector("#tagRow").style.display = "none";
                document.querySelector("#keywordRow").style.display = "none";
                document.querySelector("#syntaxRow").style.display = "inline";
-               document.querySelector("#linkRow").style.display = "none";
                break;
        }
    }
@@ -106,7 +114,7 @@ SPDX-License-Identifier: Apache-2.0
 
     <div class="form-row">
         <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Target</label>
-        <select id="node-input-target" onchange="updateFormProfilesGet()">
+        <select id="node-input-target" onchange="__IC_updateTargetProfilesGet()">
 	       <option value="myself">Me</option>
 	       <option value="person">Someone else</option>
 	       <option value="byTag">Search By Tag</option>
@@ -114,9 +122,9 @@ SPDX-License-Identifier: Apache-2.0
 	       <option value="syntaxSearch">Free Syntax</option>
         </select>
     </div>
-    <div style="margin-left: 20px; display: block;" class="form-row" id="targetRow">
+    <div class="form-row" id="targetRow">
         <label for="node-input-targetValue"><i class="fa fa-odnoklassniki"></i> User</label>
-        <input type="text" id="node-input-targetValue" placeholder="User ID (ie. toto@myorg.com OR 51689d40-e7ed-102f-87b6-86a3c2278316)"></input>
+        <input type="text" id="node-input-targetValue" placeholder="comma-separated liist of User ID or Emails"></input>
     </div>
 
     <div class="form-row" id="tagRow">
@@ -142,13 +150,18 @@ SPDX-License-Identifier: Apache-2.0
     <hr />
 
     <div class="form-row">
-        <label for="node-input-photoBytes"><i class="fa fa-odnoklassniki" style="width: initial"></i> full photo</label>
+        <label for="node-input-photoBytes"><i class="fa fa-file-image-o" style="width: initial"></i> Full photo</label>
         <input style="display: inline-block; width: initial; vertical-align: top;" type="checkbox" name="photoBytes" id="node-input-photoBytes"></input>
     </div>
-    <div class="form-row" id="linkRow">
-        <label for="node-input-links"><i class="fa fa-odnoklassniki" style="width: initial"></i> Linkroll</label>
+    <div class="form-row">
+        <label for="node-input-links"><i class="fa fa-file-audio-o" style="width: initial"></i> Audio</label>
+        <input style="display: inline-block; width: initial; vertical-align: top;" type="checkbox" name="audio" id="node-input-audio"></input>
+    </div>
+    <div class="form-row">
+        <label for="node-input-links"><i class="fa fa-link" style="width: initial"></i> Linkroll</label>
         <input style="display: inline-block; width: initial; vertical-align: top;" type="checkbox" name="links" id="node-input-links"></input>
     </div>
+
 
     <hr/>
     <br/>
@@ -160,46 +173,138 @@ SPDX-License-Identifier: Apache-2.0
 </script>
 
 <script type="text/x-red" data-help-name="ICProfilesGet">
-   <p>Retrieves Profile informations for a given User</p>
-   <p>The user can be set either by specifying the <i>mail address</i> or the <i>Uuid</i> :
-   <ul>
-        <li>in the incoming <code>msg.target</code> property</li>
-        <li>in the configuration panel.<br/>
-            Configuration panel takes precedence on the <code>msg.target</code></li>
-    </ul>
-    </p>
     <p>
-    A set of users can also be retrieved by <b>TAG</b>: in that case, the comma-separated list of tags is the way in which one or more users are returned.
-    <br>This list can be specified either in the configuration panel or using the <code>msg.IC_tags</code> property in the input message.
+        A node that allows you to retrieve the information about one or more IBM Connections Profiles. 
+        <br />
+        The following functionalities are available:
+        <ul>
+            <li>
+                Retrieves the details of the profile of the user associated with the <b>Login node</b>
+            </li>
+            <li>
+                Retrieves the details of the profile of one or more users identified by their mail address or their IBM Connections's userid  (you can use both interchangeably)
+            </li>
+            <li>
+                Retrieves the details of multiple profiles, associated with a combination of <b>Tags</b> or <b>Keywords</b> or by an IBM Connections's <b>Search string</b>
+            </li>
+        </ul>
     </p>
-    <p>
-    A set of users can also be retrieved by <b>KEYWORD</b>: in that case, the syntax is the same as the one used by the IBM Connections user interface.
-    <br>This value can be specified either in the configuration panel or using the <code>msg.IC_keywords</code> property in the input message.
-    </p>
-    <p>
-    A set of users can also be retrieved by using a <b>FREE SYNTAX</b>: this is very technical and requires the understanding of the IBM Connections Profiles Search API. <br/>
-    The "Free Syntax" can contain anything that using the IBM Connections Profiles Search API can be specified after <i>/profiles/atom/search.do?</i>.
-    <br>This gives the possibility to build a very flexible and custom search string.
-    <br>The value for this parameter can be specified either in the configuration panel or using the <code>msg.IC_freeSyntax</code> property in the input message.
-    </p>
-    <br/>
-   <p><i>Returns:</i>
-   <ul>
-        <li><code>msg.payload</code> : a JSON object built with the value for the properties that are asked in the configuration panel. The object is empty if an error occurs 
+
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt class="optional">msg.IC_target
+            <span class="property-type">comma-separated string</span>
+        </dt>
+        <dd>
+            In case you choose to get the profile information for <b style="color:red">someone else</b>, you need to specify a comma-separated list of <code>uIBM Connections's userId</code> or <code>email address</code> for
+            the people you want to retrieve. The node is able to automatically distinguish between userIds and email addresses and you can mix them.
+            <br />
+            If only one user is specified, the <code>msg.payload</code> output will be a single object (or <b>null</b> if the user is not found); otherwise, <code>msg.payload</code> 
+            will be an array of objects (or an <b>empty array</b> if no users are found).
+            <br />
+            The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_target</code> attribute.
+        </dd>
+
+        <dt class="optional">msg.IC_tags
+            <span class="property-type">comma-separated string</span>
+        </dt>
+        <dd>
+            In case you choose to get the profile information matching a <b style="color:red">combination of Tags</b>, you need to specify a comma-separated list of <code>tags</code>. 
+            <br />
+            the <code>msg.payload</code> result is always an array of objects (or an <b>empty array</b> if no users are found).
+            <br />
+            The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_tags</code> attribute.
+        </dd>
+
+        <dt class="optional">msg.IC_keywords
+            <span class="property-type">comma-separated string</span>
+        </dt>
+        <dd>
+            In case you choose to get the profile information matching a <b style="color:red">combination of Keywords</b>, you need to specify a comma-separated list of <code>keywords</code>. 
+            <br />
+            the <code>msg.payload</code> result is always an array of objects (or an <b>empty array</b> if no users are found).
+            <br />
+            The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_keywords</code> attribute.
+        </dd>
+
+        <dt class="optional">msg.IC_freeSyntax
+            <span class="property-type">string</span>
+        </dt>
+        <dd>
+            In case you choose to get the profile information matching an <b style="color:red">IBM Connections's search criteria</b>, you need to specify a string defining the <code>search criteria</code>. 
+            <br />
+            the <code>msg.payload</code> result is always an array of objects (or an <b>empty array</b> if no users are found).
+            <br />
+            The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_freeSyntax</code> attribute.
+        </dd>
+        
+    </dl>
+
+    <h3>Note</h3>
+        If the processing fails or if mandatory inputs are missing, the node terminates with an error. 
+        <br />
+        The error object is the <strong>incoming msg object</strong> with the additional <code>msg.ICX_fatal</code> attribute which represents the reason for the error. 
+        The <code>msg.error</code> output attribute may also be present depending on the processing at the moment of the error.
+        <br />
+        You may want to catch errors using the <b style="color:red">standard NodeRed CATCH Node</b> as show in the example here below:
+        <img src="icons/node-red-contrib-ibmconnections/communityErrorCatching.png" />
+
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>msg.payload
+            <span class="property-type">object or Array of Objects</span>
+        </dt>
+        <dd>
+            The details that are returned for any retrieved profile are the following:
+            <img src="icons/node-red-contrib-ibmconnections/getProfiles-commonAttributes.png" />
             <ul>
-                <li><code>userid</code></li>
-                <li><code>name</code></li>
-                <li><code>title</code></li>
-                <li><code>email</code></li>
-                <li><code>key</code></li>
-                <li><code>photo</code></li>
-                <li><code>photoBytes</code>. This is a buffer representing the content of the photo image.</li>
-                <li><code>linkroll</code></li>
+                <li>
+                    <b>userId</b><br />
+                    The IBM Connections's userId for the user
+                </li>
+                <li>
+                    <b>key</b><br />
+                    The IBM Connections's Key for the user
+                </li>
+                <li>
+                    <b>mail</b><br />
+                    The IBM Connections's email address for the user
+                </li>
+                <li>
+                    <b>name</b><br />
+                    The full name for the user
+                </li>
+                <li>
+                    <b>title</b><br />
+                    The Title for the user
+                </li>
+                <li>
+                    <b>photo</b><br />
+                    The URL Link for the user's picture
+                </li>
+                <li>
+                    <b>tags</b><br />
+                    An Array containing all the tags associated to the profile (or an empty array if no tag is associated to the user)
+                </li>
+                <li>
+                    <b>links</b><br />
+                    An object containing all the links associated to the profile. Each link is itself an object qualified by an <i>href</i> and <i>type</i> attributes.
+                    <img src="icons/node-red-contrib-ibmconnections/getProfiles-Links.png" />
+                    Note that the number of Links returned depends on the query; all the Links are returned when you elicit to get the details for <i>me</i> or for <i>someone else</i>.
+                    In the other situations, a certain number of links is not returned, mainly those associated to the extension attributes, to the Activity Stream and to the social graph.
+                </li>
+                <li>
+                    <b>allAttributes</b><br />
+                    An object grouping all the attributes for the given profile in the exact same format as they appear from the IBM Connections's <b>vcard</b> associate to the user.
+                    Only some logical grouping have been proposed.<br />
+                    Note the <code>x-extension-property</code> array which references all the IBM Connections extension attributes.
+                    <img src="icons/node-red-contrib-ibmconnections/getProfiles-allAttributes.png" />
+                </li>
             </ul>
-        </li>
-    </ul>
-    </p>
-    <p>
-    <b>NOTE : </b>if a search by Tag, by Keyword or "free syntax" is performed, it is always returned an <i>array</i> of objects, each of them built as previously described for <i<msg.payload</i>
-    </p>
+            If the node has been configured to also return the <b>linkroll</b>, the <b>photoBytes</b> and the <b>prononciation</b>, additional attributes are appended as shown here below:
+            <img src="icons/node-red-contrib-ibmconnections/getProfiles-additional.png" />
+        </dd>
+    </dl>
+
 </script>

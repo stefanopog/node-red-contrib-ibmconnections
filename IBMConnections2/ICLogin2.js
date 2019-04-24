@@ -603,7 +603,7 @@ module.exports = function(RED) {
             }
         });
     }
-    ICLogin2.prototype.getUserInfosFromMail = async function (mailAddress, withLinkroll=false, withPhoto=false) {
+    ICLogin2.prototype.getUserInfosFromMail = async function (mailAddress, withLinkroll=false, withPhoto=false, withAudio=false) {
         var __msgText = 'getUserInfosFromMail: error getting profile for ' + mailAddress;
         var __msgStatus = 'error getting profile';
         ICX.__log(__moduleName, true, 'getUserInfosFromMail: convert ' + mailAddress + ' to ID');
@@ -621,7 +621,7 @@ module.exports = function(RED) {
             //
             //  Get the Profile Entry
             //
-            let userDetails = await this.getUserInfos(myURL, mailAddress, withLinkroll, withPhoto);
+            let userDetails = await this.getUserInfos(myURL, mailAddress, withLinkroll, withPhoto, withAudio);
             return userDetails;
         } catch (error) {
             error.message = '{{' + __msgStatus + '}}\n' + error.message;
@@ -629,7 +629,7 @@ module.exports = function(RED) {
             throw error;
         }
     }
-    ICLogin2.prototype.getUserInfosFromId = async function (userId, withLinkroll=false, withPhoto=false) {
+    ICLogin2.prototype.getUserInfosFromId = async function (userId, withLinkroll=false, withPhoto=false, withAudio=false) {
         var __msgText = 'getUserInfosFromId: error getting profile for ' + userId;
         var __msgStatus = 'error getting profile';
         //
@@ -643,7 +643,7 @@ module.exports = function(RED) {
             //
             //  Get the Profile Entry
             //
-            let userDetails = await this.getUserInfos(myURL, userId, withLinkroll, withPhoto);
+            let userDetails = await this.getUserInfos(myURL, userId, withLinkroll, withPhoto, withAudio);
             return userDetails;
         } catch (error) {
             error.message = '{{' + __msgStatus + '}}\n' + error.message;
@@ -651,7 +651,7 @@ module.exports = function(RED) {
             throw error;
         }
     }
-    ICLogin2.prototype.getUserInfos = async function(myURL, theUser, withLinkroll=false, withPhoto=false) {
+    ICLogin2.prototype.getUserInfos = async function(myURL, theUser, withLinkroll=false, withPhoto=false, withAudio=false) {
         var __msgText = 'getUserInfos: error getting profile for ' + theUser;
         var __msgStatus = 'error getting profile';
         try {
@@ -727,6 +727,7 @@ module.exports = function(RED) {
                 userDetailObject.mail = userDetailObject.allAttributes.email;
                 userDetailObject.title = userDetailObject.allAttributes.title;
                 userDetailObject.photo = userDetailObject.allAttributes.photo;
+                userDetailObject.pronounciation = userDetailObject.allAttributes['sound url'];
                 userDetailObject.key = userDetailObject.allAttributes['x-profile-key'],
                 userDetailObject.name = userDetailObject.allAttributes.n['given-name'] + ' ' + userDetailObject.allAttributes.n['family-name'];
                 //
@@ -800,6 +801,22 @@ module.exports = function(RED) {
                             url: userDetailObject.photo,
                             method: "GET",
                             headers: {"Content-Type": "image/*"},
+                            encoding: 'binary'
+                        }                    
+                    );
+                }
+                if (withAudio) {
+                    //
+                    //  Get the Profile Photo
+                    //
+                    __msgText = 'getUserInfos : error getting Profile Audio for ' + userDetailObject.name;
+                    __msgStatus = 'error getting Profile Audio';
+                    ICX.__log(__moduleName, true, 'getUserInfos: getting Profile Audio for ' + userDetailObject.name);
+                    userDetailObject.pronounciation = await this.rpn(
+                        {
+                            url: userDetailObject.pronounciation,
+                            method: "GET",
+                            headers: {"Content-Type": "audio/*"},
                             encoding: 'binary'
                         }                    
                     );
@@ -905,6 +922,11 @@ module.exports = function(RED) {
             let theCollection = theService.window.document.querySelectorAll("service > workspace > collection");
             let displayName = theCollection[0].querySelectorAll('atom\\:title')[0].innerHTML;
             let userId      = theCollection[0].querySelectorAll('snx\\:userid')[0].innerHTML;
+            let _editableFields  = theCollection[0].querySelectorAll('snx\\:editableField');
+            let editableFields = {};
+            for (let k=0; k < _editableFields.length; k++) {
+                editableFields[_editableFields[k].getAttribute('name')] = true;
+            }
             return {displayName: displayName, userId : userId};
         } catch (error) {
             error.message = '{{' + __msgStatus + '}}\n' + error.message;

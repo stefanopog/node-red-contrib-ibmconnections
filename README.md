@@ -8,6 +8,14 @@ Node-RED IBM Connections Nodes
 This package contains a set of nodes to interact with IBM Connections.
 
 # *Changes*
+
+## Changes in V1.5.0
+* The **Get Community** node has been completely redesigned to return full details of the Community/ies. <br />See the node help for more details.<br /> <b style="color:red">Note</b> that some of the incoming input attributes may have been renamed. 
+* A new **Create/Update Community** node has been created which allows you to either **create** or **modify** a new/existing Community (or Sub-Community). This node allows you to manage the Community Membership, as well as the list of **widgets/applications** that are part of the Community. It is also possible to set/update the Community Logo image. <br />See the node help for more details.
+* The **Get Profiles** node has been completely redesigned to return full details of the retrieved profiles. <br />See the node help for more details.<br /> <b style="color:red">Note</b> that some of the incoming input attributes may have been renamed. 
+* The previously mentioned nodes, **Get Profile**, **Get Community** and **Create/Update Community**, introduce <b style="color:red">a new Error Handling</b> approach that makes use of the standard NodeRed **Catch Node**. <br />See the node help for more details.
+* Support for **Delegation** (*X_LCONN_RUNAS*) for Cloud POST and PUT operations. This is an <b style="color:red">experimental feature</b>. In order to enable it, you need to set a global context variable (*X_CONN_RUNAS*) in the following way: <code>global.set("X_CONN_RUNAS", "node_id:user_id") </code> where *node_id* is the id of the Login node which performs the delegation and *user_id* is the id of the user who gets delegated
+
 ## Changes in V1.4.1
 * The **Get Files** node now returns also **folders** (optionally in a recursive way)
 * We added an **Upload File node** that enables uploading files to IBM Connections. The node supports uploading a file into the user's library and into a community's library.
@@ -22,7 +30,7 @@ This package will add the following nodes into your node-red palette :
 - The **Update Activity** node
 - The **Get Forum** node
 - The **Get Communities** node
-- The **Update Communities** node
+- The **Create/Update Communities** node
 - The **Get AS** node
 - The **Post to AS** node
 - The **Get Profiles** node
@@ -36,18 +44,14 @@ This node retrieves the content of the Activity Stream of yourself, of someone e
 
 
 ## The Post to AS node
-
 This node let you push some text (with or without an embedded experience) into the activity stream of yourself, of someone else or of a Community.
 
 
 ## The Get Profiles node
-
-This node retrieves the information from the profile of an IBM Connections user.
-This node now allows retrieving also the photo associated to the user.
+This node retrieves the complete information from the profile of an IBM Connections user.
 
 
 ## The Get Files node
-
 This node retrieves the files for the current user, for another user, for a community or the public files.
 It is possible to retrieve files SharedWith and/or SharedBy
 
@@ -57,47 +61,38 @@ Uploads a file to the file library of a user or a community in IBM Connections. 
 
 
 ## The New Activity node
-
 This node let you create a new Activity (you can specifiy if the Activity is based on a Template and if it needs to be created inside a Community)
 
 
 ## The Get Activities node
-
 This node let you retrieve the information for one or more Activities based on tags or on ID
 
 
 ## The Update Activity node
-
 This node let you add a Section, a Bookmark or a ToDO to an existing Activity.
-**NEW !** It also allows you to move an entry from one section to another.
+It also allows you to move an entry from one section to another.
 
 
 ## The New Activity node
-
 This node let you create a new Activity (you can specifiy if the Activity is based on a Template and if it needs to be created inside a Community)
 
 
 ## The Get Communities node
+This node let you retrieve all the information for one (specieid by an ID) or more Communities based on tags or on a search string.
 
-This node let you retrieve the information for one (specieid by an ID) or more Communities based on tags or on a search string.
 
-
-## The Update Communities node
-
-This node let you add or remove a Member from a Community
+## The Create/Update Communities node
+This node let you create a new Community (or Subcommunity) or modify an existing one. It supports full membership management, Community widget/application Management and setting/updating the Community Logo
 
 
 ## The Simple Search node
-
 This node performs a Simple Search on IBM Connections, based on flexible and customizable search criteria
 
 
 # LOGIN configuration node
-
 All the nodes described above require a configuration node in order to work. This is the **ICLogin** node.
 The node supports both **Basic Authentication** and **OAuth2.0 Authentication**. 
 The same configuration node can be reused across all the instances of the previously described nodes.
 
 # Supported environments
-
 These nodes are intended for **On-prem instances** of IBM Connections >= 4.0 and also for **IBM Connections Cloud**

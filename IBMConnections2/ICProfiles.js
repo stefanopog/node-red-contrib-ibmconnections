@@ -61,7 +61,7 @@ module.exports = function(RED) {
                         mainProcessing().then(async function() {
                             try {
                                 node.status({fill:"blue",shape:"dot",text:"Retrieving users by KEYWORD..."});
-                                msg.payload = await node.login.getUserInfos(myURL, 'TAGS', config.links, config.photoBytes);
+                                msg.payload = await node.login.getUserInfos(myURL, 'TAGS', config.links, config.photoBytes, config.audio);
                                 node.status({});
                                 node.send(msg);     
                             } catch (error) {
@@ -96,7 +96,7 @@ module.exports = function(RED) {
                         mainProcessing().then(async function() {
                             try {
                                 node.status({fill:"blue",shape:"dot",text:"Retrieving users by TAG..."});
-                                msg.payload = await node.login.getUserInfos(myURL, 'KEYWORDS', config.links, config.photoBytes);
+                                msg.payload = await node.login.getUserInfos(myURL, 'KEYWORDS', config.links, config.photoBytes, config.audio);
                                 node.status({});
                                 node.send(msg);     
                             } catch (error) {
@@ -113,7 +113,7 @@ module.exports = function(RED) {
                         //
                         //  Check if SearchString is specified. It is MANDATORY in this case
                         //
-                        let freeSyntax = ICX.__getMandatoryInputString(__moduleName, config.freesyntax , msg.IC_freesyntax, '', 'Free Syntax', msg, node);
+                        let freeSyntax = ICX.__getMandatoryInputString(__moduleName, config.freesyntax , msg.IC_freeSyntax, '', 'Free Syntax', msg, node);
                         if (!freeSyntax) return;
                         //
                         //  Build URL
@@ -125,7 +125,7 @@ module.exports = function(RED) {
                         mainProcessing().then(async function() {
                             try {
                                 node.status({fill:"blue",shape:"dot",text:"Retrieving users by SEARCH..."});
-                                msg.payload = await node.login.getUserInfos(myURL, 'SEARCH', config.links, config.photoBytes);
+                                msg.payload = await node.login.getUserInfos(myURL, 'SEARCH', config.links, config.photoBytes, config.audio);
                                 node.status({});
                                 node.send(msg);     
                             } catch (error) {
@@ -145,7 +145,7 @@ module.exports = function(RED) {
                         mainProcessing().then(async function() {
                             try {
                                 node.status({fill:"blue",shape:"dot",text:"Retrieving Current user..."});
-                                msg.payload = await node.login.getUserInfosFromId(node.login.userId, config.links, config.photoBytes);
+                                msg.payload = await node.login.getUserInfosFromId(node.login.userId, config.links, config.photoBytes, config.audio);
                                 node.status({});
                                 node.send(msg);     
                             } catch (error) {
@@ -164,13 +164,31 @@ module.exports = function(RED) {
                         //
                         let mailAddr = ICX.__getMandatoryInputString(__moduleName, config.targetValue , msg.IC_target, '', 'UserId', msg, node);
                         if (!mailAddr) return;
+                        //
+                        //  Check if the string is a comma-separated list of items
+                        //
+                        let theItems = mailAddr.split(',');
+                        let theUsers = [];
+                        for (let i=0; i < theItems.length; i++) {
+                            let trimmed = theItems[i].trim();
+                            if (trimmed !== '') theUsers.push(trimmed);
+                        }
+                        if (theUsers.length === 0) {
+                            ICX.__logError(__moduleName, "Empty target string", null, null, msg, node);
+                            return;
+                        }
                         mainProcessing().then(async function() {
                             try {
-                                node.status({fill:"blue",shape:"dot",text:"Retrieving " + mailAddr + "..."});
-                                if (mailExp.test(mailAddr)) {
-                                    msg.payload = await node.login.getUserInfosFromMail(mailAddr, config.links, config.photoBytes);
-                                } else {
-                                    msg.payload = await node.login.getUserInfosFromId(mailAddr, config.links, config.photoBytes);
+                                msg.payload = [];
+                                for (let i=0; i < theUsers.length; i++) {
+                                    node.status({fill:"blue",shape:"dot",text:"Retrieving " + theUsers[i] + "..."});
+                                    let tmpPayload;
+                                    if (mailExp.test(theUsers[i])) {
+                                        tmpPayload = await node.login.getUserInfosFromMail(theUsers[i], config.links, config.photoBytes, config.audio);
+                                    } else {
+                                        tmpPayload = await node.login.getUserInfosFromId(theUsers[i], config.links, config.photoBytes, config.audio);
+                                    }
+                                    if (tmpPayload !== null) msg.payload.push(tmpPayload);
                                 }
                                 node.status({});
                                 node.send(msg);     
