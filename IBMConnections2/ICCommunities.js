@@ -1267,7 +1267,7 @@ module.exports = function (RED) {
                             //
                             //  Retrieve myself
                             //
-                            let thisIsMe = await node.login.getUserInfosFromId(node.login.userId, false, false, false);
+                            let thisIsMe = await node.login.getUserInfosFromId(node.login.userId, false, false, false, false);
                             //
                             //  Prepare ATOM Entry to create the Community
                             //
@@ -1444,9 +1444,9 @@ module.exports = function (RED) {
                                     let userDetails = null;
                                     node.status({fill: "blue", shape: "dot", text: "User Details for " + theMembers[i].user});
                                     if (theMembers[i].user.match(__mailExp)) {
-                                        userDetails = await node.login.getUserInfosFromMail(theMembers[i].user, false, false, false);
+                                        userDetails = await node.login.getUserInfosFromMail(theMembers[i].user, false, false, false, false);
                                     } else {
-                                        userDetails = await node.login.getUserInfosFromId(theMembers[i].user, false, false, false);
+                                        userDetails = await node.login.getUserInfosFromId(theMembers[i].user, false, false, false, false);
                                     }
                                     //
                                     //  We have the information to Add or Remove the member

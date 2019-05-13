@@ -16,9 +16,16 @@ array.reduce((obj, item) => {
 }, {});
 */
 const xml2js = require("xml2js");
+const crypto = require("crypto");
 const __fs = require('fs')
 const __isDebug = __getDebugFlag();
 const __moduleName = 'IC_common';
+
+//const betweenQuotes = /((?<![\\])['"])((?:.(?!(?<![\\])\1))*.?)\1/;
+//const parExp = /(\w+)\s*=\s*(["'])((?:(?!\2).)*)\2[\s*,\s*]?/g; 
+//const parExp = /(\w+)\s*=\s*(((["'])((?:(?!\4).)*)\4)|([-+]?[0-9]*\.?[0-9]+))[\s*,\s*]?/g; // Modified for numbers
+const parExp = /([\w\.]+)\s*=\s*(((["'])((?:(?!\4).)*)\4)|(@dt)\('([\dTtZz\+-:]+)'\)|([-+]?[0-9]*\.?[0-9]+))[\s,]?/g; // Modified for Numbers and Dates
+const dateISO = /@dt\('([\+-]?\d{4}(?!\d{2}\b))(?:(-?)(?:(0[1-9]|1[0-2])(?:\2([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))(?:[T\s](?:(?:([01]\d|2[0-3])(?:(:?)([0-5]\d))?|24\:?00)([\.,]\d+(?!:))?)?(?:\10([0-5]\d)([\.,]\d+)?)?([zZ]|([\+-](?:[01]\d|2[0-3])):?([0-5]\d)?)?)?)?'\)/;
 
 //
 //  Wrapper around ICDebug environment variable
@@ -86,6 +93,19 @@ function __writeFile(path, dataopts = 'utf8') {
         })
     })
 }
+//
+//  function to use mcode from email
+//
+function __emailToMCode(email) {
+    let mcode;
+    if (email) {
+      const hash = crypto.createHash('sha256');
+      hash.update(email, 'utf-8');
+      mcode = hash.digest('hex').substring(0, 32);
+    }
+    return mcode;
+}
+
 //
 //  Get Connections Images (Profile, Community etc)
 //
@@ -391,7 +411,7 @@ function __getItemValuesFromMsg(theInput) {
         return theInput;
     }
 }
-function __getNameValueArray(inputString) {
+function __getNameValueObject(inputString) {
     //
     //  This function takes a comma-separated input string containing the following types of pairs:
     //      String pairs    :   name = "theString"    or   name = 'theString'
@@ -407,11 +427,6 @@ function __getNameValueArray(inputString) {
     //
     //  I use https://regexr.com/ to test my Regular expressions
     //
-    //const betweenQuotes = /((?<![\\])['"])((?:.(?!(?<![\\])\1))*.?)\1/;
-    //const parExp = /(\w+)\s*=\s*(["'])((?:(?!\2).)*)\2[\s*,\s*]?/g; 
-    //const parExp = /(\w+)\s*=\s*(((["'])((?:(?!\4).)*)\4)|([-+]?[0-9]*\.?[0-9]+))[\s*,\s*]?/g; // Modified for numbers
-    const parExp = /(\w+)\s*=\s*(((["'])((?:(?!\4).)*)\4)|(@dt)\('([\dTtZz\+-:]+)'\)|([-+]?[0-9]*\.?[0-9]+))[\s,]?/g; // Modified for Numbers and Dates
-    const dateISO = /@dt\('([\+-]?\d{4}(?!\d{2}\b))(?:(-?)(?:(0[1-9]|1[0-2])(?:\2([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))(?:[T\s](?:(?:([01]\d|2[0-3])(?:(:?)([0-5]\d))?|24\:?00)([\.,]\d+(?!:))?)?(?:\10([0-5]\d)([\.,]\d+)?)?([zZ]|([\+-](?:[01]\d|2[0-3])):?([0-5]\d)?)?)?)?'\)/;
     var m;
     var outObject = {};
     while ((m = parExp.exec(inputString))) {
@@ -449,23 +464,34 @@ function __getNameValueArray(inputString) {
         }
     }
     return outObject;
-
-
-    /*
+}
+function __getNameValueArray(inputString) {
     //
-    //  OLD IMPLEMENTAATION
+    //  This function takes a comma-separated input string containing the following types of pairs:
+    //      String pairs    :   name = "theString"    or   name = 'theString'
+    //      Numerica pairs  :   name = 123  or name = 123.45   (no quotes nor double quotes)
+    //      Date pairs      :   name = dt('ISO FORMATTED DATE STRING')    (using single quotes)
+    //  Equal sign can be surrounded by 0 or more white spaces (before and after)
     //
+    //  Thanks to :
+    //      - https://stackoverflow.com/questions/17007616/regular-expression-to-match-key-value-pairs-where-value-is-in-quotes-or-apostrop
+    //        for the RegEx matching string pairs
+    //      - https://stackoverflow.com/questions/21686539/regular-expression-for-full-iso-8601-date-syntax
+    //        for the RegEx matching an ISO Date
+    //
+    //  I use https://regexr.com/ to test my Regular expressions
+    //
+    var m;
     var outArray = [];
-    while (m = parExp.exec(inputString)) {
+    while ((m = parExp.exec(inputString))) {
         let obj = {};
         obj.name = m[1];
         if (m[3] === undefined) {
             if (m[6] === undefined) {
                 //
-                //  It is a number
+                //  It is a number. We need to convert it
                 //
                 obj.value = Number(m[2]);
-                outArray.push(obj);
             } else {
                 //
                 //  Potentially a Date ?
@@ -479,24 +505,20 @@ function __getNameValueArray(inputString) {
                         //  Valid Date
                         //
                         obj.value = {type: "datetime", data : m[7]};
-                        outArray.push(obj);
+                    } else {
+                        console.log('__getNameValueArray : NOT A VALID ISO DATE : ' + m[2]);
                     }
                 }
             }
         } else {
             //
-            //  It is a number, so we convert it
+            //  It is a string
             //
             obj.value = m[5];
-            outArray.push(obj);
         }
-        //console.dir('£££££££££');
-        //console.dir(m);
-        //console.dir(obj);
-        //console.dir('£££££££££');
+        outArray.push(obj);
     }
     return outArray;
-    */
 }
 
 module.exports = {__log, 
@@ -510,11 +532,13 @@ module.exports = {__log,
                   __getMandatoryInputString, 
                   __getMandatoryInputArray,
                   __getOptionalInputString,
+                  __getNameValueObject,
                   __getNameValueArray,
                   __getItemValuesFromMsg,
                   __getXmlAttribute,
                   __readFile,
                   __writeFile,
+                  __emailToMCode,
                   __getDebugFlag,
                   __getLConnRunAs,
                   __getBase64ImageFromUrl};

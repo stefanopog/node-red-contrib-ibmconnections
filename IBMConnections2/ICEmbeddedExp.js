@@ -5,23 +5,13 @@ SPDX-License-Identifier: Apache-2.0
 */
 
 module.exports = function(RED) {
-    var __isDebug = process.env.ICDebug || false;
-    var __moduleName = 'IC_EmbeddedExperience';
+    const ICX = require('./common.js');
+    const __isDebug = ICX.__getDebugFlag();
+    const __moduleName = 'IC_EmbeddedExperienc';
   
     console.log("*****************************************");
     console.log("* Debug mode is " + (__isDebug ? "enabled" : "disabled") + ' for module ' + __moduleName);
     console.log("*****************************************");
-  
-    const { __log, 
-        __logJson, 
-        __logError, 
-        __logWarning, 
-        __getOptionValue, 
-        __getMandatoryInputFromSelect, 
-        __getMandatoryInputString, 
-        __getOptionalInputString, 
-        __getNameValueArray,
-        __getItemValuesFromMsg } = require('./common.js');
 
     function ICASPut(config) {      
          RED.nodes.createNode(this,config);        

@@ -23,8 +23,10 @@ module.exports = function(RED) {
     const jsdom = require("jsdom");
     const { JSDOM } = jsdom;
     const xml2js = require("xml2js");
+    const crypto = require("crypto");
     //const parser = new xml2js.Parser();
-    const builder  = new xml2js.Builder({rootName: "content"});
+    //const builder  = new xml2js.Builder({rootName: "content"});
+
     //
     //  Managing storage for OAUTH credentials (on BlueMix)
     //
@@ -603,7 +605,57 @@ module.exports = function(RED) {
             }
         });
     }
-    ICLogin2.prototype.getUserInfosFromMail = async function (mailAddress, withLinkroll=false, withPhoto=false, withAudio=false) {
+    ICLogin2.prototype.getUserLinkroll = async function(theName, theKey) {
+        //
+        //  Get the LINKS associated to the Profile
+        //
+        var __msgText = 'getUserLinkroll: error getting Linkroll for ' + theName;
+        var __msgStatus = 'error getting Linkroll';
+        ICX.__log(__moduleName, true, 'getUserLinkroll: getting Profile Links for ' + theName);
+        try {
+            let linksURL = this.getServer + "/profiles";
+            if (this.authType === "oauth") linksURL += '/oauth';
+            linksURL += '/atom/profileExtension.do?key=' + theKey + '&extensionId=profileLinks';
+            let response2 = await this.rpn(
+                {
+                    url: linksURL,
+                    method: "GET",
+                    headers: {"Content-Type": "application/atom+xml"}
+                }                    
+            );
+            if (response2 !== '') {
+                ICX.__logJson(__moduleName, __isDebug, "getUserLinkroll: Linkroll OK", response2);
+                //
+                //  Parse Linkrool
+                //
+                __msgText = 'Parser error in getUserInfos Linkroll!';
+                __msgStatus = 'Linkroll Parser Error';
+                ICX.__log(__moduleName, true, 'getUserLinkroll: Parsing XML Linkroll Feed for ' + theName);
+                let result2 = await ICX.__getXmlAttribute(response2);
+                if (result2.linkroll.link) {
+                    let links = [];
+                    for (let i=0; i < result2.linkroll.link.length; i++) {
+                        let theLink = {};
+                        theLink.name = result2.linkroll.link[i]["$"].name;
+                        theLink.url = result2.linkroll.link[i]["$"].url;
+                        links.push(theLink);
+                    }
+                    return links;
+                } else {
+                    ICX.__log(__moduleName, __isDebug, "getUserLinkroll: No Links found in Linkroll");
+                    return null;
+                }
+            } else {
+                ICX.__log(__moduleName, __isDebug, "getUserLinkroll: No Links found in Linkroll");
+                return null;
+            }
+        } catch (error) {
+            error.message = '{{' + __msgStatus + '}}\n' + error.message;
+            ICX.__logJson(__moduleName, true, "getUserLinkroll: " + __msgText, error);
+            throw error;
+        }
+    }
+    ICLogin2.prototype.getUserInfosFromMail = async function (mailAddress, adminOutput=false, withLinkroll=false, withPhoto=false, withAudio=false) {
         var __msgText = 'getUserInfosFromMail: error getting profile for ' + mailAddress;
         var __msgStatus = 'error getting profile';
         ICX.__log(__moduleName, true, 'getUserInfosFromMail: convert ' + mailAddress + ' to ID');
@@ -613,15 +665,25 @@ module.exports = function(RED) {
         var myURL = this.getServer + "/profiles";
         if (this.authType === "oauth") myURL += '/oauth';
         if (this.serverType === "cloud") {
-            myURL += "/atom/search.do?search=" + mailAddress + '&format=full&output=hcard&labels=true';
+            if (adminOutput) {
+ //               myURL += "/admin/atom/profileEntry.do?email=" + mailAddress;
+                myURL += "/admin/atom/profileEntry.do?mcode=" + ICX.__emailToMCode(mailAddress);
+            } else {
+                myURL += "/atom/search.do?search=" + mailAddress + '&format=full&output=hcard&labels=true';
+            }
         } else {
-            myURL += "/atom/profile.do?email=" + mailAddress + '&format=full&output=hcard&labels=true';
+            if (adminOutput) {
+//                myURL += "/admin/atom/profileEntry.do?email=" + mailAddress;
+                myURL += "/admin/atom/profileEntry.do?mcode=" + ICX.__emailToMCode(mailAddress);
+            } else {
+                myURL += "/atom/profile.do?email=" + mailAddress + '&format=full&output=hcard&labels=true';
+            }
         }
         try {
             //
             //  Get the Profile Entry
             //
-            let userDetails = await this.getUserInfos(myURL, mailAddress, withLinkroll, withPhoto, withAudio);
+            let userDetails = await this.getUserInfos(myURL, mailAddress, adminOutput, withLinkroll, withPhoto, withAudio);
             return userDetails;
         } catch (error) {
             error.message = '{{' + __msgStatus + '}}\n' + error.message;
@@ -629,7 +691,7 @@ module.exports = function(RED) {
             throw error;
         }
     }
-    ICLogin2.prototype.getUserInfosFromId = async function (userId, withLinkroll=false, withPhoto=false, withAudio=false) {
+    ICLogin2.prototype.getUserInfosFromId = async function (userId, adminOutput=false, withLinkroll=false, withPhoto=false, withAudio=false) {
         var __msgText = 'getUserInfosFromId: error getting profile for ' + userId;
         var __msgStatus = 'error getting profile';
         //
@@ -638,12 +700,16 @@ module.exports = function(RED) {
         ICX.__log(__moduleName, true, 'getUserInfosFromId: convert ' + userId + ' to Mail');
         var myURL = this.getServer + "/profiles";
         if (this.authType === "oauth") myURL += '/oauth';
-        myURL += "/atom/profile.do?userid=" + userId + '&format=full&output=hcard&labels=true';
+        if (adminOutput) {
+            myURL += "/admin/atom/profileEntry.do?userid=" + userId;
+        } else {
+            myURL += "/atom/profile.do?userid=" + userId + '&format=full&output=hcard&labels=true';
+        }
         try {
             //
             //  Get the Profile Entry
             //
-            let userDetails = await this.getUserInfos(myURL, userId, withLinkroll, withPhoto, withAudio);
+            let userDetails = await this.getUserInfos(myURL, userId, adminOutput, withLinkroll, withPhoto, withAudio);
             return userDetails;
         } catch (error) {
             error.message = '{{' + __msgStatus + '}}\n' + error.message;
@@ -651,12 +717,12 @@ module.exports = function(RED) {
             throw error;
         }
     }
-    ICLogin2.prototype.getUserInfos = async function(myURL, theUser, withLinkroll=false, withPhoto=false, withAudio=false) {
-        var __msgText = 'getUserInfos: error getting profile for ' + theUser;
+    ICLogin2.prototype.getUserInfosNormalAPI = async function(myURL, theUser, withLinkroll=false, withPhoto=false, withAudio=false) {
+        var __msgText = 'getUserInfosNormalAPI: error getting profile for ' + theUser;
         var __msgStatus = 'error getting profile';
         try {
             //
-            //  Get the Profile Entry
+            //  Get the Profile Entries. We get a Feed with 0, 1 or many entries
             //
             let response = await this.rpn(
                 {
@@ -665,11 +731,11 @@ module.exports = function(RED) {
                     headers: {"Content-Type": "application/atom+xml"}
                 }                    
             );
-            ICX.__logJson(__moduleName, __isDebug, "getUserInfos OK", response);
+            ICX.__logJson(__moduleName, __isDebug, "getUserInfosNormalAPI OK", response);
             //
             //  Parse using JSDOM
             //
-            __msgText = 'getUserInfos: Parser error in for ' + theUser;
+            __msgText = 'getUserInfosNormalAPI: Parser error in for ' + theUser;
             __msgStatus = 'Parser Error';
             let theFeed = new JSDOM(response, {contentType: 'application/xml'});
             let entries = theFeed.window.document.querySelectorAll("entry");
@@ -741,61 +807,20 @@ module.exports = function(RED) {
                 } else {
                     userDetailObject.tags = [];
                 }
-                ICX.__logJson(__moduleName, __isDebug, 'JSDOM Parsed user object', userDetailObject);
+                ICX.__logJson(__moduleName, __isDebug, 'getUserInfosNormalAPI: JSDOM Parsed user object', userDetailObject);
                 //
                 //  Check for other details about the user
                 //
                 if (withLinkroll) {
-                    //
-                    //  Get the LINKS associated to the Profile
-                    //
-                    __msgText = 'getUserInfos : error getting Linkroll for ' + userDetailObject.name;
-                    __msgStatus = 'error getting Linkroll';
-                    ICX.__log(__moduleName, true, 'getUserInfos: getting Profile Links for ' + userDetailObject.name);
-                    let linksURL = this.getServer + "/profiles";
-                    if (this.authType === "oauth") linksURL += '/oauth';
-                    linksURL += '/atom/profileExtension.do?key=' + userDetailObject.key + '&extensionId=profileLinks';
-                    let response2 = await this.rpn(
-                        {
-                            url: linksURL,
-                            method: "GET",
-                            headers: {"Content-Type": "application/atom+xml"}
-                        }                    
-                    );
-                    if (response2 !== '') {
-                        ICX.__logJson(__moduleName, __isDebug, "getUserInfos : Linkroll OK", response2);
-                        //
-                        //  Parse Linkrool
-                        //
-                        __msgText = 'Parser error in getUserInfos Linkroll!';
-                        __msgStatus = 'Linkroll Parser Error';
-                        ICX.__log(__moduleName, true, 'getUserInfos: Parsing XML Linkroll Feed for ' + userDetailObject.name);
-                        let result2 = await ICX.__getXmlAttribute(response2);
-                        if (result2.linkroll.link) {
-                            let links = [];
-                            for (let i=0; i < result2.linkroll.link.length; i++) {
-                                let theLink = {};
-                                theLink.name = result2.linkroll.link[i]["$"].name;
-                                theLink.url = result2.linkroll.link[i]["$"].url;
-                                links.push(theLink);
-                            }
-                            userDetailObject.linkroll = links;
-                        } else {
-                            userDetailObject.linkroll = null;
-                            ICX.__log(__moduleName, __isDebug, "getUserInfos : No Links found in Linkroll");
-                        }
-                    } else {
-                        userDetailObject.linkroll = null;
-                        ICX.__log(__moduleName, __isDebug, "getUserInfos : No Links found in Linkroll");
-                    }
+                    userDetailObject.linkroll = await this.getUserLinkroll(userDetailObject.name, userDetailObject.key);
                 }
                 if (withPhoto) {
                     //
                     //  Get the Profile Photo
                     //
-                    __msgText = 'getUserInfos : error getting Profile Photo for ' + userDetailObject.name;
+                    __msgText = 'getUserInfosNormalAPI: error getting Profile Photo for ' + userDetailObject.name;
                     __msgStatus = 'error getting Profile Photo';
-                    ICX.__log(__moduleName, true, 'getUserInfos: getting Profile Photo for ' + userDetailObject.name);
+                    ICX.__log(__moduleName, true, 'getUserInfosNormalAPI: getting Profile Photo for ' + userDetailObject.name);
                     userDetailObject.photoBytes = await this.rpn(
                         {
                             url: userDetailObject.photo,
@@ -809,9 +834,9 @@ module.exports = function(RED) {
                     //
                     //  Get the Profile Photo
                     //
-                    __msgText = 'getUserInfos : error getting Profile Audio for ' + userDetailObject.name;
+                    __msgText = 'getUserInfosNormalAPI: error getting Profile Audio for ' + userDetailObject.name;
                     __msgStatus = 'error getting Profile Audio';
-                    ICX.__log(__moduleName, true, 'getUserInfos: getting Profile Audio for ' + userDetailObject.name);
+                    ICX.__log(__moduleName, true, 'getUserInfosNormalAPI: getting Profile Audio for ' + userDetailObject.name);
                     userDetailObject.pronounciation = await this.rpn(
                         {
                             url: userDetailObject.pronounciation,
@@ -884,7 +909,170 @@ module.exports = function(RED) {
             }
         } catch (error) {
             error.message = '{{' + __msgStatus + '}}\n' + error.message;
-            ICX.__logJson(__moduleName, true, "getUserInfos : " + __msgText, error);
+            ICX.__logJson(__moduleName, true, "getUserInfosNormalAPI: " + __msgText, error);
+            throw error;
+        }
+    }
+    ICLogin2.prototype.getUserInfosAdminAPI = async function(myURL, theUser, withLinkroll=false, withPhoto=false, withAudio=false) {
+        var __msgText = 'getUserInfosAdminAPI: error getting profile for ' + theUser;
+        var __msgStatus = 'error getting profile';
+        try {
+            //
+            //  Get the Profile Entry. Here we GET 0 or 1 Entries, NOT A FEED !
+            //
+            let response = await this.rpn(
+                {
+                    url: myURL,
+                    method: "GET",
+                    headers: {"Content-Type": "application/atom+xml"}
+                }                    
+            );
+            ICX.__logJson(__moduleName, __isDebug, "getUserInfosAdminAPI OK", response);
+            //
+            //  Parse using JSDOM
+            //
+            __msgText = 'getUserInfosAdminlAPI: Parser error in for ' + theUser;
+            __msgStatus = 'Parser Error';
+            let theFeed = new JSDOM(response, {contentType: 'application/xml'});
+            let entries = theFeed.window.document.querySelectorAll("entry");
+            if (entries && (entries.length > 0)) {
+                //
+                //  We found the entry
+                //
+                let theEntry = entries[0];
+                let userDetailObject = {};
+                let attributes = theEntry.querySelectorAll("content > person")[0].firstChild.querySelectorAll("entry");
+                userDetailObject.allAttributes = {};
+                for (let j=0; j < attributes.length; j++) {
+                    let key = attributes[j].querySelectorAll('key')[0].innerHTML;
+                    let theData = attributes[j].querySelectorAll('value > data');
+                    userDetailObject.allAttributes[key]= theData[0].innerHTML;
+                }
+                //
+                //  Links
+                //
+                let links = theEntry.querySelectorAll("link");
+                userDetailObject.links = {};
+                for (let j=0; j < links.length; j++) {
+                    let tmp = {};
+                    tmp.href = links[j].getAttribute('href');
+                    tmp.type = links[j].getAttribute('type');
+                    let rel = links[j].getAttribute('rel').replace('http://www.ibm.com/xmlns/prod/sn/', '');
+                    if (userDetailObject.links[rel]) {
+                        if (Array.isArray(userDetailObject.links[rel])) {
+                            //
+                            //  Already an Array
+                            //
+                            userDetailObject.links[rel].push(tmp);
+                        } else {
+                            //
+                            //  Not yet an array. Transform it
+                            //  
+                            let oldTmp = userDetailObject.links[rel];
+                            userDetailObject.links[rel] = [];
+                            userDetailObject.links[rel].push(oldTmp);
+                            userDetailObject.links[rel].push(tmp);
+                        }
+                    } else {
+                        userDetailObject.links[rel] = tmp;
+                    }
+                }
+                //
+                //  Tags
+                //
+                let tags = theFeed.window.document.querySelectorAll("entry > category");
+                userDetailObject.tags = [];
+                for (let j=0; j < tags.length; j++) {
+                    if (tags[j].getAttribute('snx:type') && (tags[j].getAttribute('snx:type') === 'general')) {
+                        //
+                        //  It is a TAG
+                        //
+                        userDetailObject.tags.push(tags[j].getAttribute('term'));
+                    }
+                }
+                //
+                //  Backward Compatibility
+                //
+                userDetailObject.userid = userDetailObject.allAttributes['com.ibm.snx_profiles.base.guid'];
+                userDetailObject.mail = userDetailObject.allAttributes['com.ibm.snx_profiles.base.email'];
+                userDetailObject.title = userDetailObject.allAttributes['com.ibm.snx_profiles.base.jobResp'];
+                userDetailObject.photo = userDetailObject.links.image.href;
+                userDetailObject.pronounciation = userDetailObject.links.pronunciation.href;
+                userDetailObject.key = userDetailObject.allAttributes['com.ibm.snx_profiles.base.key'],
+                userDetailObject.name = userDetailObject.allAttributes['com.ibm.snx_profiles.base.displayName'];
+                //
+                //  Linkroll
+                //
+                if (withLinkroll) {
+                    userDetailObject.linkroll = await this.getUserLinkroll(userDetailObject.name, userDetailObject.key);
+                }
+                //
+                //  Photo
+                //
+                if (withPhoto) {
+                    //
+                    //  Get the Profile Photo
+                    //
+                    __msgText = 'getUserInfosNormalAPI: error getting Profile Photo for ' + userDetailObject.name;
+                    __msgStatus = 'error getting Profile Photo';
+                    ICX.__log(__moduleName, true, 'getUserInfosNormalAPI: getting Profile Photo for ' + userDetailObject.name);
+                    userDetailObject.photoBytes = await this.rpn(
+                        {
+                            url: userDetailObject.photo,
+                            method: "GET",
+                            headers: {"Content-Type": "image/*"},
+                            encoding: 'binary'
+                        }                    
+                    );
+                }
+                //
+                //  Pronounciation
+                //
+                if (withAudio) {
+                    //
+                    //  Get the Profile Photo
+                    //
+                    __msgText = 'getUserInfosNormalAPI: error getting Profile Audio for ' + userDetailObject.name;
+                    __msgStatus = 'error getting Profile Audio';
+                    ICX.__log(__moduleName, true, 'getUserInfosNormalAPI: getting Profile Audio for ' + userDetailObject.name);
+                    userDetailObject.pronounciation = await this.rpn(
+                        {
+                            url: userDetailObject.pronounciation,
+                            method: "GET",
+                            headers: {"Content-Type": "audio/*"},
+                            encoding: 'binary'
+                        }                    
+                    );
+                }
+                ICX.__logJson(__moduleName, __isDebug, 'Person Details for ' + theUser, userDetailObject);
+                return userDetailObject;
+            } else {
+                // 
+                //  No result found
+                //
+                ICX.__log(__moduleName, __isDebug, 'NO information found for Person  ' + theUser);
+                return null;
+            }
+        } catch (error) {
+            error.message = '{{' + __msgStatus + '}}\n' + error.message;
+            ICX.__logJson(__moduleName, true, "getUserInfosNormalAPI: " + __msgText, error);
+            throw error;
+        }
+    }
+    ICLogin2.prototype.getUserInfos = async function(myURL, theUser, adminOutput=false, withLinkroll=false, withPhoto=false, withAudio=false) {
+        var __msgText = 'getUserInfos: error getting profile for ' + theUser;
+        var __msgStatus = 'error getting profile';
+        try {
+            let userDetails = null;
+            if (adminOutput) {
+                userDetails = await this.getUserInfosAdminAPI(myURL, theUser, withLinkroll, withPhoto, withAudio);
+            } else {
+                userDetails = await this.getUserInfosNormalAPI(myURL, theUser, withLinkroll, withPhoto, withAudio);
+            }
+            return userDetails;
+        } catch (error) {
+            error.message = '{{' + __msgStatus + '}}\n' + error.message;
+            ICX.__logJson(__moduleName, true, "getUserInfos: " + __msgText, error);
             throw error;
         }
     }
@@ -943,7 +1131,6 @@ module.exports = function(RED) {
             res.send(400);
             return;
         }
-        var crypto = require("crypto");
         var node_id = req.query.id;
         var callback = req.query.callback;
         var server = _ICLogin2_getServer(req.query.serverType, req.query.server, req.query.server);

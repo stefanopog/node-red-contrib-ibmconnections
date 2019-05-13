@@ -9,6 +9,13 @@ This package contains a set of nodes to interact with IBM Connections.
 
 # *Changes*
 
+## Changes in V1.6.0
+* A new **Set Profiles** node has been created which allows you to modify any editable attriibute (and/or tag) of any user within the same organization.  
+<strong style="color:red">This node requires to be associated with a LOGIN node attached to a user who has the Profile Administrator role for the organization.</strong>
+    * If <strong>on premises</strong>, this means that the user attached to the LOGIN node is in the <code>admin role</code> for the Profile application.
+    * If <strong>in cloud</strong>, this means that the user has the <code>Administrator role</code> for the Organization <strong style="color:red">AND</strong> the organization itself has been granted the <strong>delegation flag</strong>
+* The **Get Profiles** node can also return the profile attributes as they are returned by the **Profiles Administration API**.
+
 ## Changes in V1.5.0
 * The **Get Community** node has been completely redesigned to return full details of the Community/ies. <br />See the node help for more details.<br /> <b style="color:red">Note</b> that some of the incoming input attributes may have been renamed. 
 * A new **Create/Update Community** node has been created which allows you to either **create** or **modify** a new/existing Community (or Sub-Community). This node allows you to manage the Community Membership, as well as the list of **widgets/applications** that are part of the Community. It is also possible to set/update the Community Logo image. <br />See the node help for more details.
@@ -34,6 +41,7 @@ This package will add the following nodes into your node-red palette :
 - The **Get AS** node
 - The **Post to AS** node
 - The **Get Profiles** node
+- The **Set Profiles** node
 - The **Get Files** node
 - The **Upload File** node
 - The **Simple Search** node
@@ -49,6 +57,10 @@ This node let you push some text (with or without an embedded experience) into t
 
 ## The Get Profiles node
 This node retrieves the complete information from the profile of an IBM Connections user.
+
+
+## The Set Profiles node
+This node updates any editable attribute and/or profile for any user within the same organization.
 
 
 ## The Get Files node
