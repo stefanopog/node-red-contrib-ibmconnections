@@ -384,6 +384,45 @@ SPDX-License-Identifier: Apache-2.0
                         </li>
                     </ul>
                 </dd>
+                <dt>tags
+                    <span class="property-type">Array</span>
+                </dt>
+                <dd>
+                    An array where each items corresponds to one of the tags associated to the profile.
+                </dd>
+                <dt class="optional">tagCloud
+                    <span class="property-type">Object/span>
+                </dt>
+                <dd>
+                    This attribute will only be shown when the <strong>Admin Output</strong> checkbox is selected.
+                    <br />
+                    It is an object where each attribute has the name of one of the tags associated to the profile. For each tag, an object is attached with the following properties:
+                    <ul>
+                        <li><strong>frequency</strong><br />
+                            The number of times this tag is associated to the user
+                        </li>
+                        <li><strong>visibility</strong><br />
+                            The visibility of the tag
+                        </li>
+                        <li><strong>intensity</strong><br />
+                            The intensity (used to build the Tag cloud)
+                        </li>
+                        <li><strong>contributors</strong><br />
+                            This is an array of objects, where each object represents the details of the person who tagged, and has the following attributes:
+                            <ul>
+                                <li><strong>name</strong>
+                                </li>
+                                <li><strong>email</strong>
+                                </li>
+                                <li><strong>userId</strong>
+                                </li>
+                                <li><strong>key</strong>
+                                </li>
+                            </ul> 
+                        </li>
+                    </ul>
+                    <img src="icons/node-red-contrib-ibmconnections/getProfiles-tagCloud.png" />
+                </dd>
                 <dt class="optional">photoBytes
                     <span class="property-type">string</span>
                 </dt>
@@ -462,6 +501,18 @@ SPDX-License-Identifier: Apache-2.0
                         value: "",
                         required: false
                     },
+                    profileTagsAdd: {
+                        value: "",
+                        required: false
+                    },
+                    profileTagsRemove: {
+                        value: "",
+                        required: false
+                    },
+                    resetTags: {
+                        value: false,
+                        required: false
+                    },
                     fullOutput: {
                         value: false,
                         required: false
@@ -471,7 +522,24 @@ SPDX-License-Identifier: Apache-2.0
             });
     
         function __IC_updateFormProfilesSet() {
+            if ((this.resetTags === undefined) || (this.resetTags === null)) {
+                this.resetTags = false;
+                document.querySelector("#node-input-resetTags").value = false;
+                document.querySelector("#node-input-resetTags").checked = false;
+            }
+            if ((this.fullOutput === undefined) || (this.fullOutput === null)) {
+                this.fullOutput = false;
+                document.querySelector("#node-input-fullOutput").value = false;
+                document.querySelector("#node-input-fullOutput").checked = false;
+            }
             __IC_updateTargetProfilesSet();
+            if ((document.querySelector("#node-input-target").value === 'person') || (document.querySelector("#node-input-target").value === 'myself')) {
+                if (this.resetTags) {
+                    document.querySelector("#profileTagsRemove").style.display = "none";
+                } else {
+                    document.querySelector("#profileTagsRemove").style.display = "block";
+                }
+            }
         }
 
         function __IC_updateTargetProfilesSet() {
@@ -479,27 +547,47 @@ SPDX-License-Identifier: Apache-2.0
                 case 'person' :
                     document.querySelector("#targetRow").style.display = "block";
                     document.querySelector("#attributesRow").style.display = "block";
+                    document.querySelector("#profileTagsAdd").style.display = "block";
+                    document.querySelector("#profileTagsRemove").style.display = "block";
                     document.querySelector("#userInformation2").style.display = "block";
                     document.querySelector("#userInformation3").style.display = "none";
                     break;
                 case 'fromMsg' :
                     document.querySelector("#targetRow").style.display = "none";
                     document.querySelector("#attributesRow").style.display = "none";
+                    document.querySelector("#profileTagsAdd").style.display = "none";
+                    document.querySelector("#profileTagsRemove").style.display = "none";
                     document.querySelector("#userInformation2").style.display = "none";
                     document.querySelector("#userInformation3").style.display = "none";
                     break;
                 case 'myself' :
                     document.querySelector("#targetRow").style.display = "none";
                     document.querySelector("#attributesRow").style.display = "block";
-                    document.querySelector("#userInformation2").style.display = "none";
+                    document.querySelector("#profileTagsAdd").style.display = "block";
+                    document.querySelector("#profileTagsRemove").style.display = "block";
+                    document.querySelector("#userInformation2").style.display = "block";
                     document.querySelector("#userInformation3").style.display = "none";
                     break;
                 case 'editable' :
                     document.querySelector("#targetRow").style.display = "none";
                     document.querySelector("#attributesRow").style.display = "none";
+                    document.querySelector("#profileTagsAdd").style.display = "none";
+                    document.querySelector("#profileTagsRemove").style.display = "none";
                     document.querySelector("#userInformation2").style.display = "none";
                     document.querySelector("#userInformation3").style.display = "block";
                     break;
+            }
+        }
+
+        function __IC_updateTargetProfilesTags() {
+            if ((document.querySelector("#node-input-target").value === 'person') || (document.querySelector("#node-input-target").value === 'myself')) {
+                if (document.querySelector("#node-input-resetTags").checked) {
+                    document.querySelector("#profileTagsRemove").style.display = "none";
+                } else {
+                    document.querySelector("#profileTagsRemove").style.display = "block";
+                }
+            } else {
+                document.querySelector("#profileTagsRemove").style.display = "none";
             }
         }
     </script>
@@ -528,12 +616,51 @@ SPDX-License-Identifier: Apache-2.0
             <input type="text" id="node-input-attributes" placeholder="comma-separated list 'name = value' pairs"></input>
         </div>
 
-        <div class="form-tips" id="userInformation2" style="display:none">
-            <h4>Info</h4>
-            <p>The comma-separated list of 'name = value' pairs will be applied to ALL the selected Users !</p>
+        <div class="form-row" id="profileTagsAdd">
+            <label for="node-input-profileTagsAdd"><i class="fa fa-tags"></i> Tags to Add</label>
+            <input type="text" id="node-input-profileTagsAdd" placeholder="comma-separated list of tags(user, user...)" style="width:60%"/>
+            <div style="float: right">
+                <label for="node-input-resetTags" style="width: initial"> Reset</label>
+                <input type="checkbox" name="resetTags" id="node-input-resetTags" style="width: initial" onchange="__IC_updateTargetProfilesTags()"/>
+            </div>
         </div>
 
-        <div class="form-tips" id="userInformation3" style="display:none">
+        <div class="form-row" id="profileTagsRemove">
+            <label for="node-input-profileTagsRemove"><i class="fa fa-tags"></i> Tags to Remove</label>
+            <input type="text" id="node-input-profileTagsRemove" placeholder="comma-separated list of tags(user, user...)"/>
+        </div>
+    
+        <div class="form-tips" id="userInformation2" style="display:none; max-width:100%">
+            <h4>Info</h4>
+            <ul>
+                <li><strong>Attributes</strong><br />
+                    The comma-separated list of <code>name = value</code> pairs will be applied to <strong style="color:red">ALL</strong> the selected Users !
+                    <br />
+                    The <code>value</code> must be envclosed in single or double quotes.
+                </li>
+                <li><strong>Tags to Add</strong><br />
+                    To add new tags to <strong style="color:red">ALL</strong> the selected users, use the syntax <code>user1 (tag1, tag2, ...), user2 (tag3, ...), ...</code> 
+                    in the <strong>Tags to Add</strong> input.
+                    <br />
+                    This means that node will add the given tag (for instance <i>tag1</i>) to ALL selected users <strong>on behalf</strong> of <strong>user1</strong>>.
+                    <br />
+                    The user can be specified either as an email address or by it IBM Connections Uuid.
+                    <br />
+                    When checking the <strong>Reset</strong> checkbox, the tags will not be <strong>added</strong> but will <strong>replace</strong> any previously existing tags 
+                    from the tagging user and, obviously, the <strong>Tags to Remove</strong> input will not be available.
+                </li>
+                <li><strong>Tags to Remove</strong><br />
+                    To remove tags to <strong style="color:red">ALL</strong> the selected users, use the syntax <code>user1 (tag1, tag2, ...), user2 (tag3, ...), ...</code>
+                    in the <strong>Tags to Remove</strong> input.
+                    <br />
+                    This means that node will remove the given tag (for instance <i>tag1</i>) to ALL selected users and <strong>on behalf</strong> of <strong>user1</strong>>.
+                    <br />
+                    The user can be specified either as an email address or by it IBM Connections Uuid.
+                </li>
+            </ul>
+        </div>
+
+        <div class="form-tips" id="userInformation3" style="display:none; max-width:100%">
             <h4>Info</h4>
             <p>This option is <strong style="color:red">just a convenience</strong> for you in order to see which are the names of the attributes you could change using this node.</p>
         </div>
@@ -628,6 +755,19 @@ SPDX-License-Identifier: Apache-2.0
                     </li>
                 </ul>
             </dd>
+
+            <dt>Reset
+                <span class="property-type">checkbox</span>
+            </dt>
+            <dd>
+                In case you choose to change the values of some attribute (and/or tags) for <b style="color:red">me</b> or <b style="color:red">someone else</b>, you 
+                are offered the possibility to specify which are the Tags that will be added to ALL the selected Users.
+                <br />
+                Checking the <strong>Reset</strong> checkbox implies that the Tags that will be specified will not be added to the existing tags, but <strong>will replace any existing tag</strong>.
+                You need to <strong style="color:red">use this option with care</strong>.
+                <br />
+                This flag can only be set from the Configuration Panel.
+            </dd>
         </dl>
     
         <h3>Inputs</h3>
@@ -675,6 +815,53 @@ SPDX-License-Identifier: Apache-2.0
                 </ul>
             </dd>
 
+            <dt class="optional">msg.IC_profileTagsToAdd
+                <span class="property-type">comma-separated string</span>
+            </dt>
+            <dd>
+                In case you choose to change the values of some attribute (and/or tags) for <b style="color:red">me</b> or <b style="color:red">someone else</b>, you need 
+                to specify the tags to be added (and the users on behanlf of which those tags are added).
+                <br />
+                The node is able to tag a person (speified by the <code>msg.IC_target</code> input or its equivalent from the Configuration Panel) <strong>on behalf of 
+                another user</strong> (who may not be the same user associated to the LOGIN node and which is specified in the text of this input attribute). So you may 
+                chose to have <strong>user2 and user3</strong> to tag <strong>user2</strong> with the <i>tag1</i> tag using the following syntax:
+                <br />
+                <code>user1 (tag1), user3 (tag1).</code>
+                <br />
+                In general the syntax is the following: <code>user1 (tag1, tag2, ...), user3 (tag3, ...), ...</code>, which means that <strong>user1</strong> adds  
+                the <strong> tag1, tag2 and other tags</strong> and <strong>user3</strong> adds <strong>tag3 and other tags</strong>.
+                <br />
+                <strong>No Error</strong> will be generated if the tag to be added is already present.
+                <br />
+                The user can be specified either as an email address or by it IBM Connections Uuid.
+                <br />
+                The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_profileTagsToAdd</code> attribute.
+            </dd>
+
+            <dt class="optional">msg.IC_profileTagsToRemove
+                <span class="property-type">comma-separated string</span>
+            </dt>
+            <dd>
+                In case you choose to change the values of some attribute (and/or tags) for <b style="color:red">me</b> or <b style="color:red">someone else</b>, you need 
+                to specify the tags to be added (and the users on behanlf of which those tags are added).
+                <br />
+                <br />
+                The node is able to remove a tag from a person (speified by the <code>msg.IC_target</code> input or its equivalent from the Configuration Panel) 
+                <strong>on behalf of another user</strong> (who may not be the same user associated to the LOGIN node and which is specified in the text of this input 
+                attribute). So you may chose to have <strong>user2 and user3</strong> to UNtag <strong>user2</strong> with the <i>tag1</i> tag using the following syntax:
+                <br />
+                <code>user1 (tag1), user3 (tag1).</code>
+                <br />
+                In general the syntax is the following: <code>user1 (tag1, tag2, ...), user3 (tag3, ...), ...</code>, which means that <strong>user1</strong> removes  
+                the <strong> tag1, tag2 and other tags</strong> and <strong>user3</strong> removes <strong>tag3 and other tags</strong>.
+                <br />
+                <strong>No Error</strong> will be generated if the tag to be added is already present.
+                <br />
+                The user can be specified either as an email address or by it IBM Connections Uuid.
+                <br />
+                The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_profileTagsToAdd</code> attribute.
+            </dd>         
+    
             <dt class="optional">msg.IC_attributesByUser
                 <span class="property-type">Array of Objects</span>
             </dt>
@@ -698,31 +885,80 @@ msg.IC_attributesByUser[0].attributes[0].value = "Name of Office";
 msg.IC_attributesByUser[0].attributes[1] = {};
 msg.IC_attributesByUser[0].attributes[1].name = "com.ibm.snx_profiles.base.mobileNumber";
 msg.IC_attributesByUser[0].attributes[1].value = "123-456-789";
-                        
-msg.IC_attributesByUser[1] = {};
-msg.IC_attributesByUser[1].user = 'B2FA2C3A-4C1E-04AF-8625-80CC006BECD5';
-msg.IC_attributesByUser[1].attributes = [];
-msg.IC_attributesByUser[1].attributes[0] = {};
-msg.IC_attributesByUser[1].attributes[0].name = "com.ibm.snx_profiles.base.bldgId";
-msg.IC_attributesByUser[1].attributes[0].value = "New York";
-msg.IC_attributesByUser[1].attributes[1] = {};
-msg.IC_attributesByUser[1].attributes[1].name = "com.ibm.snx_profiles.base.blogUrl";
-msg.IC_attributesByUser[1].attributes[1].value = "https://hreeds.greenwell.com/myBlog";
+msg.IC_attributesByUser[0].taggingUsers = [];
+msg.IC_attributesByUser[0].taggingUsers[0] = {};
+msg.IC_attributesByUser[0].taggingUsers[0].user = "userID_1";
+msg.IC_attributesByUser[0].taggingUsers[0].resetTags = false;
+msg.IC_attributesByUser[0].taggingUsers[0].tags = [];
+msg.IC_attributesByUser[0].taggingUsers[0].tags[0] = {};
+msg.IC_attributesByUser[0].taggingUsers[0].tags[0].tagName = 'tag1';
+msg.IC_attributesByUser[0].taggingUsers[0].tags[0].operation = 'add';
+msg.IC_attributesByUser[0].taggingUsers[0].tags[1] = {};
+msg.IC_attributesByUser[0].taggingUsers[0].tags[1].tagName = 'tag2';
+msg.IC_attributesByUser[0].taggingUsers[0].tags[1].operation = 'add';
+msg.IC_attributesByUser[0].taggingUsers[0].tags[2] = {};
+msg.IC_attributesByUser[0].taggingUsers[0].tags[2].tagName = 'tag3';
+msg.IC_attributesByUser[0].taggingUsers[0].tags[2].operation = 'remove';
+msg.IC_attributesByUser[0].taggingUsers[1] = {};
+msg.IC_attributesByUser[0].taggingUsers[1].user = "userID_1";
+msg.IC_attributesByUser[0].taggingUsers[1].resetTags = false;
+msg.IC_attributesByUser[0].taggingUsers[1].tags = [];
+msg.IC_attributesByUser[0].taggingUsers[1].tags[0] = {};
+msg.IC_attributesByUser[0].taggingUsers[1].tags[0].tagName = 'tag1';
+msg.IC_attributesByUser[0].taggingUsers[1].tags[0].operation = 'add';
+msg.IC_attributesByUser[0].taggingUsers[1].tags[1] = {};
+msg.IC_attributesByUser[0].taggingUsers[1].tags[1].tagName = 'tag2';
+msg.IC_attributesByUser[0].taggingUsers[1].tags[1].operation = 'add';
+msg.IC_attributesByUser[0].taggingUsers[1].tags[2] = {};
+msg.IC_attributesByUser[0].taggingUsers[1].tags[2].tagName = 'tag3';
+msg.IC_attributesByUser[0].taggingUsers[1].tags[2].operation = 'remove';
+
+msg.IC_attributesByUser[1] = {
+    user : "theUser@domain.com",
+    attributes : [
+        {
+            name: "com.ibm.snx_profiles.base.officeName",
+            value: 'Paris'
+        },
+        {
+            name: "com.ibm.snx_profiles.base.blogUrl",
+            value: 'http://this.com'
+        }
+    ],
+    taggingUsers : [
+        {
+            user: 'userID_3',
+            resetTags : true,
+            tags: [
+                {
+                    tagName: 'tag3',
+                    operation: 'add'
+                },
+                {
+                    tagName: 'tag4',
+                    operation: 'add'
+                }
+            ]
+        },
+        {
+            user: 'second@domain.com',
+            resetTags : false,
+            tags; [
+                {
+                    tagName: 'tag5',
+                    operation: 'add'
+                },
+                {
+                    tagName: 'tag6',
+                    operation: 'remove'
+                }
+            ]
+        }
+    ]
+};
+
                 </pre>                        
-            </dd>
- <!--
-            <dt class="optional">msg.IC_tags
-                <span class="property-type">comma-separated string</span>
-            </dt>
-            <dd>
-                In case you choose to get the profile information matching a <b style="color:red">combination of Tags</b>, you need to specify a comma-separated list of <code>tags</code>. 
-                <br />
-                the <code>msg.payload</code> result is always an array of objects (or an <b>empty array</b> if no users are found).
-                <br />
-                The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_tags</code> attribute.
-            </dd>
--->       
-            
+            </dd>            
         </dl>
 
         <h3>Output Options</h3>

@@ -10,11 +10,13 @@ This package contains a set of nodes to interact with IBM Connections.
 # *Changes*
 
 ## Changes in V1.6.0
-* A new **Set Profiles** node has been created which allows you to modify any editable attriibute (and/or tag) of any user within the same organization.  
+* A new **Set Profiles** node has been created which allows you to <strong style="color:red">modify any editable attriibute (and/or tag)</strong> of any user within the same organization.  
 <strong style="color:red">This node requires to be associated with a LOGIN node attached to a user who has the Profile Administrator role for the organization.</strong>
     * If <strong>on premises</strong>, this means that the user attached to the LOGIN node is in the <code>admin role</code> for the Profile application.
     * If <strong>in cloud</strong>, this means that the user has the <code>Administrator role</code> for the Organization <strong style="color:red">AND</strong> the organization itself has been granted the <strong>delegation flag</strong>
-* The **Get Profiles** node can also return the profile attributes as they are returned by the **Profiles Administration API**.
+* The **Get Profiles** node can also return, on demand:
+  * the profile attributes as they are returned by the **Profiles Administration API**.
+  * the tag Cloud of the user
 
 ## Changes in V1.5.0
 * The **Get Community** node has been completely redesigned to return full details of the Community/ies. <br />See the node help for more details.<br /> <b style="color:red">Note</b> that some of the incoming input attributes may have been renamed. 
@@ -60,7 +62,7 @@ This node retrieves the complete information from the profile of an IBM Connecti
 
 
 ## The Set Profiles node
-This node updates any editable attribute and/or profile for any user within the same organization.
+This node updates any editable attribute and/or tag for any user within the same organization.
 
 
 ## The Get Files node

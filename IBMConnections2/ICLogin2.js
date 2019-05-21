@@ -18,12 +18,11 @@ module.exports = function(RED) {
 
     const fs = require("fs");
     const request = require("request");
-    const request2 = require("request");
     const rpn = require("request-promise-native");
     const jsdom = require("jsdom");
     const { JSDOM } = jsdom;
-    const xml2js = require("xml2js");
     const crypto = require("crypto");
+    //const xml2js = require("xml2js");
     //const parser = new xml2js.Parser();
     //const builder  = new xml2js.Builder({rootName: "content"});
 
@@ -655,6 +654,64 @@ module.exports = function(RED) {
             throw error;
         }
     }
+    ICLogin2.prototype.getUserTagCloud = async function(theName, theKey) {
+        //
+        //  Get the Tags associated to the Profile using the Profiles Admin API
+        //
+        var __msgText = 'getUserTagCloud: error getting TagCloud for ' + theName;
+        var __msgStatus = 'error getting TagCloud';
+        ICX.__log(__moduleName, true, 'getUserTagCloud: getting TagCloud for ' + theName);
+        try {
+            let tagCloudURL = this.getServer + "/profiles";
+            if (this.authType === "oauth") linksURL += '/oauth';
+            tagCloudURL += '/admin/atom/profileTags.do?format=full&targetKey=' + theKey;
+            let response = await this.rpn(
+                {
+                    url: tagCloudURL,
+                    method: "GET",
+                    headers: {"Content-Type": "application/atom+xml"}
+                }                    
+            );
+            if (response !== '') {
+                ICX.__logJson(__moduleName, __isDebug, "getUserTagCloud: TagCloud OK", response);
+                //
+                //  Parse TagCloud
+                //
+                __msgText = 'Parser error in getUserTagCloud!';
+                __msgStatus = 'TagCloud Parser Error';
+                ICX.__log(__moduleName, true, 'getUserTagCloud: Parsing TagCloudl Feed for ' + theName);
+
+                let theService = new JSDOM(response, {contentType: 'application/xml'});
+                let rawTags = theService.window.document.querySelectorAll("app\\:categories > atom\\:category[snx:type='general']");
+                let allTags = {};
+                for (let i=0; i < rawTags.length; i++) {
+                    let theTag = {};
+                    theTag.frequency  = rawTags[i].getAttribute('snx:frequency');
+                    theTag.intensity  = rawTags[i].getAttribute('snx:intensityBin');
+                    theTag.visibility = rawTags[i].getAttribute('snx:visibilityBin');
+                    theTag.contributors = [];
+                    let contributors = rawTags[i].querySelectorAll('atom\\:contributor');
+                    for (let j=0; j < contributors.length; j++) {
+                        let theContributor = {};
+                        theContributor.name   = contributors[j].querySelectorAll('atom\\:name')[0].innerHTML;
+                        theContributor.email  = contributors[j].querySelectorAll('atom\\:email')[0].innerHTML;
+                        theContributor.userId = contributors[j].querySelectorAll('snx\\:userid')[0].innerHTML;
+                        theContributor.key    = contributors[j].getAttribute('snx:profileKey');
+                        theTag.contributors.push(theContributor);
+                    }
+                    allTags[rawTags[i].getAttribute('term')] = theTag;
+                }
+                return allTags;
+            } else {
+                ICX.__log(__moduleName, __isDebug, "getUserTagCloud: No TagCloud found");
+                return null;
+            }
+        } catch (error) {
+            error.message = '{{' + __msgStatus + '}}\n' + error.message;
+            ICX.__logJson(__moduleName, true, "getUserTagCloud: " + __msgText, error);
+            throw error;
+        }
+    }
     ICLogin2.prototype.getUserInfosFromMail = async function (mailAddress, adminOutput=false, withLinkroll=false, withPhoto=false, withAudio=false) {
         var __msgText = 'getUserInfosFromMail: error getting profile for ' + mailAddress;
         var __msgStatus = 'error getting profile';
@@ -666,14 +723,12 @@ module.exports = function(RED) {
         if (this.authType === "oauth") myURL += '/oauth';
         if (this.serverType === "cloud") {
             if (adminOutput) {
- //               myURL += "/admin/atom/profileEntry.do?email=" + mailAddress;
                 myURL += "/admin/atom/profileEntry.do?mcode=" + ICX.__emailToMCode(mailAddress);
             } else {
                 myURL += "/atom/search.do?search=" + mailAddress + '&format=full&output=hcard&labels=true';
             }
         } else {
             if (adminOutput) {
-//                myURL += "/admin/atom/profileEntry.do?email=" + mailAddress;
                 myURL += "/admin/atom/profileEntry.do?mcode=" + ICX.__emailToMCode(mailAddress);
             } else {
                 myURL += "/atom/profile.do?email=" + mailAddress + '&format=full&output=hcard&labels=true';
@@ -978,6 +1033,16 @@ module.exports = function(RED) {
                     }
                 }
                 //
+                //  Backward Compatibility
+                //
+                userDetailObject.userid = userDetailObject.allAttributes['com.ibm.snx_profiles.base.guid'];
+                userDetailObject.mail = userDetailObject.allAttributes['com.ibm.snx_profiles.base.email'];
+                userDetailObject.title = userDetailObject.allAttributes['com.ibm.snx_profiles.base.jobResp'];
+                userDetailObject.photo = userDetailObject.links.image.href;
+                userDetailObject.pronounciation = userDetailObject.links.pronunciation.href;
+                userDetailObject.key = userDetailObject.allAttributes['com.ibm.snx_profiles.base.key'],
+                userDetailObject.name = userDetailObject.allAttributes['com.ibm.snx_profiles.base.displayName'];
+                //
                 //  Tags
                 //
                 let tags = theFeed.window.document.querySelectorAll("entry > category");
@@ -991,15 +1056,9 @@ module.exports = function(RED) {
                     }
                 }
                 //
-                //  Backward Compatibility
+                //  Tag Cloud
                 //
-                userDetailObject.userid = userDetailObject.allAttributes['com.ibm.snx_profiles.base.guid'];
-                userDetailObject.mail = userDetailObject.allAttributes['com.ibm.snx_profiles.base.email'];
-                userDetailObject.title = userDetailObject.allAttributes['com.ibm.snx_profiles.base.jobResp'];
-                userDetailObject.photo = userDetailObject.links.image.href;
-                userDetailObject.pronounciation = userDetailObject.links.pronunciation.href;
-                userDetailObject.key = userDetailObject.allAttributes['com.ibm.snx_profiles.base.key'],
-                userDetailObject.name = userDetailObject.allAttributes['com.ibm.snx_profiles.base.displayName'];
+                userDetailObject.tagCloud = await this.getUserTagCloud(userDetailObject.name, userDetailObject.key);
                 //
                 //  Linkroll
                 //

@@ -26,6 +26,7 @@ const __moduleName = 'IC_common';
 //const parExp = /(\w+)\s*=\s*(((["'])((?:(?!\4).)*)\4)|([-+]?[0-9]*\.?[0-9]+))[\s*,\s*]?/g; // Modified for numbers
 const parExp = /([\w\.]+)\s*=\s*(((["'])((?:(?!\4).)*)\4)|(@dt)\('([\dTtZz\+-:]+)'\)|([-+]?[0-9]*\.?[0-9]+))[\s,]?/g; // Modified for Numbers and Dates
 const dateISO = /@dt\('([\+-]?\d{4}(?!\d{2}\b))(?:(-?)(?:(0[1-9]|1[0-2])(?:\2([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))(?:[T\s](?:(?:([01]\d|2[0-3])(?:(:?)([0-5]\d))?|24\:?00)([\.,]\d+(?!:))?)?(?:\10([0-5]\d)([\.,]\d+)?)?([zZ]|([\+-](?:[01]\d|2[0-3])):?([0-5]\d)?)?)?)?'\)/;
+const tagExp = /([\w\.\-@]+)\s*((([\(])((?:(?!\4).)*)[\)]))[\s,]?/g;
 
 //
 //  Wrapper around ICDebug environment variable
@@ -386,6 +387,32 @@ function __getOptionalInputString(moduleName, fromConfig, fromMsg, label, theNod
     }
     return theValue;
 }
+
+function __getOptionalInputArray(moduleName, fromConfig, fromMsg, label, theMsg, theNode) {
+    //
+    //  This function retrieves a value which can be provided
+    //  - either by the Configuration Panel
+    //  - or by an input msg. attribute
+    //
+    //  The value from the COnfiguration Panel takes precedence over the input msg. attribute
+    //
+    //  IF onlyFromMsg==="fromMsg", then any value from the ConfigurationPanel will NOT be taken in account (())
+    //
+    //  If no value is provided, an ERROR is generated and a NULL Value is returned
+    //
+    var theValue = null;
+    if ((fromConfig.trim() === '') && ((fromMsg === undefined) || (fromMsg === null) || !Array.isArray(fromMsg))) {
+        __logWarning(moduleName, "Missing " + label + " String or Array", theNode);
+    } else {
+        if (fromConfig.trim() !== '') {
+            theValue = fromConfig.trim();
+        } else {
+            theValue = fromMsg;
+        }
+    }
+    return theValue;
+}
+
 //
 //  If the input is an Array of objects, where each object has a "name" and a "value" attributes, it transforms it 
 //  in an object where each "name" becomes a first class attribute (with its associated value)
@@ -520,6 +547,32 @@ function __getNameValueArray(inputString) {
     }
     return outArray;
 }
+function __parseTagsString(inputString) {
+    //
+    //  This function takes a comma-separated input string containing the following types of pairs:
+    //      user1 (tag1, tag2), user2(tag3,tag4)
+    //  Parenthesis signs can be surrounded by 0 or more white spaces (before and after)
+    //
+    //  I use https://regexr.com/ to test my Regular expressions
+    //
+    var m;
+    var outArray = [];
+    while ((m = tagExp.exec(inputString))) {
+        if (m[5] && (m[5].trim() !== '')) {
+            let obj = {};
+            obj.user = m[1];
+            obj.tags = [];
+            let tmpArray = m[5].trim().split(',');
+            for (let i=0; i < tmpArray.length; i++) {
+                if (tmpArray[i].trim() !== '') {
+                    obj.tags.push(tmpArray[i].trim());
+                }
+            }
+            if (obj.tags.length > 0) outArray.push(obj);
+        }
+    }
+    return outArray;
+}
 
 module.exports = {__log, 
                   __logJson, 
@@ -532,8 +585,10 @@ module.exports = {__log,
                   __getMandatoryInputString, 
                   __getMandatoryInputArray,
                   __getOptionalInputString,
+                  __getOptionalInputArray,
                   __getNameValueObject,
                   __getNameValueArray,
+                  __parseTagsString,
                   __getItemValuesFromMsg,
                   __getXmlAttribute,
                   __readFile,

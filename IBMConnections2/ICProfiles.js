@@ -16,6 +16,11 @@ module.exports = function(RED) {
     const jsdom = require("jsdom");
     const { JSDOM } = jsdom;
 
+    const __ADD = 'add';
+    const __REMOVE = 'remove';
+    const __QUESTION_MARKS = '???';
+    const mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+
     function createModifyAttributeDocument(attributeName, attributeValue) {
         var theDocument = 
         `<entry><key>${attributeName}</key><value><type>text</type><data>${attributeValue}</data></value></entry>`;
@@ -36,7 +41,99 @@ module.exports = function(RED) {
         </entry>`;
         return theDocument;
     }
-    
+    function createTagsUpdateDocument(theTags) {
+        var theDocument = '<categories xmlns="http://www.w3.org/2007/app" xmlns:atom="http://www.w3.org/2005/Atom">';
+        for (let i=0; i < theTags.length; i++) {
+            theDocument += '<atom:category xmlns:snx="http://www.ibm.com/xmlns/prod/sn" term="' + theTags[i] + '" snx:frequency="1" snx:intensityBin="1" snx:visibilityBin="1" snx:type="general" />';
+        }
+        theDocument += '</categories>';
+        return theDocument;
+    }
+    function buildTagsByUser(sourceArray, targetArray, operation, resetTags) {
+        function __findUser(theUser, theArray) {
+            var theIndex = -1;
+            for (let i=0; i < theArray.length; i++) {
+                if (theArray[i].user === theUser) {
+                    theIndex = i;
+                    break;
+                }
+            }
+            return theIndex;
+        }
+        //
+        //  walking through users...
+        //
+        for (let i=0; i < sourceArray.length; i++) {
+            //
+            //  Walking through tags
+            //
+            let theUser = sourceArray[i].user.trim().toLowerCase();
+            for (let j=0; j < sourceArray[i].tags.length; j++) {
+                let tagName = sourceArray[i].tags[j];
+                let tagRecord = {};
+                tagRecord.tagName = tagName;
+                tagRecord.operation = operation;
+                let tmpIndex = __findUser(theUser, targetArray);
+                if (tmpIndex >= 0) {
+                    //
+                    //  Already exists
+                    //
+                    targetArray[tmpIndex].tags.push(tagRecord);
+                } else {
+                    //
+                    //  Does not exist yet
+                    //
+                    let userRecord = {};
+                    userRecord.user = theUser;
+                    userRecord.resetTags = resetTags;
+                    userRecord.key = __QUESTION_MARKS;
+                    userRecord.name = __QUESTION_MARKS;
+                    userRecord.existingTags = [];
+                    userRecord.tags = [];
+                    userRecord.tags.push(tagRecord);
+                    targetArray.push(userRecord);
+                }
+            }
+        }
+        return targetArray;
+    }
+    function getTagsByUser(tagsByUser, tagCloud) {
+        var outArray = [];
+        var isMail = mailExp.test(tagsByUser.user);
+        var theKeys = Object.keys(tagCloud);
+        for (let i=0; i < theKeys.length; i++) {
+            for (let j=0; j < tagCloud[theKeys[i]].contributors.length; j++) {
+                if (isMail) {
+                    if (tagCloud[theKeys[i]].contributors[j].email.toLowerCase() === tagsByUser.user.toLowerCase()) {
+                        //
+                        //  Tag found
+                        //
+                        outArray.push(theKeys[i]);
+                        //
+                        //  Complete the record
+                        //
+                        tagsByUser.key = tagCloud[theKeys[i]].contributors[j].key;
+                        tagsByUser.name = tagCloud[theKeys[i]].contributors[j].name;
+                        break;
+                    }
+                } else {
+                    if (tagCloud[theKeys[i]].contributors[j].userId.toLowerCase() === tagsByUser.user.toLowerCase()) {
+                        //
+                        //  Tag found
+                        //
+                        outArray.push(theKeys[i]);
+                        //
+                        //  Complete the record
+                        //
+                        tagsByUser.key = tagCloud[theKeys[i]].contributors[j].key;
+                        tagsByUser.name = tagCloud[theKeys[i]].contributors[j].name;
+                        break;
+                    }
+                }
+            }
+        }
+        return outArray;
+    }
     async function mainProcessing() {
         return;
     }
@@ -95,6 +192,28 @@ module.exports = function(RED) {
         } catch (error) {
             error.message = '{{' + __msgStatus + '}}\n' + error.message;
             ICX.__logJson(__moduleName, true, "updateProfile : " + __msgText, error);
+            throw error;
+        }
+    }
+    async function setProfileTagsAdmin(loginNode, sourceName, sourceKey, targetName, targetKey, theTags) {
+        var theURL = loginNode.getServer + "/profiles/admin/atom/profileTags.do?targetKey=" + targetKey + '&sourceKey=' + sourceKey;
+        var __msgText = 'error setProfileTagsAdmin for ' + targetName + ' (' + sourceName + ')';
+        var __msgStatus = 'No setProfileTagsAdmin';
+        try {
+            ICX.__log(__moduleName, true, 'setProfileTagsAdmin: getting tags set by ' + targetName + ' on ' + sourceName + ' with URL ' + theURL);
+            let response = await loginNode.rpn(
+                {
+                    url: theURL,
+                    method: "PUT",
+                    body: createTagsUpdateDocument(theTags),
+                    headers: {"Content-Type": "application/atom+xml"}
+                }                    
+            );
+            ICX.__logJson(__moduleName, __isDebug, "setProfileTagsAdmin OK", response);
+            return response;
+        } catch (error) {
+            error.message = '{{' + __msgStatus + '}}\n' + error.message;
+            ICX.__logJson(__moduleName, true, "setProfileTagsAdmin : " + __msgText, error);
             throw error;
         }
     }
@@ -299,7 +418,6 @@ module.exports = function(RED) {
         this.login = RED.nodes.getNode(config.server);
 		const node = this;
 
-        const mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
         const server = node.login.getServer;
         
         this.on(
@@ -311,189 +429,273 @@ module.exports = function(RED) {
                 //  Prepare for callbacks
                 //
                 switch (config.target) {
-                    case "myself" :
-                        {
-                            //
-                            //  Get the Attributes to be modified. It is MANDATORY in this case
-                            //
-                            let tmpAttributes = ICX.__getMandatoryInputArray(__moduleName, config.attributes , msg.IC_profileAttributes, '', 'Attributes', msg, node);
-                            if (!tmpAttributes) return;
-                            let theAttributes = null;
-                            if (Array.isArray(tmpAttributes)) {
-                                //
-                                //  Coming as an ARRAY from msg.IC_profileAttributes
-                                //
-                                theAttributes = tmpAttributes;
-                            } else {
-                                //
-                                //  Coming from Config Panel.
-                                //  Transform the comma-separated name=value string into an array
-                                //
-                                theAttributes = ICX.__getNameValueArray(tmpAttributes);
-                            }
-                            if (tmpAttributes.length === 0) {
-                                //
-                                //  Empty array. Not a good situation
-                                //
-                                ICX.__logError(__moduleName, "Empty Attributes Array", null, null, msg, node);
-                                return;
-                            }
-                            //
-                            //  Build the XML Document associated to each attribute to be modified
-                            //
-                            let attrDocs = [];
-                            for (let i=0; i < theAttributes.length; i++) {
-                                attrDocs[i] = createModifyAttributeDocument(theAttributes[i].name, theAttributes[i].value);
-                            }
-                            let wholeDoc = createUpdateAttributesDocument(attrDocs);
-                            //
-                            // get Profile Informations
-                            //
-                            mainProcessing().then(async function() {
-                                try {
-                                    node.status({fill:"blue",shape:"dot",text:"Retrieving Current user..."});
-                                    msg.payload = await updateProfile(node.login, node.login.userId, 'userid', wholeDoc, config.fullOutput);;
-                                    node.status({});
-                                    node.send(msg);     
-                                } catch (error) {
-                                    ICX.__logError(__moduleName, ICX.__getInfoFromError(error, "ERROR INSIDE mainProcessing"), null, error, msg, node);
-                                    return;    
-                                }
-                            })
-                            .catch(error => {
-                                ICX.__logError(__moduleName, "ERROR getting mainProcessing", null, error, msg, node);
-                                return;    
-                            });
-                            break;
-                        }
                     case "person" :
+                    case "myself" :
+                    case "fromMsg" :
                         {
-                            //
-                            //  Check if Target (userId or email) is specified. It is MANDATORY in this case
-                            //
-                            let mailAddr = ICX.__getMandatoryInputString(__moduleName, config.targetValue , msg.IC_target, '', 'UserId', msg, node);
-                            if (!mailAddr) return;
-                            //
-                            //  Check if the string is a comma-separated list of items
-                            //
-                            let theItems = mailAddr.split(',');
-                            let theUsers = [];
-                            for (let i=0; i < theItems.length; i++) {
-                                let trimmed = theItems[i].trim();
-                                if (trimmed !== '') {
-                                    theUsers.push(trimmed);
-                                }
-                            }
-                            if (theUsers.length === 0) {
-                                ICX.__logError(__moduleName, "Empty target string", null, null, msg, node);
-                                return;
-                            }
-                            //
-                            //  Get the Attributes to be modified. It is MANDATORY in this case
-                            //
-                            let tmpAttributes = ICX.__getMandatoryInputArray(__moduleName, config.attributes , msg.IC_profileAttributes, '', 'Attributes', msg, node);
-                            if (!tmpAttributes) return;
-                            let theAttributes = null;
-                            if (Array.isArray(tmpAttributes)) {
+                            let attributesByUser = [];
+                            if (config.target === 'person') {
                                 //
-                                //  Coming as an ARRAY from msg.IC_profileAttributes
+                                //  Check if Target (userId or email) is specified. It is MANDATORY in this case
                                 //
-                                theAttributes = tmpAttributes;
-                            } else {
+                                let mailAddr = ICX.__getMandatoryInputString(__moduleName, config.targetValue , msg.IC_target, '', 'UserId', msg, node);
+                                if (!mailAddr) return;
                                 //
-                                //  Coming from Config Panel.
-                                //  Transform the comma-separated name=value string into an array
+                                //  Check if the string is a comma-separated list of items
                                 //
-                                theAttributes = ICX.__getNameValueArray(tmpAttributes);
-                            }
-                            if (tmpAttributes.length === 0) {
-                                //
-                                //  Empty array. Not a good situation
-                                //
-                                ICX.__logError(__moduleName, "Empty Attributes Array", null, null, msg, node);
-                                return;
-                            }
-                            //
-                            //  Build the XML Document associated to each attribute to be modified
-                            //
-                            let attrDocs = [];
-                            for (let i=0; i < theAttributes.length; i++) {
-                                attrDocs[i] = createModifyAttributeDocument(theAttributes[i].name, theAttributes[i].value);
-                            }
-                            let wholeDoc = createUpdateAttributesDocument(attrDocs);
-                            mainProcessing().then(async function() {
-                                try {
-                                    msg.payload = [];
-                                    for (let i=0; i < theUsers.length; i++) {
-                                        node.status({fill:"blue",shape:"dot",text:"Updating " + theUsers[i] + "..."});
-                                        let tmpPayload;
-                                        if (mailExp.test(theUsers[i])) {
-                                            tmpPayload = await updateProfile(node.login, theUsers[i], 'email', wholeDoc, config.fullOutput);
-                                        } else {
-                                            tmpPayload = await updateProfile(node.login, theUsers[i], 'userid', wholeDoc, config.fullOutput);
-                                        }
-                                        if (tmpPayload !== null) msg.payload.push(tmpPayload);
-                                        ICX.__log(__moduleName, true, 'User ' + theUsers[i] + '  succesfully updated !!!');
+                                let theItems = mailAddr.split(',');
+                                for (let i=0; i < theItems.length; i++) {
+                                    let trimmed = theItems[i].trim();
+                                    if (trimmed !== '') {
+                                        attributesByUser.push({user : trimmed});
                                     }
-                                    node.status({});
-                                    node.send(msg);     
-                                } catch (error) {
-                                    ICX.__logError(__moduleName, ICX.__getInfoFromError(error, "ERROR INSIDE mainProcessing"), null, error, msg, node);
-                                    return;    
                                 }
-                            })
-                            .catch(error => {
-                                ICX.__logError(__moduleName, "ERROR getting mainProcessing", null, error, msg, node);
-                                return;    
-                            });
-                            break;
-                        }
-                    case "fromMsg":
-                        {
-                            //
-                            //  Get the Users/Attributes to be modified. It is MANDATORY in this case
-                            //
-                            let attributesByUser = null;
-                            if (!msg.IC_attributesByUser || !Array.isArray(msg.IC_attributesByUser) || (msg.IC_attributesByUser.length === 0)) {
-                                __logError(__moduleName, "No attributes by User specified", null, null, msg, node);
-                                return;
+                                if (attributesByUser.length === 0) {
+                                    ICX.__logError(__moduleName, "Empty target string", null, null, msg, node);
+                                    return;
+                                }
                             } else {
-                                //
-                                //  Processing
-                                //  We assume that the input Array is already in the right format
-                                //
-                                for (let i=0; i < msg.IC_attributesByUser.length; i++) {
-                                    if (!msg.IC_attributesByUser[i].user) {
-                                        //
-                                        //  User is NOT specified. This is an error
-                                        //
-                                        __logError(__moduleName, "No user specified at position " + i, null, null, msg, node);
+                                if (config.target === 'fromMsg') {
+                                    if (!msg.IC_attributesByUser || !Array.isArray(msg.IC_attributesByUser) || (msg.IC_attributesByUser.length === 0)) {
+                                        ICX.__logError(__moduleName, "No attributes by User specified", null, null, msg, node);
                                         return;
                                     }
+                                    attributesByUser = msg.IC_attributesByUser; 
+                                } else {
+                                    attributesByUser[0] = {user : node.login.userId};
                                 }
-                                attributesByUser = msg.IC_attributesByUser;
                             }
+                            if (config.target !== 'fromMsg') {
+                                //
+                                //  Get the List of Attributes to be modified. 
+                                //
+                                let tmpAttributes = ICX.__getOptionalInputArray(__moduleName, config.attributes , msg.IC_profileAttributes, 'Attributes', msg, node);
+                                //
+                                //  Check the Attributes
+                                //
+                                if (tmpAttributes) {
+                                    if (Array.isArray(tmpAttributes)) {
+                                        //
+                                        //  Coming as an ARRAY from msg.IC_profileAttributes
+                                        //
+                                        for (let iii=0; iii < attributesByUser.length; iii++) {
+                                            attributesByUser[iii].attributes = tmpAttributes;
+                                        }
+                                    } else {
+                                        //
+                                        //  Coming from Config Panel.
+                                        //  Transform the comma-separated name=value string into an array
+                                        //
+                                        let tmpAttributesArray = ICX.__getNameValueArray(tmpAttributes);
+                                        for (let iii=0; iii < attributesByUser.length; iii++) {
+                                            attributesByUser[iii].attributes = tmpAttributesArray;
+                                        }
+                                    }
+                                    if (attributesByUser[0].attributes.length === 0) {
+                                        //
+                                        //  Empty array. Not a good situation
+                                        //
+                                        ICX.__logWarning(__moduleName, "Empty Attributes Array", node);
+                                    }
+                                }
+                                //
+                                //  Get the List of Tags to be modified. 
+                                //
+                                let theTagsToAdd = [];
+                                let tmpTagsToAdd = ICX.__getOptionalInputString(__moduleName, config.profileTagsAdd , msg.IC_profileTagsToAdd, 'Tags to Add', node);
+                                //
+                                //  Check the Tags to be added
+                                //
+                                tmpTagsToAdd = tmpTagsToAdd.trim();
+                                if (tmpTagsToAdd !== '') {
+                                    theTagsToAdd = ICX.__parseTagsString(tmpTagsToAdd);
+                                }
+                                ICX.__logJson(__moduleName, __isDebug, 'Tags to be Added :', theTagsToAdd, false);
+                                //
+                                //  Get the List of Tags to be removed. 
+                                //
+                                let theTagsToRemove = [];
+                                let tmpTagsToRemove = '';
+                                if (!config.resetTags) {
+                                    tmpTagsToRemove= ICX.__getOptionalInputString(__moduleName, config.profileTagsRemove , msg.IC_profileTagsToRemove, 'Tags to Remove', node);
+                                    //
+                                    //  Check the Tags to be removed
+                                    //
+                                    tmpTagsToRemove = tmpTagsToRemove.trim();
+                                    if (tmpTagsToRemove !== '') {
+                                        theTagsToRemove = ICX.__parseTagsString(tmpTagsToRemove);
+                                    }
+                                    ICX.__logJson(__moduleName, __isDebug, 'Tags to be Removed :', theTagsToRemove, false);
+                                }
+                                //
+                                //  Now build an array of all the users who are concerned
+                                //
+                                let tagsByUser = [];
+                                if (theTagsToAdd.length > 0) tagsByUser = buildTagsByUser(theTagsToAdd, tagsByUser, __ADD, config.resetTags);
+                                if (theTagsToRemove.length > 0) tagsByUser = buildTagsByUser(theTagsToRemove, tagsByUser, __REMOVE, config.resetTags);
+                                for (let iii=0; iii < attributesByUser.length; iii++) {
+                                    attributesByUser[iii].taggingUsers = tagsByUser;
+                                }
+                            }
+                            //
+                            // Set Profile
+                            //
                             mainProcessing().then(async function() {
                                 try {
-                                    msg.payload = [];
-                                    for (let i=0; i < attributesByUser.length; i++) {
-                                        node.status({fill:"blue",shape:"dot",text:"Updating " + attributesByUser[i].user + "..."});
+                                    let payloadArray = [];
+                                    for (let theIndex = 0; theIndex < attributesByUser.length; theIndex++) {
                                         //
-                                        //  Build the update XML dcoument
+                                        //  Do we have all the information ?
                                         //
-                                        let attrDocs = [];
-                                        for (let j=0; j < attributesByUser[i].attributes.length; j++) {
-                                            attrDocs[j] = createModifyAttributeDocument(attributesByUser[i].attributes[j].name, attributesByUser[i].attributes[j].value);
+                                        if (attributesByUser[theIndex].attributes && (attributesByUser[theIndex].attributes.length === 0) && (attributesByUser[theIndex].taggingUsers.length === 0)) {
+                                            ICX.__logError(__moduleName, 'Not Enough Information on record ' + theIndex, node);
+                                            break;
                                         }
-                                        let wholeDoc = createUpdateAttributesDocument(attrDocs);
-                                        let tmpPayload;
-                                        if (mailExp.test(attributesByUser[i].user)) {
-                                            tmpPayload = await updateProfile(node.login, attributesByUser[i].user, 'email', wholeDoc, config.fullOutput);
+                                        //
+                                        //  Announcing
+                                        //
+                                        if (config.target === 'myself') {
+                                            node.status({fill:"blue",shape:"dot",text:"Updating Current user..."});
                                         } else {
-                                            tmpPayload = await updateProfile(node.login, attributesByUser[i].user, 'userid', wholeDoc, config.fullOutput);
+                                            node.status({fill:"blue",shape:"dot",text:"Updating user " + attributesByUser[theIndex].user + " ..."});
                                         }
-                                        if (tmpPayload !== null) msg.payload.push(tmpPayload);
-                                        ICX.__log(__moduleName, true, 'User ' + attributesByUser[i].user + '  succesfully updated !!!');
+                                        //
+                                        //  UPDATE ATTRIBUTES
+                                        //  ==================
+                                        //
+                                        //
+                                        //  Build the XML Document associated to each attribute to be modified
+                                        //
+                                        let targetPayload = null;
+                                        let attrDocs = [];
+                                        let wholeDoc = '';
+                                        if (attributesByUser[theIndex].attributes) {
+                                            for (let i=0; i < attributesByUser[theIndex].attributes.length; i++) {
+                                                attrDocs[i] = createModifyAttributeDocument(attributesByUser[theIndex].attributes[i].name, attributesByUser[theIndex].attributes[i].value);
+                                            }
+                                            wholeDoc = createUpdateAttributesDocument(attrDocs);
+                                        }
+                                        if (wholeDoc !== '') {
+                                            //
+                                            //  Perform the update of the attributes
+                                            //
+                                            if (mailExp.test(attributesByUser[theIndex].user)) {
+                                                targetPayload = await updateProfile(node.login, attributesByUser[theIndex].user, 'email', wholeDoc, true);
+                                            } else {
+                                                targetPayload = await updateProfile(node.login, attributesByUser[theIndex].user, 'userid', wholeDoc, true);
+                                            }
+                                        } else {
+                                            //
+                                            // Nothing to update. Get the information on the target user (since we are going to need it)
+                                            //
+                                            if (mailExp.test(theUsers[theIndex])) {
+                                                targetPayload = await node.login.getUserInfosFromMail(attributesByUser[theIndex].user, true, false, false, false);
+                                            } else {
+                                                targetPayload = await node.login.getUserInfosFromId(attributesByUser[theIndex].user, true, false, false, false);
+                                            }
+                                        }
+                                        //
+                                        //  UPDATE TAGS
+                                        //  ============
+                                        //  Now, for each of the users who are tagging the target user retrieve their existing TAGS on the target
+                                        //
+                                        for (let k=0; k < attributesByUser[theIndex].taggingUsers.length; k++) {
+                                            //
+                                            //  We need to first get the list of all TAGS from that source user (IN CASE the sourceUser already tagged the targetUser !!!)
+                                            //  and, then, amend it according to what we specified in the inputs
+                                            //
+                                            let allTheExistingTags = getTagsByUser(attributesByUser[theIndex].taggingUsers[k], targetPayload.tagCloud);
+                                            if (allTheExistingTags.length > 0) {
+                                                //
+                                                //  The sourceUser has already tagged the target user
+                                                //
+                                                if (attributesByUser[theIndex].taggingUsers[k].resetTags) {
+                                                    //
+                                                    //  In this case, we do not consider existing tags. We suppose that the source user did not tag the target user
+                                                    //
+                                                    //  NOTE : We performed the "getTagsByUser" call because it, as a side effect, retrievd the name and the key 
+                                                    //  of the source user
+                                                    //
+                                                    allTheExistingTags = [];
+                                                }
+                                                for (let tt=0; tt < attributesByUser[theIndex].taggingUsers[k].tags.length; tt++) {
+                                                    let tmpTag = attributesByUser[theIndex].taggingUsers[k].tags[tt].tagName;
+                                                    let tmpOperation = attributesByUser[theIndex].taggingUsers[k].tags[tt].operation;
+                                                    let tmpIndex = allTheExistingTags.indexOf(tmpTag);
+                                                    if (tmpOperation === __ADD) {
+                                                        //
+                                                        //  Add the tag to the list
+                                                        //
+                                                        if (tmpIndex === -1) allTheExistingTags.push(tmpTag);
+                                                    } else {
+                                                        //
+                                                        //  Remove the Tag from the list
+                                                        //
+                                                        if (tmpIndex !== -1) allTheExistingTags.splice(tmpIndex, 1);
+                                                    }
+                                                }
+                                                //
+                                                //  We can trust that getTagsByUser also completed the .key and .name information for the SOURCE USER !!
+                                                //
+                                            } else {
+                                                //
+                                                //  The source User NEVER tagged the target user.
+                                                //  Add all the tags to be added
+                                                //
+                                                for (let tt=0; tt < attributesByUser[theIndex].taggingUsers[k].tags.length; tt++) {
+                                                    if (attributesByUser[theIndex].taggingUsers[k].tags[tt].operation === __ADD) allTheExistingTags.push(attributesByUser[theIndex].taggingUsers[k].tags[tt].tagName);
+                                                }
+                                                //
+                                                //  Now get the details of the Source User as we do not have them since she never tagged the target before
+                                                //
+                                                let userPayload;
+                                                if (mailExp.test(theSourceUsers[k])) {
+                                                    userPayload = await node.login.getUserInfosFromMail(theSourceUsers[k], false, false, false, false);
+                                                } else {
+                                                    userPayload = await node.login.getUserInfosFromId(theSourceUsers[k], false, false, false, false);
+                                                }
+                                                if (userPayload !== null) {
+                                                    //
+                                                    //  User exists
+                                                    //
+                                                    attributesByUser[theIndex].taggingUsers[k].key = userPayload.key;
+                                                    attributesByUser[theIndex].taggingUsers[k].name = userPayload.name;
+                                                } else {
+                                                    //
+                                                    //  apparently this user DOES NOT EXIST
+                                                    //
+                                                    node.status({fill:"red",shape:"dot",text:"User " + theSourceUsers[k] + " does NOT EXIST !"});
+                                                    ICX.__logWarning(__moduleName, "User " + theSourceUsers[k] + " does NOT EXIST !", node);
+                                                }
+                                            }
+                                            //
+                                            //  So, now in allTheTags we have the list of Tags to be passed to the PUT operation for that specific SOURCE users
+                                            //
+                                            if (attributesByUser[theIndex].taggingUsers[k].key !== __QUESTION_MARKS) {
+                                                await setProfileTagsAdmin(node.login, attributesByUser[theIndex].taggingUsers[k].name, attributesByUser[theIndex].taggingUsers[k].key, targetPayload.name, targetPayload.key, allTheExistingTags)
+                                            }
+                                        }
+                                        //
+                                        //  Get back the TagCloud as it has likely been modified
+                                        //
+                                        targetPayload.tagCloud = await node.login.getUserTagCloud(targetPayload.name, targetPayload.key);
+                                        payloadArray.push(targetPayload);
+                                        ICX.__log(__moduleName, true, 'User ' + targetPayload.name + '  succesfully updated !!!');
+                                    }
+                                    if (config.target === 'myself') {
+                                        msg.payload = payloadArray[0];
+                                    } else {
+                                        if (payloadArray) {
+                                            if (payloadArray.length === 1) {
+                                                msg.payload = payloadArray[0];
+                                            } else {
+                                                if (payloadArray.length === 0) {
+                                                    msg.payload = null;
+                                                } else {
+                                                    msg.payload = payloadArray;
+                                                }
+                                            }
+                                        }
                                     }
                                     node.status({});
                                     node.send(msg);     
