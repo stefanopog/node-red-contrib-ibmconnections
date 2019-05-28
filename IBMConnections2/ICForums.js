@@ -13,6 +13,8 @@ module.exports = function(RED) {
     console.log("* Debug mode is " + (__isDebug ? "enabled" : "disabled") + ' for module ' + __moduleName);
     console.log("*****************************************");
 
+    const xml2js = require("xml2js");
+
     function _compareValues(key, order = 'asc') {
         //  
         //  Array sort function
@@ -89,11 +91,7 @@ module.exports = function(RED) {
      }
 
     function _parseForumAtomEntry(entry, isAtom) {
-        var xml2js = require("xml2js");
-        //var parser = new xml2js.Parser();
-        var builder  = new xml2js.Builder({rootName: "entry"});
         var forum = {};
-        //console.log(JSON.stringify(entry, ' ', 2));
         //
         //  Start Processing
         //
@@ -144,6 +142,7 @@ module.exports = function(RED) {
             forum.categories.push(tmp);
         }
         if (isAtom) {
+            let builder  = new xml2js.Builder({rootName: "entry"});
             forum.entry = builder.buildObject(entry);
         }
         return forum;
@@ -151,11 +150,7 @@ module.exports = function(RED) {
 
 
     function _parseTopicAtomEntry(feedEntry, isAtom) {
-        var xml2js = require("xml2js");
-        //var parser = new xml2js.Parser();
-        var builder  = new xml2js.Builder({rootName: "entry"});
         var entry = {};
-        //console.log(JSON.stringify(feedEntry, ' ', 2));
         //
         //  Start Processing
         //
@@ -249,6 +244,7 @@ module.exports = function(RED) {
             entry.categories.push(tmp);
         }
         if (isAtom) {
+            let builder  = new xml2js.Builder({rootName: "entry"});
             entry.feedEntry = builder.buildObject(feedEntry);
         }
         if (!entry.isQuestion) delete(entry.isQuestion);
@@ -272,7 +268,6 @@ module.exports = function(RED) {
         this.login = RED.nodes.getNode(config.server);
 		var node = this;
  
-        var xml2js   = require("xml2js");
         var parser   = new xml2js.Parser();
         var async = require("async");
         var asyncTasks = [];
@@ -306,12 +301,12 @@ module.exports = function(RED) {
             }
         }
         
-        function _likeForumAPI(theMsg, theURL, isAtom, theProcessor, isLike) {
+        function _likeForumAPI(theMsg, theURL, isAtom, likeIt) {
             var method = "POST";
             var announce = 'liking';
             var payload = '<entry xmlns="http://www.w3.org/2005/Atom"><title type="text">unlike</title><content type="text">reply test</content><category scheme="http://www.ibm.com/xmlns/prod/sn/type" term="recommendation"></category></entry>';
     
-            if (!isLike) {
+            if (likeIt !== 'like') {
                 method = "DELETE";
                 announce = 'unliking';
             }
@@ -343,7 +338,7 @@ module.exports = function(RED) {
                                    node.error("_likeForumAPI: Parser Error", theMsg);
                                    return;
                                 }
-                                if (isLike) {
+                                if (likeIt === 'like') {
                                     if (result.entry) {
                                         var myData = [];
                                         myData.push(_parseTopicAtomEntry(result.entry, isAtom));
@@ -803,19 +798,15 @@ module.exports = function(RED) {
                             case "get":
                                 myURL = server + '/forums/atom/topic?topicUuid=' + theId;
                                 _getRecursiveForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntry, ICparseTopicAtomEntryList, config.sortBy, 'desc');
-                                //_getForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntry, null, null, -1, null);
                                 break;
                             case "getReplies":
                                 myURL = server + '/forums/atom/replies?topicUuid=' + theId;
                                 _getForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntryList, null, null, -1, null);
                                 break;
                             case "like":
-                                myURL = server + '/forums/atom/recommendation/entries?postUuid=' + theId;
-                                _likeForumAPI(msg, myURL, config.isAtom, null, true);
-                                break;
                             case "unlike":
                                 myURL = server + '/forums/atom/recommendation/entries?postUuid=' + theId;
-                                _likeForumAPI(msg, myURL, config.isAtom, null, false);
+                                _likeForumAPI(msg, myURL, config.isAtom, forumTopicOp);
                                 break;
                             default:
                                 //
@@ -871,12 +862,9 @@ module.exports = function(RED) {
                                 _getForumAPI(msg, myURL, config.isAtom, ICparseTopicAtomEntry, null, null, -1, null);
                                 break;
                             case "like":
-                                myURL = server + '/forums/atom/recommendation/entries?postUuid=' + theId;
-                                _likeForumAPI(msg, myURL, config.isAtom, null, true);
-                                break;
                             case "unlike":
                                 myURL = server + '/forums/atom/recommendation/entries?postUuid=' + theId;
-                                _likeForumAPI(msg, myURL, config.isAtom, null, false);
+                                _likeForumAPI(msg, myURL, config.isAtom, forumReplyOp);
                                 break;
                             case "accept":
                                 myURL = server + '/forums/atom/reply?replyUuid=' + theId;

@@ -32,11 +32,10 @@
             "Search": "IBMConnections2/ICSearch.js"
         }
     },
-    "dependencies": {
+    "dependencies": { 
         "async": "*",
         "cheerio": "*",
         "image-size": "^0.7.3",
-        "jsdom": "*",
         "mime-types": "^2.1.22",
         "request": "*",
         "request-promise-native": "^1.0.7",

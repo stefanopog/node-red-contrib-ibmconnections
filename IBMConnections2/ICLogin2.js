@@ -721,15 +721,11 @@ module.exports = function(RED) {
         //
         var myURL = this.getServer + "/profiles";
         if (this.authType === "oauth") myURL += '/oauth';
-        if (this.serverType === "cloud") {
-            if (adminOutput) {
-                myURL += "/admin/atom/profileEntry.do?mcode=" + ICX.__emailToMCode(mailAddress);
-            } else {
-                myURL += "/atom/search.do?search=" + mailAddress + '&format=full&output=hcard&labels=true';
-            }
+        if (adminOutput) {
+            myURL += "/admin/atom/profileEntry.do?mcode=" + ICX.__emailToMCode(mailAddress);
         } else {
-            if (adminOutput) {
-                myURL += "/admin/atom/profileEntry.do?mcode=" + ICX.__emailToMCode(mailAddress);
+            if (this.serverType === "cloud") {
+                myURL += "/atom/search.do?search=" + mailAddress + '&format=full&output=hcard&labels=true';
             } else {
                 myURL += "/atom/profile.do?email=" + mailAddress + '&format=full&output=hcard&labels=true';
             }
