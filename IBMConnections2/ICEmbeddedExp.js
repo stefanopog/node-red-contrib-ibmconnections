@@ -7,11 +7,52 @@ SPDX-License-Identifier: Apache-2.0
 module.exports = function(RED) {
     const ICX = require('./common.js');
     const __isDebug = ICX.__getDebugFlag();
-    const __moduleName = 'IC_EmbeddedExperienc';
+    const __moduleName = 'IC_EmbeddedExperience';
+
+    const mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+    const xml2js = require("xml2js");
   
     console.log("*****************************************");
     console.log("* Debug mode is " + (__isDebug ? "enabled" : "disabled") + ' for module ' + __moduleName);
     console.log("*****************************************");
+
+
+    function _getDateConstraints(sinceDate, untilDate) {
+        var isoDateSince = new Date(sinceDate).toISOString();
+        var isoDateUntil = new Date(untilDate).toISOString();
+        return "&dateFilter={'from':'" + isoDateSince + "','to':'" + isoDateUntil + "','fromInclusive':true,'toInclusive':true}}";
+    }
+
+    function _getDateConstraints2(sinceDate, untilDate) {
+        var isoDateSince = new Date(sinceDate).toISOString();
+        var isoDateUntil = new Date(untilDate).toISOString();
+        return "&updatedSince=" + isoDateSince + "&updatedBefore" + isoDateUntil;
+    }
+
+    async function _getAS(loginNode, getURL, targetId) {
+        var __msgText = 'error getting ActivityStream for ' + targetId;
+        var __msgStatus = 'No getActivityStream';
+        try {
+            ICX.__log(__moduleName, true, '_getAS: executing on ' + getURL);
+            let response = await loginNode.rpn(
+                {
+                    url: getURL,
+                    method: "GET",
+                    headers: {"Content-Type": "application/json"}
+                }                    
+            );
+            ICX.__logJson(__moduleName, __isDebug, "_getAS OK", response);
+            //
+            //	We got the ActivityStream. Check we really do not have errors
+            //  Now parse it
+            //
+            return JSON.parse(response).list;
+        } catch (error) {
+            error.message = '{{' + __msgStatus + '}}\n' + error.message;
+            ICX.__logJson(__moduleName, true, "_getAS : " + __msgText, error);
+            throw error;
+        }
+    }
 
     function ICASPut(config) {      
          RED.nodes.createNode(this,config);        
@@ -22,11 +63,9 @@ module.exports = function(RED) {
          this.login = RED.nodes.getNode(config.server);
          var node = this;
  
-         var mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-         var xml2js = require("xml2js");
          var parser = new xml2js.Parser();
-         var server = "";
-         var context = "";
+         var server = node.login.getServer;
+         var context = config.contextRoot.trim();
  
          function _postASFromMail(serverType, theMsg, targetId, myData, commentId, cb) {
              var theURL = server + "/profiles";
@@ -163,11 +202,6 @@ module.exports = function(RED) {
              //	Retrieving Configuration from LOGIN node
              //
              var serverConfig = RED.nodes.getNode(config.server);
-             //
-             //  Server is a GLOBAL variable
-             //
-             server = serverConfig.getServer;
-             context =config.contextRoot.trim();
              var myData = {};
              var targetId = "";
              var commentId = "";            
@@ -292,276 +326,235 @@ module.exports = function(RED) {
                      break;
              }
          });
-     }
+    }
      
-     RED.nodes.registerType("ICASPut", ICASPut);
+    RED.nodes.registerType("ICASPut", ICASPut);
  
  
-     function ICASGet(config) {
-         RED.nodes.createNode(this, config);
-         //
-         //  Global to access the custom HTTP Request object available from the
-         //  ICLogin node
-         //
-         this.login = RED.nodes.getNode(config.server);
-         var node = this;
- 
-         var mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-         var xml2js = require("xml2js");
-         var parser = new xml2js.Parser();
-         var server = "";
-         var context = "";
- 
-         function _getDate(fromConfig, fromMsg, label) {
-             var datePattern = /(\d{2})\/(\d{2})\/(\d{4})((\s|T)(\d{2}):(\d{2}):(\d{2}))?/;
-             if ((fromConfig == '') && ((fromMsg == undefined) || (fromMsg == ''))) {
-                 //
-                 //  There is an issue
-                 //
-                 node.status({
-                     fill: "red",
-                     shape: "dot",
-                     text: "Missing " + label + " Date"
-                 });
-                 //node.error("Missing " + label + " Date", theMsg);
-                 if (label == "Since") {
-                     return new Date('01/01/1970');
-                 } else {
-                     return new Date();
-                 }
-             } else {
-                 var bb;
-                 if (fromConfig != '') {
-                     bb = fromConfig;
-                 } else {
-                     bb = fromMsg;
-                 }
-                 if (bb.replace(datePattern, '$5') === '') {
-                     bb = bb.replace(datePattern, '$3-$2-$1');
-                 } else {
-                     bb = bb.replace(datePattern, '$3-$2-$1$5$6:$7:$8');
-                 }
-                 return new Date(bb);
-             }
-         }
- 
-         function _getDateConstraints(sinceDate, untilDate) {
-             var isoDateSince = new Date(sinceDate).toISOString();
-             var isoDateUntil = new Date(untilDate).toISOString();
-             return "&dateFilter={'from':'" + isoDateSince + "','to':'" + isoDateUntil + "','fromInclusive':true,'toInclusive':true}}";
-         }
- 
-         function _getASFromMail(serverType, theMsg, targetId, module, constraints, cb) {
-             var theURL = server + "/profiles";
-             if (node.login.authType === "oauth") theURL += '/oauth';
-             if (serverType == "cloud") {
-                 theURL += "/atom/search.do?search=" + targetId;
-             } else {
-                 theURL += "/atom/profile.do?email=" + targetId;
-             }
-             node.login.request(
-                 {
-                     url: theURL, 
-                     method : "GET",
-                     headers: {"Content-Type" : "application/atom+xml"}
-                 },
-                 function(error, response, body) {
-                     console.log('ASGet: executing on ' + theURL);
-                     if (error) {
-                         console.log("error getting information for profile !" + targetId);
-                         node.status({fill:"red",shape:"dot",text:"Err1"});
-                         node.error(error.toString(), theMsg);
-                     } else {
-                         if (response.statusCode >= 200 && response.statusCode < 300) {  
-                             console.log("GET OK (" + response.statusCode + ")");
-                             console.log(body);
-                             //
-                             //	Have the node to emit the URL of the newly created event
-                             //
-                             parser.parseString(body, function (err, result) {
-                                 if (err) {
-                                     node.status({fill:"red",shape:"dot",text:"Parser Error"});
-                                     node.error("Parser Error getting the AS", theMsg);
-                                     console.log("Parser Error getting the AS");
-                                     console.log(err);
-                                     return;
-                                 }
-                                 if (result.feed.entry && result.feed.entry[0]) {
-                                     node.status({fill:"green",shape:"dot",text:"mail translated"});
-                                     //
-                                     //  Now we have the person UUid
-                                     //
-                                     var newTarget = "urn:lsid:lconn.ibm.com:profiles.person:" + result.feed.entry[0].contributor[0]['snx:userid'][0] + "/@involved";
-                                     //
-                                     //  go and fetch the AS
-                                     //
-                                     cb(theMsg, newTarget, module, constraints);
-                                 } else {
-                                     node.status({fill:"red",shape:"dot",text:"No Entry"});
-                                     node.error('Err2', theMsg);
-                                     console.log("Parser Error getting the AS - no ENTRY");
-                                     console.log(result);
-                                 }
-                             });
-                         } else {
-                             console.log("GET PROFILE NOT OK (" + response.statusCode + ")");
-                             console.log(body);
-                             node.status({fill:"red",shape:"dot",text:"Err3 " + response.statusMessage});
-                             node.error(response.statusCode + ' : ' + response.body, theMsg);
-                         } 
-                     }
-                 } 
-             );
-         }
- 
-         function _getAS(theMsg, targetId, module, constraints) {
-             var getURL = server + context + "/opensocial/";
-             getURL += node.login.authType + "/rest/activitystreams/" + targetId;
-             getURL += module;
-             getURL += "?format=json&rollup=true";
-             getURL += constraints;
-             if (config.count) {
-                getURL += "&count="+config.count;
-             }
-             node.status({fill: "blue", shape: "dot", text: "Retrieving..."});
-             console.log(getURL);
-             node.login.request({
-                     url: getURL,
-                     method: "GET",
-                     headers: {"Content-Type" : "application/json"}
-                 },
-                 function (error, response, body) {
-                     console.log('_getAS: executing on ' + getURL);
-                     if (error) {
-                         console.log("_getAS : error getting information for AS ! " + error);
-                         node.status({fill: "red", shape: "dot", text: "No AS"});
-                         node.error(error.toString(), theMsg);
-                     } else {
-                         if (response.statusCode >= 200 && response.statusCode < 300) {
-                             theMsg.payload = JSON.parse(body).list;
-                             node.send(theMsg);
-                             node.status({});
-                         } else {
-                             console.log("_GetAS  NOT OK (" + response.statusCode + ")");
-                             console.log(body);
-                             node.status({fill: "red", shape: "dot", text: "Err3 " + response.statusMessage});
-                             node.error(response.statusCode + ' : ' + response.body, theMsg);
-                         }
-                     }
-                 }
-             );
-         }
- 
-         this.on('input', function (msg) {
-             var serverConfig = RED.nodes.getNode(config.server);
-             //
-             //  Server is a GLOBAL variable
-             //
-             server = serverConfig.getServer;
-             context =config.contextRoot.trim();
-             //
-             //  Get the Dates if present
-             //
-             var sinceDate = new Date('01/01/1970');
-             var untilDate = new Date();
-             var constraints = '';
-             if (config.sinceCB) {
-                 sinceDate = _getDate(config.sinceDate, msg.sinceDate, 'Since');
-                 if (config.untilCB) {
-                     untilDate = _getDate(config.untilDate, msg.untilDate, 'Until');
-                 } else {
-                     //
-                     //  No Until DAte .
-                     //  So, we consider up to NOW
-                     //
-                     untilDate = new Date();
-                     console.log('ASGet : no UNTIL date');
-                 }
-                 constraints = _getDateConstraints(sinceDate, untilDate);
-                 console.log('ASGet - since ' + sinceDate);
-                 console.log('ASGet - until ' + untilDate);
-             } else {
-                 console.log('ASGet : no SINCE date');
-             }
-             //
-             //  Get the Module Switch
-             //
-             var module = '';
-             if (config.module !== "All") {
-                 module = "/" + config.module;
-             } else {
-                 module = "/@all";
-             }
-             //
-             //  check the value of the target
-             //
-             var targetId = "";
-             switch (config.target) {
-                 case "myboard" :
-                     targetId = "@me/@all";
-                     //
-                     //  go and fetch the AS
-                     //
-                      _getAS(msg, targetId, module, constraints);
-                     break;
-                 case "person" :
-                     if ((config.userId === '') && 
-                         ((msg.userId === undefined) || (msg.userId === ''))) {
-                         //
-                         //  There is an issue
-                         //
-                         console.log("Missing target user Information");
-                         node.status({fill:"red",shape:"dot",text:"Missing Target User"});
-                         node.error('Missing Target User', msg);
-                         return;
-                      } else {
-                         if (config.userId != '') {
-                             targetId = config.userId;
-                         } else {
-                             targetId = msg.userId;
-                         }
-                     }
-                     if (mailExp.test(targetId)) {
-                         //
-                         //  target is mail address. Need to find the corresponding Uuid
-                         //
-                         _getASFromMail(serverConfig.serverType, msg, targetId, module, constraints, _getAS);
-                     } else {
-                         //
-                         //  TargetID is the person UUid
-                         //
-                         targetId = 'urn:lsid:lconn.ibm.com:profiles.person:' + targetId + "/@involved";         
-                         //
-                         //  go and fetch the AS
-                         //
-                          _getAS(msg, targetId, module, constraints);
-                     }                        
-                     break;
-                 case "community" :
-                     if ((config.communityId === '') && 
-                         ((msg.communityId === undefined) || (msg.communityId === ''))) {
-                         //
-                         //  There is an issue
-                         //
-                         console.log("Missing target community Information");
-                         node.status({fill:"red",shape:"dot",text:"Missing Target Community"});
-                         node.error('Missing Target Community', msg);
-                      } else {
-                         if (config.communityId != '') {
-                             targetId = config.communityId;
-                         } else {
-                             targetId = msg.communityId;
-                         }
-                         targetId = 'urn:lsid:lconn.ibm.com:communities.community:' + targetId + "/@all";
-                         //
-                         //  go and fetch the AS
-                         //
-                          _getAS(msg, targetId, module, constraints);
-                     }
-                     break;
-             }
-         });
-     }
+    function ICASGet(config) {
+        RED.nodes.createNode(this, config);
+        //
+        //  Global to access the custom HTTP Request object available from the
+        //  ICLogin node
+        //
+        this.login = RED.nodes.getNode(config.server);
+        var node = this;
+
+        var server = node.login.getServer;
+        var context = config.contextRoot.trim();
+        if (node.login.serverType === 'cloud') context = '/connections';
+
+        this.on('input', function (msg) {
+            //
+            //  Get the Dates if present
+            //
+            var defaultString = "?format=json&rollup=true";
+            var sinceDate;
+            var untilDate;
+            var constraintsString = '';
+            if (config.sinceCB) {
+                sinceDate = ICX.__getOptionalInputDate(__moduleName, config.sinceDate, msg.sinceDate, msg.IC_sinceDate, true, node);
+            } else {
+                //
+                //  No Since Date. So we consider the initial Unix date
+                //
+                sinceDate = new Date('02/01/1970');
+                ICX.__log(__moduleName, __isDebug, 'ASGet : forcing SINCE date to 01/01/1970');
+            }
+            if (config.untilCB) {
+                untilDate = ICX.__getOptionalInputDate(__moduleName, config.untilDate, msg.untilDate, msg.IC_untilDate, false, node);
+            } else {
+                //
+                //  No Until Date. So, we consider up to NOW
+                //
+                untilDate = new Date();
+                ICX.__log(__moduleName, __isDebug, 'ASGet : forcing UNTIL date to NOW');
+            }
+            if (config.target === 'person') {
+                constraintsString = _getDateConstraints2(sinceDate, untilDate);
+            } else {
+                constraintsString = _getDateConstraints(sinceDate, untilDate);
+            }
+            ICX.__logJson(__moduleName, __isDebug, 'ASGet: Constraints Dates', constraintsString);
+            //
+            //  Get the facets
+            //
+            var facetArray = [];
+            var facetString = '';
+            var hotTopicsFacet = ICX.__getOptionalInputInteger(__moduleName, config.facetHotTopics, msg.IC_hotTopicsFacet, 'Hot Topics Facet', node);
+            if (hotTopicsFacet > 0) {
+                facetArray.push('{hot_topics:' + hotTopicsFacet + '}');
+            }
+            var peopleFacet = ICX.__getOptionalInputInteger(__moduleName, config.facetPeople, msg.IC_peopleFacet, 'People Facet', node);
+            if (peopleFacet > 0) {
+                facetArray.push('{people:' + peopleFacet + '}');
+            }
+            var communitiesFacet = ICX.__getOptionalInputInteger(__moduleName, config.facetCommunities, msg.IC_communitiesFacet, 'Communities Facet', node);
+            if (communitiesFacet > 0) {
+                facetArray.push('{communities:' + communitiesFacet + '}');
+            }
+            if (facetArray.length > 0) {
+                facetString = '&[' + facetArray.join(',') + ']';
+            }
+            //
+            //  get The Query
+            //
+            var queryString = ICX.__getOptionalInputInteger(__moduleName, config.query, msg.IC_query, 'Query String', node);
+            if (queryString) queryString = '&' + queryString;
+            //
+            //  count Parameter
+            //
+            var count = ICX.__getOptionalInputInteger(__moduleName, config.count, msg.IC_numberOfEvents, 'Number of Events', node);
+            var countString = '';
+            if (count > 0) countString = '&count=' + count;
+            //
+            //  Get the Module Switch
+            //
+            var theModule = '';
+            if (config.module !== "All") {
+                theModule = "/" + config.module;
+            } else {
+                theModule = "/@all";
+            }
+            //
+            //  Establish the process based on the value of the target
+            //
+            var targetId = "";
+            var getURL = server + context + "/opensocial/" + node.login.authType + "/rest/activitystreams/";
+            node.status({fill: "blue", shape: "dot", text: "Retrieving..."});
+            switch (config.target) {
+                case "myactions":
+                    break;
+                case "myboard" :
+                    if (theModule === '@status') {
+                        //
+                        //  Selector for which kind of status but no Application
+                        //
+                        targetId = "@me/" + config.myGroup2;
+                        getURL += targetId + defaultString + constraintsString;
+                    } else {
+                        //
+                        //  in this case, myGroup0 = @all and we add application
+                        //
+                        targetId = "@me/" + config.myGroup0;
+                        getURL += targetId + theModule + defaultString + constraintsString;
+                    }
+                    //
+                    //  go and fetch the AS
+                    //
+                    _getAS(node.login, getURL, targetId).then(async function(myData) {
+                        try {
+                            if (myData) {
+                                node.status({});
+                                msg.payload = myData;
+                            } else {
+                                node.status({fill: "yellow", shape: "dot", text: "No Entry "});
+                                msg.payload = null;
+                            }
+                            node.send(msg);
+                        } catch(error) {
+                            ICX.__logError(__moduleName, "ERROR INSIDE getting myboard", null, error, msg, node);
+                        }
+                    })
+                    .catch(error => {
+                        ICX.__logError(__moduleName, "ERROR getting myboard", null, error, msg, node);
+                    });
+                    break;
+                case "person" :
+                    targetId = ICX.__getMandatoryInputString(__moduleName, config.userId, msg.IC_userId, '', 'userId', msg, node);
+                    if (!targetId) {
+                        //
+                        //  Trying with old syntax
+                        //
+                        targetId = ICX.__getMandatoryInputString(__moduleName, config.userId, msg.userId, '', 'userId', msg, node);
+                        if (!targetId) return;
+                    }
+                    if (mailExp.test(targetId)) {
+                        //
+                        //  target is mail address. Need to find the corresponding Uuid
+                        //
+                        node.login.getUserInfosFromMail(targetId, false, false, false, false).then(async function(myData) {
+                            try {
+                                if (myData) {
+                                    getURL += 'urn:lsid:lconn.ibm.com:profiles.person:' + myData.userid + '/@involved' + theModule + defaultString + constraintsString;
+                                    let myData2 = await _getAS(node.login, getURL, targetId);
+                                    node.status({});
+                                    msg.payload = myData2;
+                                } else {
+                                    node.status({fill: "yellow", shape: "dot", text: "User " + targetId + " not recognized"});
+                                    msg.payload = null;
+                                }
+                                node.send(msg);
+                            } catch(error) {
+                                ICX.__logError(__moduleName, "ERROR INSIDE getting person board", null, error, msg, node);
+                            }
+                        })
+                        .catch(error => {
+                            ICX.__logError(__moduleName, "ERROR getting person board", null, error, msg, node);
+                        });
+                    } else {
+                        //
+                        //  TargetID is the person UUid
+                        //
+                        targetId = 'urn:lsid:lconn.ibm.com:profiles.person:' + targetId + "/@involved";         
+                        getURL += targetId + theModule + defaultString + constraintsString;
+                        //
+                        //  go and fetch the AS
+                        //
+                        _getAS(node.login, getURL, targetId).then(async function(myData) {
+                            try {
+                                if (myData) {
+                                    node.status({});
+                                    msg.payload = myData;
+                                } else {
+                                    node.status({fill: "yellow", shape: "dot", text: "User " + targetId + " not recognized"});
+                                    msg.payload = null;
+                                }
+                                node.send(msg);
+                            } catch(error) {
+                                ICX.__logError(__moduleName, "ERROR INSIDE getting person board", null, error, msg, node);
+                            }
+                        })
+                        .catch(error => {
+                            ICX.__logError(__moduleName, "ERROR getting person board", null, error, msg, node);
+                        });
+                    }                        
+                    break;
+                case "community" :
+                    targetId = ICX.__getMandatoryInputString(__moduleName, config.communityId, msg.IC_communityId, '', 'communityId', msg, node);
+                    if (!targetId) {
+                        //
+                        //  Trying with old syntax
+                        //
+                        targetId = ICX.__getMandatoryInputString(__moduleName, config.communityId, msg.communityId, '', 'communityId', msg, node);
+                        if (!targetId) return;
+                    }
+                    targetId = 'urn:lsid:lconn.ibm.com:communities.community:' + targetId + "/@all";
+                    getURL += targetId + theModule + defaultString + constraintsString;
+                    //
+                    //  go and fetch the AS
+                    //
+                    _getAS(node.login, getURL, targetId).then(async function(myData) {
+                        try {
+                            if (myData) {
+                                node.status({});
+                                msg.payload = myData;
+                            } else {
+                                node.status({fill: "yellow", shape: "dot", text: "No Entry "});
+                                msg.payload = null;
+                            }
+                            node.send(msg);
+                        } catch(error) {
+                            ICX.__logError(__moduleName, "ERROR INSIDE getting community board", null, error, msg, node);
+                        }
+                    })
+                    .catch(error => {
+                        ICX.__logError(__moduleName, "ERROR getting community board", null, error, msg, node);
+                    });
+                    break;
+            }
+        });
+    }
  
      RED.nodes.registerType("ICASGet", ICASGet);
  

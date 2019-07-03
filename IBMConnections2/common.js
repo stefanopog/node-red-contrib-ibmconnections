@@ -27,6 +27,7 @@ const __moduleName = 'IC_common';
 const parExp = /([\w\.]+)\s*=\s*(((["'])((?:(?!\4).)*)\4)|(@dt)\('([\dTtZz\+-:]+)'\)|([-+]?[0-9]*\.?[0-9]+))[\s,]?/g; // Modified for Numbers and Dates
 const dateISO = /@dt\('([\+-]?\d{4}(?!\d{2}\b))(?:(-?)(?:(0[1-9]|1[0-2])(?:\2([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))(?:[T\s](?:(?:([01]\d|2[0-3])(?:(:?)([0-5]\d))?|24\:?00)([\.,]\d+(?!:))?)?(?:\10([0-5]\d)([\.,]\d+)?)?([zZ]|([\+-](?:[01]\d|2[0-3])):?([0-5]\d)?)?)?)?'\)/;
 const tagExp = /([\w\.\-@]+)\s*((([\(])((?:(?!\4).)*)[\)]))[\s,]?/g;
+const datePattern = /(\d{2})\/(\d{2})\/(\d{4})((\s|T)(\d{2}):(\d{2}):(\d{2}))?/;
 
 //
 //  Wrapper around ICDebug environment variable
@@ -208,7 +209,8 @@ function __logWarning(moduleName, theString, theNode) {
     var warnString = moduleName + ' : ' + theString;
     __log(moduleName, __isDebug, warnString);
     theNode.status({fill: "yellow", shape: "dot", text: warnString});
-    if (__isDebug) theNode.warn(warnString);
+    //if (__isDebug) theNode.warn(warnString);
+    theNode.warn(warnString);
 }
 
 function __getInfoFromError(theError, theString) {
@@ -387,7 +389,95 @@ function __getOptionalInputString(moduleName, fromConfig, fromMsg, label, theNod
     }
     return theValue;
 }
+     
+function __getOptionalInputDate(moduleName, fromConfig, fromMsg, fromMsg2, isSince, theNode) {
+    //
+    //  This function retrieves a DATE value which can be provided
+    //  - either by the Configuration Panel
+    //  - or by an input msg. attribute (actually, TWO optional attributes identified by fromMsg and fromMsg2)
+    //
+    //  The value from the Configuration Panel takes precedence over the input msg. attribute
+    //
+    //  If no value is provided, a WARNING is generated and a default Date (based on the iSince input) is returned
+    //
+    if ((fromConfig.trim() === '') && 
+        ((fromMsg === undefined) || (fromMsg.trim() === '')) &&
+        ((fromMsg2 === undefined) || (fromMsg2.trim() === ''))) {
+        //
+        //  There is an issue
+        //
+        if (isSince) {
+            __logWarning(moduleName, 'Forcing SINCE date to 01/01/1970', theNode);
+            return new Date('02/01/1970');
+        } else {
+            __logWarning(moduleName, 'Forcing UNTIL date to NOW', theNode);
+            return new Date();
+        }
+    } else {
+        let bb;
+        if (fromConfig.trim() !== '') {
+            bb = fromConfig.trim();
+        } else {
+            if (fromMsg) {
+                bb = fromMsg.trim();
+            } else {
+                bb = fromMsg2.trim();
+            }   
+        }
+        if (bb.match(datePattern)) {
+            if (bb.replace(datePattern, '$5') === '') {
+                bb = bb.replace(datePattern, '$3-$2-$1');
+            } else {
+                bb = bb.replace(datePattern, '$3-$2-$1$5$6:$7:$8');
+            }
+            return new Date(bb);
+        } else {
+            if (isSince) {
+                __logWarning(moduleName, 'Wrong date format for ' + bb + ' . Forcing SINCE date to 01/01/1970', theNode);
+                return new Date('02/01/1970');
+            } else {
+                __logWarning(moduleName, 'Wrong date format for ' + bb + ' . Forcing UNTIL date to NOW', theNode);
+                return new Date();
+            }
+        }
+    }
+}
 
+function __getOptionalInputInteger(moduleName, fromConfig, fromMsg, label, theNode) {
+    //
+    //  This function retrieves a value which can be provided
+    //  - either by the Configuration Panel
+    //  - or by an input msg. attribute
+    //
+    //  The value from the COnfiguration Panel takes precedence over the input msg. attribute UNLESS IT IS ZERO, in which case a chance is give to fromMsg
+    //
+    //  If no value is provided or the value is NOT an integer, a WARNING is generated and the value ZERO is returned
+    //
+    var theValue = '';
+    if ((fromConfig.trim() === '') && ((fromMsg === undefined) || ((typeof fromMsg) !== 'string') || (fromMsg.trim() === ''))) {
+        __logWarning(moduleName, "Missing Optional " + label + " integer", theNode);
+    } else {
+        if (fromConfig.trim() !== '') {
+            theValue = fromConfig.trim();
+            if (theValue === 0) {
+                //
+                //  We give a change to fromMsg ....
+                //
+                if (((fromMsg !== undefined) && ((typeof fromMsg) === 'number') && (fromMsg.trim() !== ''))) {
+                    theValue = fromMsg.trim();
+                }
+            }
+        } else {
+            theValue = fromMsg.trim();
+        }
+    }
+    if (Number.isInteger(theValue)) {
+        return parseInt(theValue, 10);
+    } else {
+        __logWarning(moduleName, "Invalid Optional " + label + " integer : " + theValue + '. Returning ZERO', theNode);
+        return 0;
+    }
+}
 function __getOptionalInputArray(moduleName, fromConfig, fromMsg, label, theMsg, theNode) {
     //
     //  This function retrieves a value which can be provided
@@ -585,6 +675,8 @@ module.exports = {__log,
                   __getMandatoryInputString, 
                   __getMandatoryInputArray,
                   __getOptionalInputString,
+                  __getOptionalInputDate,
+                  __getOptionalInputInteger,
                   __getOptionalInputArray,
                   __getNameValueObject,
                   __getNameValueArray,

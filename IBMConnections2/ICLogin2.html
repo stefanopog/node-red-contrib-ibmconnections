@@ -85,7 +85,6 @@ SPDX-License-Identifier: Apache-2.0
         //  service functions
         //
         function _updateIC_loginDisplayName(displayName, authType) {
-            debugger;
             //
             //  Once the node has been created, we cannot change anymore:
             //      - the choice (on prem/ cloud)
@@ -121,9 +120,6 @@ SPDX-License-Identifier: Apache-2.0
         }
         function _updateIC_pollCredentials() {
             $.getJSON('credentials/ICLogin2/' + id, function (data) {
-
-                debugger; 
-
                 if (data.displayName) {
                     $("#node-config-dialog-ok").button("enable");
                     if (data.has_password) {
@@ -137,9 +133,6 @@ SPDX-License-Identifier: Apache-2.0
                 }
             });
         }
-
-        debugger;
-
         //
         //  Create tooltip text for the OAuth callback
         //
@@ -229,9 +222,6 @@ SPDX-License-Identifier: Apache-2.0
             //
             //  The credentials have been validated
             //
-
-            debugger; 
-
             _updateIC_loginDisplayName(this.displayName, this.authType);
         } else {
             //

@@ -34,11 +34,35 @@ SPDX-License-Identifier: Apache-2.0
                     value : "myboard",
                     required: true
                 },
+                myGroup0: {
+                    value : "@all",
+                    required: true
+                },
+                myGroup1: {
+                    value : "@responses",
+                    required: true
+                },
+                myGroup2: {
+                    value : "@all",
+                    required: true
+                },
                 userId: {
                     value : "",
                     required: false
                 },
                 communityId: {
+                    value : "",
+                    required: false
+                },
+                query: {
+                    value : "",
+                    required: false
+                },
+                queryLanguage: {
+                    value : "",
+                    required: false
+                },
+                allFilters: {
                     value : "",
                     required: false
                 },
@@ -61,61 +85,161 @@ SPDX-License-Identifier: Apache-2.0
                 untilCB: {
                     value: false,
                     required: false
-		},
-		    count : {
-		    value : 20,
-		    required : false
-		}
+                },
+                oldStyleOutput: {
+                    value: false,
+                    required: false
+                },
+                facetHotTopics: {
+                    value: 0,
+                    validate : RED.validators.number(),
+                    required: false
+                },
+                facetPeople: {
+                    value: 0,
+                    validate : RED.validators.number(),
+                    required: false
+                },
+                facetCommunities: {
+                    value: 0,
+                    validate : RED.validators.number(),
+                    required: false
+                },
+		        count : {
+		            value : 20,
+		            required : false
+		        }
             },
             oneditprepare: updateFormASGet
         });
 
-    function updateFormActStreamOut() {
+    function updateFormActStreamGet() {
         switch (document.querySelector("#node-input-target").value) {
-            case "person" :
-                document.querySelector("#targetRow").style.display = "inline";
-                document.querySelector("#communityRow").style.display = "none";
-                break;
             case "myboard" :
                 document.querySelector("#targetRow").style.display = "none";
                 document.querySelector("#communityRow").style.display = "none";
+                document.querySelector("#IC_AS_myGroup1").style.display = "none";
+                if (document.querySelector("#node-input-module").value === '@status') {
+                    document.querySelector("#IC_AS_myGroup0").style.display = "none";
+                    document.querySelector("#IC_AS_myGroup2").style.display = "block";
+                } else {
+                    document.querySelector("#IC_AS_myGroup0").style.display = "block";
+                    document.querySelector("#IC_AS_myGroup2").style.display = "none";
+                }
+                document.querySelector("#IC_AS_applications").style.display = "block";
+                document.querySelector("#IC_AS_queryBlock").style.display = "block";
+                break;
+            case "myactions" :
+                document.querySelector("#targetRow").style.display = "none";
+                document.querySelector("#communityRow").style.display = "none";
+                document.querySelector("#IC_AS_myGroup0").style.display = "none";
+                document.querySelector("#IC_AS_myGroup1").style.display = "block";
+                document.querySelector("#IC_AS_myGroup2").style.display = "none";
+                document.querySelector("#IC_AS_applications").style.display = "block";
+                updateFormActStreamQuery();
+                break;
+            case "person" :
+                document.querySelector("#targetRow").style.display = "block";
+                document.querySelector("#communityRow").style.display = "none";
+                document.querySelector("#IC_AS_myGroup0").style.display = "block";
+                document.querySelector("#IC_AS_myGroup1").style.display = "none";
+                document.querySelector("#IC_AS_myGroup2").style.display = "none";
+                document.querySelector("#IC_AS_applications").style.display = "block";
+                document.querySelector("#IC_AS_queryBlock").style.display = "block";
                 break;
             case "community" :
                 document.querySelector("#targetRow").style.display = "none";
-                document.querySelector("#communityRow").style.display = "inline";
+                document.querySelector("#communityRow").style.display = "block";
+                document.querySelector("#IC_AS_myGroup0").style.display = "block";
+                document.querySelector("#IC_AS_myGroup1").style.display = "none";
+                document.querySelector("#IC_AS_myGroup2").style.display = "none";
+                document.querySelector("#IC_AS_applications").style.display = "block";
+                document.querySelector("#IC_AS_queryBlock").style.display = "block";
                 break;
         }
     }
-
-    function updateSinceCB() {
-	   if (document.querySelector("#node-input-sinceCB").checked){
-	       document.querySelector("#sinceDate").style.display = "inline";
-	       document.querySelector("#untilBlock").style.display = "inline";
-	   } else {
-	       document.querySelector("#sinceDate").style.display = "none";
-	       document.querySelector("#untilBlock").style.display = "none";
-	   }
+    function updateFormActStreamGetApplications() {
+        switch (document.querySelector("#node-input-module").value) {
+            case "@status" :
+                switch (document.querySelector("#node-input-target").value) {
+                    case 'myboard':
+                        document.querySelector("#IC_AS_myGroup0").style.display = "none";
+                        document.querySelector("#IC_AS_myGroup1").style.display = "none";
+                        document.querySelector("#IC_AS_myGroup2").style.display = "block";
+                        document.querySelector("#IC_AS_queryBlock").style.display = "block";
+                        break;
+                    case 'myactions':
+                        document.querySelector("#IC_AS_myGroup0").style.display = "none";
+                        document.querySelector("#IC_AS_myGroup1").style.display = "block";
+                        document.querySelector("#IC_AS_myGroup2").style.display = "none";
+                        updateFormActStreamQuery();
+                        break;
+                    default:
+                        document.querySelector("#IC_AS_myGroup0").style.display = "block";
+                        document.querySelector("#IC_AS_myGroup1").style.display = "none";
+                        document.querySelector("#IC_AS_myGroup2").style.display = "none";
+                        document.querySelector("#IC_AS_queryBlock").style.display = "block";
+                        break;
+                }
+                break;
+            default :
+                document.querySelector("#IC_AS_myGroup0").style.display = "block";
+                document.querySelector("#IC_AS_myGroup1").style.display = "none";
+                document.querySelector("#IC_AS_myGroup2").style.display = "none";
+                break;
+        }
+    }
+    function updateFormActStreamQuery() {
+        if ((document.querySelector("#node-input-myGroup1").value === '@responses') || 
+            (document.querySelector("#node-input-myGroup1").value === '@actions') || 
+            (document.querySelector("#node-input-myGroup1").value === '@saved')) {
+                document.querySelector("#IC_AS_queryBlock").style.display = "none";
+        } else {
+            document.querySelector("#IC_AS_queryBlock").style.display = "block";
+        }
     }
 
-    function updateUntilCB() {
-	   if (document.querySelector("#node-input-untilCB").checked){
-	       document.querySelector("#untilDate").style.display = "inline";
-	   } else {
-	       document.querySelector("#untilDate").style.display = "none";
-	   }
+    function updateFormActStramSinceCB() {
+        if (document.querySelector("#node-input-sinceCB").checked){
+            document.querySelector("#sinceDate").style.display = "inline-block";
+            document.querySelector("#sinceDate").style.width = "90%";
+            if (document.querySelector("#sinceDefault")) document.querySelector("#sinceDefault").style.display = "none";
+            //document.querySelector("#untilBlock").style.display = "block";
+        } else {
+            document.querySelector("#sinceDate").style.display = "none";
+            //document.querySelector("#untilBlock").style.display = "none";
+            if (document.querySelector("#sinceDefault")) {
+                    document.querySelector("#sinceDefault").style.display = "inline-block";
+                    document.querySelector("#sinceDefault").style.width = "100%";
+                }
+        }
     }
 
-    function switchContextRoot2(theServer) {
-        //alert('a = ' + theServer);
+    function updateFormActStramUntilCB() {
+	    if (document.querySelector("#node-input-untilCB").checked){
+            document.querySelector("#untilDate").style.display = "inline-block";
+            document.querySelector("#untilDate").style.width = "90%";
+            if (document.querySelector("#untilDefault")) document.querySelector("#untilDefault").style.display = "none";
+	    } else {
+	        document.querySelector("#untilDate").style.display = "none";
+            if (document.querySelector("#untilDefault")) {
+                document.querySelector("#untilDefault").style.display = "inline-block";
+                document.querySelector("#untilDefault").style.width = "100%";
+            }
+	    }
+    }
+
+    function switchContextRoot2() {
+        var theServer = document.querySelector("#node-input-server").value;
         $.getJSON('credentials/ICLogin2/'+theServer, function(data) {
-        //alert(JSON.stringify(data, ' ', 2));
             if (data.theServerType && (data.theServerType !== '')) {
                 if (data.theServerType === 'cloud') {
                     document.querySelector("#contextRoot").style.display = 'none';
+                } else {
+                    document.querySelector("#contextRoot").style.display = 'block';
                 }
             }
         });
-
     }
 
     function updateFormASGet() {
@@ -139,11 +263,48 @@ SPDX-License-Identifier: Apache-2.0
                             changeYear: true,
                             buttonText: "Select date"
         });
-        //$("#node-input-server").on('change', switchContextRoot(this.server));
+        $("#node-input-server").on('change', switchContextRoot2);
 
-        switchContextRoot2(this.server);
-        updateSinceCB();
-        updateFormActStreamOut();
+
+        if ((this.myGroup0 === undefined) || (this.myGroup0 === null)) {
+            this.myGroup0 = '@all';
+            document.querySelector("#node-input-myGroup0").value = '@all';
+        }
+        if ((this.myGroup1 === undefined) || (this.myGroup1 === null)) {
+            this.myGroup1 = '@responses';
+            document.querySelector("#node-input-myGroup1").value = '@responses';
+        }
+        if ((this.myGroup2 === undefined) || (this.myGroup2 === null)) {
+            this.myGroup2 = '@all';
+            document.querySelector("#node-input-myGroup2").value = '@all';
+        }
+        if ((this.facetHotTopics === undefined) || (this.facetHotTopics === null)) {
+            this.facetHotTopics = 0;
+            document.querySelector("#node-input-facetHotTopics").value = 0;
+        }
+        if ((this.facetPeople === undefined) || (this.facetPeople === null)) {
+            this.facetPeople = 0;
+            document.querySelector("#node-input-facetPeople").value = 0;
+        }
+        if ((this.facetCommunities === undefined) || (this.facetCommunities === null)) {
+            this.facetCommunities = 0;
+            document.querySelector("#node-input-facetCommunities").value = 0;
+        }
+        if ((this.oldStyleOutput === undefined) || (this.oldStyleOutput === null)) {
+            this.oldStyleOutput = false;
+            document.querySelector("#node-input-oldStyleOutput").value = false;
+            document.querySelector("#node-input-oldStyleOutput").checked = false;
+        }
+
+        if (this.module === 'All') {
+            this.module = "@all";
+            document.querySelector("#node-input-module").value = '@all';
+        }
+
+        updateFormActStramSinceCB();
+        updateFormActStramUntilCB();
+        updateFormActStreamGet();
+        updateFormActStreamGetApplications();
     }
 
 </script>
@@ -151,82 +312,179 @@ SPDX-License-Identifier: Apache-2.0
 <script type="text/x-red" data-template-name="ICASGet">
     <div class="form-row">
         <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
-        <input type="text" id="node-input-server" onchange="switchContextRoot2(this.value)">
+        <input type="text" id="node-input-server">
     </div>
 
     <div class="form-row">
-        <label for="node-input-module"><i class="fa fa-arrow-circle-right"></i> Search</label>
-        <select id="node-input-module"> // onchange="updateFormASGet()">
-	       <option value="All">All</option>
+        <label for="node-input-target"><i class="fa fa-bullseye"></i> Target</label>
+        <select id="node-input-target" onchange="updateFormActStreamGet()">
+            <option value="myboard">Me</option>
+            <option value="myactions">My Actions</option>
+            <option value="person">Someonelse</option>
+            <option value="community">Community</option>
+        </select>
+    </div>
+    <div class="form-row" id="targetRow">
+        <label for="node-input-userId"><i class="fa fa-user"></i> User ID</label>
+        <input type="text" id="node-input-userId" placeholder="User ID (ie. toto@myorg.com OR 51689d40-e7ed-102f-87b6-86a3c2278316)">
+        <br />
+    </div>
+    <div class="form-row" id="communityRow">
+        <label for="node-input-communityId"><i class="fa fa-users"></i> Comm. ID</label>
+        <input type="text" id="node-input-communityId" placeholder="Community ID (ie. bc4597f0-e35c-4edc-8ef4-14b0cc3376e4)">
+        <br />
+    </div>
+
+
+    <div class="form-row" id="IC_AS_myGroup0">
+        <label for="node-input-myGroup0"><i class="fa fa-object-group"></i> Group</label>
+        <select id="node-input-myGroup0">
+	       <option value="@all">All</option>
+        </select>
+    </div>
+    <div class="form-row" id="IC_AS_myGroup1">
+        <label for="node-input-myGroup1"><i class="fa fa-object-group"></i> Group</label>
+        <select id="node-input-myGroup1"  onchange="updateFormActStreamQuery()">
+	       <option value="@responses">Responses (to me)</option>
+	       <option value="@notesfromme">Notes from Me</option>
+	       <option value="@actions">Actions</option>
+	       <option value="@mentions">Mentions</option>
+	       <option value="@saved">Saved</option>
+        </select>
+    </div>
+    <div class="form-row" id="IC_AS_myGroup2">
+        <label for="node-input-myGroup2"><i class="fa fa-object-group"></i> Group</label>
+        <select id="node-input-myGroup2">
+            <option value="@all">All</option>
+            <option value="@self">My Updates</option>
+	        <option value="@friends">My Network</option>
+	        <option value="@communities">Communities</option>
+            <option value="@people">People I follow</option>
+	        <option value="@following">Everything I follow</option>
+	        <option value="@following&@friends">My Network and Follow</option>
+        </select>
+    </div>
+
+    <div class="form-row" id="IC_AS_applications">
+        <label for="node-input-module"><i class="fa fa-binoculars"></i> Application</label>
+        <select id="node-input-module" onchange="updateFormActStreamGetApplications()">
+	       <option value="@all">All</option>
 	       <option value="activities">Activities</option>
 	       <option value="blogs">Blogs</option>
 	       <option value="files">Files</option>
 	       <option value="forums">Forums</option>
 	       <option value="wikis">Wikis</option>
 	       <option value="bookmarks">Bookmarks</option>
-	       <option value="@status">Status updates</option>
+	       <option value="@status">@status</option>
+	       <option value="@people">@people</option>
+	       <option value="@tags">@tags</option>
+	       <option value="@communities">@communities</option>
+	       <option value="@eventId">Event Id</option>
+	       <option value="@generatorId">Generator Id</option>
+	       <option value="@appItemId">App Item Id</option>
         </select>
-        <br />
     </div>
     <br />
 
-    <div class="form-row">
-        <label for="node-input-target"><i class="fa fa-arrow-circle-right"></i> Target</label>
-        <select id="node-input-target" onchange="updateFormActStreamOut()">
-	       <option value="myboard">My board</option>
-	       <option value="person">Someonelse's board</option>
-           <option value="community">Community board</option>
-        </select>
-    </div>
-    <div class="form-row" id="targetRow">
-        <label for="node-input-userId"><i class="fa fa-user"></i> User ID</label>
-        <input type="text" id="node-input-userId" placeholder="User ID (ie. toto@myorg.com OR 51689d40-e7ed-102f-87b6-86a3c2278316)">
-    </div>
-    <div class="form-row" id="communityRow">
-        <label for="node-input-communityId"><i class="fa fa-users"></i> Comm. ID</label>
-        <input type="text" id="node-input-communityId" placeholder="Community ID (ie. bc4597f0-e35c-4edc-8ef4-14b0cc3376e4)">
-    </div>
+    <hr style="margin:5px; border-color:black"/>
 
-    <div class="form-row">
-        <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="sinceCB" id="node-input-sinceCB" onchange="updateSinceCB()"></input>
-        <label for="node-input-sinceCB"><i class="fa fa-check-square-o"></i> Since ?</label>
-    </div>
-    <div class="form-row" id="sinceDate">
-        <label for="node-input-sinceDate"><i class="fa fa-calendar"></i> Date</label>
-        <input type="date" id="node-input-sinceDate"></input>
-        <br />
+    <div id="IC_AS_queryBlock">
+        <label style="font-weight: bold">Query : </label>
+        <div class="form-row">
+            <label for="node-input-query"><i class="fa fa-search"></i> String</span></label>
+            <input type="text" id="node-input-query" ></input>
+        </div>
+        <div class="form-row">
+            <label for="node-input-queryLanguage"><i class="fa fa-language"></i> Language</span></label>
+            <input type="text" id="node-input-queryLanguage" ></input>
+        </div>
         <br />
     </div>
 
-    <div class="from-row" id="untilBlock">
-        <div class="form-row" id="untilCB">
-            <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="sinceCB" id="node-input-untilCB" onchange="updateUntilCB()"></input>
-            <label for="node-input-untilCB"><i class="fa fa-check-square-o"></i> Until ?</label>
-        </div>
-        <div class="form-row" id="untilDate">
-            <label for="node-input-untilDate"><i class="fa fa-calendar"></i> Date</label>
-            <input type="date" id="node-input-untilDate"></input>
-            <br />
-            <br />
-        </div>
+    <label style="font-weight: bold">Date Filters : </label>
+    <div class="form-row" id="sinceBlock" style="height:34px">
+        <table style="width: 100%">
+            <tr>
+                <td style="width:30%">
+                    <div class="form-row">
+                        <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="sinceCB" id="node-input-sinceCB" onchange="updateFormActStramSinceCB()"></input>
+                        <label for="node-input-sinceCB"><i class="fa fa-calendar"></i> Since ?</label>
+                    </div>
+                </td>
+                <td style="width:70%">
+                    <div class="form-row" id="sinceDate">
+                        <input type="date" id="node-input-sinceDate" style="width:90%"></input>
+                    </div>
+                    <div class="form-row" id="sinceDefault">
+                        <label style="font-weight:bold; color: red">ALWAYS</label>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="form-row" id="untilBlock" style="height:34px">
+        <table style="width:100%">
+            <tr>
+                <td style="width:30%">
+                    <div class="form-row" id="untilCB">
+                        <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="sinceCB" id="node-input-untilCB" onchange="updateFormActStramUntilCB()"></input>
+                        <label for="node-input-untilCB"><i class="fa fa-calendar"></i> Until</label>
+                    </div>
+                </td>
+                <td style="width:70%">
+                    <div class="form-row" id="untilDate">
+                        <input type="date" id="node-input-untilDate" style="width:90%"></input>
+                    </div>
+                    <div class="form-row" id="untilDefault">
+                        <label style="font-weight:bold; color: red">NOW</label>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <br/>
+
+    
+    <label style="font-weight: bold">Facets : </label>
+    <div class="form-row">
+        <label for="node-input-facetHotTopics"><i class="fa fa-bell"></i> Hot Topics</span></label>
+        <input type="text" id="node-input-facetHotTopics" ></input>
     </div>
     <div class="form-row">
-        <hr />
+        <label for="node-input-facetPeople"><i class="fa fa-user-circle"></i> People</span></label>
+        <input type="text" id="node-input-facetPeople" ></input>
+    </div>
+    <div class="form-row">
+        <label for="node-input-facetCommunities"><i class="fa fa-user-plus"></i> Community</span></label>
+        <input type="text" id="node-input-facetCommunities" ></input>
+    </div>
+    <br />
+
+    <label style="font-weight: bold">Other Parameters : </label>
+    <div class="form-row">
+        <label for="node-input-allFilters"><i class="fa fa-filter"></i> Filters</span></label>
+        <input type="text" id="node-input-allFilters" ></input>
+    </div>
+    <div class="form-row">
         <label for="node-input-count"><i class="fa fa-sort-numeric-asc"></i> Count</span></label>
         <input type="text" id="node-input-count" ></input>
     </div>
-    <br/>
-    <br/>
+    <div class="form-row">
+        <input type="checkbox" name="oldStyleOutput" id="node-input-oldStyleOutput" style="width:5%; display: inline-block; vertical-align: top;"></input>
+        <label for="node-input-oldStyleOutput" style="width:70%"> Old Style Output</label>
+    </div>
+
     <div class="form-row" id="contextRoot">
-        <hr />
+        <hr style="margin:5px; border-color:black"/>
+        <br />
         <label for="node-input-contextRoot"><i class="fa fa-tag"></i> Context Root</span></label>
         <input type="text" id="node-input-contextRoot" placeholder="/connections"></input>
     </div>
     <br/>
-    <br/>
 
     <div class="form-row">
-        <hr />
+        <hr style="margin:5px; border-color:black"/>
+        <br />
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
         <input type="text" id="node-input-name" ></input>
     </div>
@@ -311,8 +569,7 @@ SPDX-License-Identifier: Apache-2.0
                 },
                 name: {
                             value: ""
-                },
-
+                }
             },
             oneditprepare: updateFormASPutAll
         });
@@ -320,7 +577,7 @@ SPDX-License-Identifier: Apache-2.0
     function updateFormASPut() {
         switch (document.querySelector("#node-input-target").value) {
             case "person" :
-                document.querySelector("#targetRow").style.display = "inline";
+                document.querySelector("#targetRow").style.display = "block";
                 document.querySelector("#communityRow").style.display = "none";
                 break;
             case "myboard" :
@@ -329,14 +586,14 @@ SPDX-License-Identifier: Apache-2.0
                 break;
             case "community" :
                 document.querySelector("#targetRow").style.display = "none";
-                document.querySelector("#communityRow").style.display = "inline";
+                document.querySelector("#communityRow").style.display = "block";
                 break;
         }
     }
 
     function updateFormIsComment() {
        if (document.querySelector("#node-input-isComment").checked) {
-           document.querySelector("#postRow").style.display = "inline";
+           document.querySelector("#postRow").style.display = "block";
        } else {
            document.querySelector("#postRow").style.display = "none";
        }
@@ -346,27 +603,29 @@ SPDX-License-Identifier: Apache-2.0
 	   if (document.querySelector("#node-input-isEmbExp").checked){
 	       document.querySelector("#messageInfosRow").style.display = "none";
 	   } else {
-	       document.querySelector("#messageInfosRow").style.display = "inline";
+	       document.querySelector("#messageInfosRow").style.display = "block";
 	   }
     }
 
-    function switchContextRoot(theServer) {
+    function switchContextRoot() {
+        var theServer = document.querySelector("#node-input-server").value;
         $.getJSON('credentials/ICLogin2/'+theServer, function(data) {
-       //alert(JSON.stringify(data, ' ', 2));
             if (data.theServerType && (data.theServerType !== '')) {
                 if (data.theServerType === 'cloud') {
                     document.querySelector("#contextRoot").style.display = 'none';
+                } else {
+                    document.querySelector("#contextRoot").style.display = 'inline-block';
                 }
             }
         });
-
     }
 
     function updateFormASPutAll(){
         updateFormIsComment();
         updateFormIsEmbExp();
         updateFormASPut();
-        switchContextRoot(this.server);
+
+        $("#node-input-server").on('change', switchContextRoot);
     }
 
 </script>
@@ -374,7 +633,7 @@ SPDX-License-Identifier: Apache-2.0
 <script type="text/x-red" data-template-name="ICASPut">
     <div class="form-row">
         <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
-        <input type="text" id="node-input-server" onchange="switchContextRoot(this.value)">
+        <input type="text" id="node-input-server">
     </div>
 
     <div class="form-row">
@@ -425,16 +684,14 @@ SPDX-License-Identifier: Apache-2.0
     </div>
 
     <br/>
-    <br/>
     <div class="form-row" id="contextRoot">
-        <hr />
+        <hr style="margin:5px; border-color:black"/>
         <label for="node-input-contextRoot"><i class="fa fa-tag"></i> Context Root</span></label>
         <input type="text" id="node-input-contextRoot" placeholder="/connections"></input>
     </div>
     <br/>
-    <br/>
     <div class="form-row">
-        <hr />
+        <hr style="margin:5px; border-color:black"/>
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</span></label>
         <input type="text" id="node-input-name" ></input>
     </div>
