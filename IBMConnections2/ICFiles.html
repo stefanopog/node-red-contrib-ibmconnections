@@ -10,7 +10,7 @@ SPDX-License-Identifier: Apache-2.0
             category: "IBMsocial",
             inputs: 1,
             outputs:1,
-            icon: "ibmconnections.png",
+            icon: "HCL_Connection_Master.png",
             color: "#FFFFFF",
             label: function() {
                     return this.name ||'Get Files';
@@ -394,7 +394,7 @@ SPDX-License-Identifier: Apache-2.0
 		category : "IBMsocial",
 		inputs : 1,
 		outputs : 1,
-		icon : "ibmconnections.png",
+		icon : "HCL_Connection_Master.png",
 		color : "#FFFFFF",
 		align : "right",
 		label : function() {
@@ -524,7 +524,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <script type="text/x-red" data-help-name="ICFilePut">
 	<p>
-		Uploads a file to the file library of a user or a community in IBM Connections. If there is no msg.label the file will be labeled with the node's property "File Label" and the actual timestamp (e.g. "filename1521802184844.jpg").
+		Uploads a file to the file library of a user or a community in HCL Connections. If there is no msg.label the file will be labeled with the node's property "File Label" and the actual timestamp (e.g. "filename1521802184844.jpg").
 	</p>
 	<p>
 		<i>Inputs:</i>
@@ -541,7 +541,7 @@ SPDX-License-Identifier: Apache-2.0
 		<i>Returns:</i>
 		<ul>
 			<li><code>msg.fileUrl</code> Contains the uploaded file's url. </li>
-			<li><code>msg.payload</code> Contains the response object received from the IBM Connections server. </li>
+			<li><code>msg.payload</code> Contains the response object received from the HCL Connections server. </li>
 			<ul>
 				<li><code>.id</code> Uploaded file's uuid </li>
 				<li><code>.title</code> Uploaded file's title </li>

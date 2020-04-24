@@ -1,13 +1,16 @@
-Node-RED IBM Connections Nodes
+Node-RED HCL Connections Nodes
 =====================================
 
-[![npm-version](https://img.shields.io/npm/v/node-red-node-watson.svg)](https://www.npmjs.com/package/node-red-ibmconnections)
-[![npm-downloads](https://img.shields.io/npm/dm/node-red-node-watson.svg)](https://www.npmjs.com/package/node-red-ibmconnections)
+[![npm-version](https://img.shields.io/npm/v/node-red-contrib-ibmconnections.svg)](https://www.npmjs.com/package/node-red-ibmconnections)
+[![npm-downloads](https://img.shields.io/npm/dm/node-red-contrib-ibmconnections.svg)](https://www.npmjs.com/package/node-red-ibmconnections)
 
 
-This package contains a set of nodes to interact with IBM Connections.
+This package contains a set of nodes to interact with HCL Connections.
 
 # *Changes*
+
+## Changes in V1.7.0
+* The **Simple Search** node has been completely revised. It provides far more options to constrain the search and a more complete and precise output.
 
 ## Changes in V1.6.0
 * A new **Set Profiles** node has been created which allows you to <strong style="color:red">modify any editable attriibute (and/or tag)</strong> of any user within the same organization.  
@@ -27,7 +30,7 @@ This package contains a set of nodes to interact with IBM Connections.
 
 ## Changes in V1.4.1
 * The **Get Files** node now returns also **folders** (optionally in a recursive way)
-* We added an **Upload File node** that enables uploading files to IBM Connections. The node supports uploading a file into the user's library and into a community's library.
+* We added an **Upload File node** that enables uploading files to HCL Connections. The node supports uploading a file into the user's library and into a community's library.
 * The **Get AS node** has been limited to returning 20 entries by default. For this reason we added the parameter *count* for specifying the maximum number of returned entries.
 
 # List of nodes
@@ -58,7 +61,7 @@ This node let you push some text (with or without an embedded experience) into t
 
 
 ## The Get Profiles node
-This node retrieves the complete information from the profile of an IBM Connections user.
+This node retrieves the complete information from the profile of an HCL Connections user.
 
 
 ## The Set Profiles node
@@ -71,7 +74,7 @@ It is possible to retrieve files SharedWith and/or SharedBy
 
 
 ## The Upload File node
-Uploads a file to the file library of a user or a community in IBM Connections. The incoming payload has to be a stream of buffers or a single buffer object.
+Uploads a file to the file library of a user or a community in HCL Connections. The incoming payload has to be a stream of buffers or a single buffer object.
 
 
 ## The New Activity node
@@ -100,7 +103,7 @@ This node let you create a new Community (or Subcommunity) or modify an existing
 
 
 ## The Simple Search node
-This node performs a Simple Search on IBM Connections, based on flexible and customizable search criteria
+This node performs a Simple Search on HCL Connections, based on flexible and customizable search criteria
 
 
 # LOGIN configuration node
@@ -109,4 +112,4 @@ The node supports both **Basic Authentication** and **OAuth2.0 Authentication**.
 The same configuration node can be reused across all the instances of the previously described nodes.
 
 # Supported environments
-These nodes are intended for **On-prem instances** of IBM Connections >= 4.0 and also for **IBM Connections Cloud**
+These nodes are intended for **On-prem instances** of HCL Connections >= 4.0 and also for **HCL Connections Cloud**

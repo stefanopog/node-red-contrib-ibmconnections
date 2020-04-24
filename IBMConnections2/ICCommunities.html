@@ -10,7 +10,7 @@ SPDX-License-Identifier: Apache-2.0
             category: "IBMsocial",
             inputs: 1,
             outputs:1,
-            icon: "ibmconnections.png",
+            icon: "HCL_Connection_Master.png",
             color: "#FFFFFF",
             label: function() {
                     return this.name ||'Get Communities';
@@ -213,7 +213,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <script type="text/x-red" data-help-name="ICCommunitiesGet">
     <p>
-        A node that retrieves the details of one or more IBM Connections Communities, based on the following:
+        A node that retrieves the details of one or more HCL Connections Communities, based on the following:
         <ul>
             <li><b>All Public Communities</b>, possibly filtered by <i>tag</i> or by a well-formed <i>search string</i>
             </li>
@@ -359,10 +359,10 @@ SPDX-License-Identifier: Apache-2.0
                 If the <code>ICDebug=true</code> environment variable is set, two additional attributes are also returned:
                 <ul>
                     <li>
-                        <code>entry</code> representing the ATOM result from the IBM Connections API
+                        <code>entry</code> representing the ATOM result from the HCL Connections API
                     </li>
                     <li>
-                        <code>originalentry</code> representing the JSON representation of the ATOM result from the IBM Connections API
+                        <code>originalentry</code> representing the JSON representation of the ATOM result from the HCL Connections API
                     </li>
                 </ul>
             </dd>
@@ -397,7 +397,7 @@ SPDX-License-Identifier: Apache-2.0
             category: "IBMsocial",
             inputs: 1,
             outputs:1,
-            icon: "ibmconnections.png",
+            icon: "HCL_Connection_Master.png",
             color: "#FFFFFF",
             label: function() {
                     return this.name ||'New/Update Communities';
@@ -974,7 +974,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <script type="text/x-red" data-help-name="ICCommunitiesUpdate">
     <p>
-        A node that allows you to either <b style="color:red">Create</b> a new IBM Connections Community (either main Community or SubCommunity) or to <b style="color:red">Update</b> an existing one. 
+        A node that allows you to either <b style="color:red">Create</b> a new HCL Connections Community (either main Community or SubCommunity) or to <b style="color:red">Update</b> an existing one. 
         <br />
         The following functionalities are available in both cases (<i>Create</i> or <i>Update</i>):
         <ul>

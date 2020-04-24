@@ -19,7 +19,6 @@ module.exports = function(RED) {
     const __ADD = 'add';
     const __REMOVE = 'remove';
     const __QUESTION_MARKS = '???';
-    const mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
 
     function createModifyAttributeDocument(attributeName, attributeValue) {
         var theDocument = 
@@ -99,7 +98,7 @@ module.exports = function(RED) {
     }
     function getTagsByUser(tagsByUser, tagCloud) {
         var outArray = [];
-        var isMail = mailExp.test(tagsByUser.user);
+        var isMail = ICX.__isEmail(tagsByUser.user);
         var theKeys = Object.keys(tagCloud);
         for (let i=0; i < theKeys.length; i++) {
             for (let j=0; j < tagCloud[theKeys[i]].contributors.length; j++) {
@@ -226,7 +225,6 @@ module.exports = function(RED) {
         this.login = RED.nodes.getNode(config.server);
 		const node = this;
 
-        const mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
         const server = node.login.getServer;
 
         this.on(
@@ -384,7 +382,7 @@ module.exports = function(RED) {
                                 for (let i=0; i < theUsers.length; i++) {
                                     node.status({fill:"blue",shape:"dot",text:"Retrieving " + theUsers[i] + "..."});
                                     let tmpPayload;
-                                    if (mailExp.test(theUsers[i])) {
+                                    if (ICX.__isEmail(theUsers[i])) {
                                         tmpPayload = await node.login.getUserInfosFromMail(theUsers[i], config.adminOutput, config.links, config.photoBytes, config.audio);
                                     } else {
                                         tmpPayload = await node.login.getUserInfosFromId(theUsers[i], config.adminOutput, config.links, config.photoBytes, config.audio);
@@ -579,7 +577,7 @@ module.exports = function(RED) {
                                             //
                                             //  Perform the update of the attributes
                                             //
-                                            if (mailExp.test(attributesByUser[theIndex].user)) {
+                                            if (ICX.__isEmail(attributesByUser[theIndex].user)) {
                                                 targetPayload = await updateProfile(node.login, attributesByUser[theIndex].user, 'email', wholeDoc, true);
                                             } else {
                                                 targetPayload = await updateProfile(node.login, attributesByUser[theIndex].user, 'userid', wholeDoc, true);
@@ -588,7 +586,7 @@ module.exports = function(RED) {
                                             //
                                             // Nothing to update. Get the information on the target user (since we are going to need it)
                                             //
-                                            if (mailExp.test(theUsers[theIndex])) {
+                                            if (ICX.__isEmail(theUsers[theIndex])) {
                                                 targetPayload = await node.login.getUserInfosFromMail(attributesByUser[theIndex].user, true, false, false, false);
                                             } else {
                                                 targetPayload = await node.login.getUserInfosFromId(attributesByUser[theIndex].user, true, false, false, false);
@@ -649,7 +647,7 @@ module.exports = function(RED) {
                                                 //  Now get the details of the Source User as we do not have them since she never tagged the target before
                                                 //
                                                 let userPayload;
-                                                if (mailExp.test(theSourceUsers[k])) {
+                                                if (ICX.__isEmail(theSourceUsers[k])) {
                                                     userPayload = await node.login.getUserInfosFromMail(theSourceUsers[k], false, false, false, false);
                                                 } else {
                                                     userPayload = await node.login.getUserInfosFromId(theSourceUsers[k], false, false, false, false);

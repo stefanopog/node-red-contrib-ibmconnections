@@ -154,6 +154,7 @@ module.exports = function(RED) {
         //
         //  Start Processing
         //
+        entry.content    = feedEntry.content[0]['_'];
         entry.title      = feedEntry.title[0]['_'];
         entry.id         = feedEntry.id[0].replace('urn:lsid:ibm.com:forum:', '');
         entry.isQuestion = false;

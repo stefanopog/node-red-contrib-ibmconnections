@@ -9,7 +9,6 @@ module.exports = function(RED) {
     const __isDebug = ICX.__getDebugFlag();
     const __moduleName = 'IC_EmbeddedExperience';
 
-    const mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
     const xml2js = require("xml2js");
   
     console.log("*****************************************");
@@ -286,7 +285,7 @@ module.exports = function(RED) {
                              targetId = msg.userId;
                          }
                      }
-                     if (mailExp.test(targetId)) {
+                     if (ICX.__isEmail(targetId)) {
                          //
                          //  target is mail address. Need to find the corresponding Uuid
                          //
@@ -469,7 +468,7 @@ module.exports = function(RED) {
                         targetId = ICX.__getMandatoryInputString(__moduleName, config.userId, msg.userId, '', 'userId', msg, node);
                         if (!targetId) return;
                     }
-                    if (mailExp.test(targetId)) {
+                    if (ICX.__isEmail(targetId)) {
                         //
                         //  target is mail address. Need to find the corresponding Uuid
                         //

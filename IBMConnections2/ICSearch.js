@@ -30,32 +30,6 @@ module.exports = function (RED) {
         var pageSize = 100;
         var maxResults = 1000000;
 
-        function _getDate(fromConfig, fromMsg, label, theMsg) {
-            var datePattern = /(\d{2})\/(\d{2})\/(\d{4})/;
-            if ((fromConfig == '') && ((fromMsg == undefined) || (fromMsg == ''))) {
-                //
-                //  There is an issue
-                //
-                console.log("Missing " + label + " Date");
-                node.status({fill: "red", shape: "dot", text: "Missing " + label + " Date"});
-                node.error("Missing " + label + " Date", theMsg);
-                if (label == "Since") {
-                    return new Date('01/01/1970');
-                } else {
-                    return new Date();
-                }
-            } else {
-                var bb;
-                if (fromConfig != '') {
-                    bb = fromConfig;
-                } else {
-                    bb = fromMsg;
-                }
-                bb = bb.replace(datePattern, '$3-$2-$1');
-                return new Date(bb);
-            }
-        }
-
         function _getDateConstraints(sinceDate, untilDate) {
             var ora = new Date();
             var constraint = new Array();
@@ -137,13 +111,124 @@ module.exports = function (RED) {
             item['id'] = record.id[0];
             item['date'] = record.updated[0];
             item['title'] = record.title[0]['_'];
+            if (record.summary) item['summary'] = record.summary[0]['_'];
             item['userid'] = record.author[0]['snx:userid'][0];
             item['name'] = record.author[0]['name'][0];
             item['userState'] = record.author[0]['snx:userState'][0];
             if (item['userState'] == 'active') {
-                item['mail'] = record.author[0]['email'][0];
+                if (record.author[0]['email']) {
+                    item['mail'] = record.author[0]['email'][0];
+                } else {
+                    item['mail'] = 'noname@noorg.org';
+                }
             } else {
                 item['mail'] = 'noname@noorg.org';
+            }
+            if (record["snx:communityUuid"]) {
+                item.communityUuid = record["snx:communityUuid"][0]['_'];
+            } else {
+                item.communityUuid = null;
+            }
+            if (record["snx:membercount"]) {
+                item.memberCount = record["snx:membercount"][0]['_'];
+            }
+            item.ranks = [];
+            if (record["snx:rank"]) {
+                for (let k=0; k < record["snx:rank"].length; k++) {
+                    let tmp = {};
+                    tmp.value = record["snx:rank"][k]['_'];
+                    tmp.name = record["snx:rank"][k]['$'].scheme;
+                    if (tmp.name === "http://www.ibm.com/xmlns/prod/sn/comment") {
+                        item.comments = tmp.value;
+                    } else {
+                        if (tmp.name === "http://www.ibm.com/xmlns/prod/sn/recommendations") {
+                            item.recommendations = tmp.value;
+                        } else {
+                            item.ranks.push(tmp);
+                        }
+                    }
+                }
+            } else {
+                //
+            }
+            if (item.ranks.length === 0) delete item.ranks;
+            item.fields = [];
+            if (record["ibmsc:field"]) {
+                for (let k=0; k < record["ibmsc:field"].length; k++) {
+                    let tmp = {};
+                    tmp.value = record["ibmsc:field"][k]['_'];
+                    tmp.id = record["ibmsc:field"][k]['$'].id;
+                    item.fields.push(tmp);
+                }
+            } else {
+                //
+            }
+            item.tags = [];
+            item.components = [];
+            for (let k=0; k < record.category.length; k++) {
+                let tmp = {};
+                tmp.term = record.category[k]['$'].term;
+                if (record.category[k]['$'].scheme) {
+                    tmp.scheme = record.category[k]['$'].scheme;
+                }
+                if (record.category[k]['$'].label) {
+                    tmp.label = record.category[k]['$'].label;
+                }
+                if (record.category[k]['ibmsc:field']) {
+                    let tmp1 = record.category[k]['ibmsc:field'][0];
+                    tmp[tmp1['$'].id] = tmp1['_'];
+                }
+                if (tmp.scheme === "http://www.ibm.com/xmlns/prod/sn/component") {
+                    if (tmp.primaryComponent) {
+                        item.primaryComponent = tmp.term;
+                        item.components.push(tmp);
+                    }
+                } else {
+                    if (tmp.scheme === "http://www.ibm.com/xmlns/prod/sn/doctype") {
+                        item.docType = tmp.term;
+                    } else {
+                        if (tmp.scheme === "http://www.ibm.com/xmlns/prod/sn/accesscontrolled") {
+                            item.accessControlled = tmp.term;
+                        } else {
+                            if (tmp.scheme === "http://www.ibm.com/xmlns/prod/sn/type") {
+                                //
+                                //  No Op
+                                //  
+                            } else {
+                                item.tags.push(tmp.term);
+                            }
+                        }
+                    }
+                }
+            }
+            item.links = [];
+            for (let k=0; k < record.link.length; k++) {
+                let tmp = {};
+                tmp.rel = record.link[k]['$'].rel;
+                tmp.type = record.link[k]['$'].type;
+                tmp.href = record.link[k]['$'].href;
+                if (record.link[k]['$'].title) {
+                    tmp.title = record.link[k]['$'].title;
+                } else {
+                    tmp.title = null;
+                }
+                item.links.push(tmp);
+                if (tmp.rel === 'self') item.ref = tmp.href;
+                if (tmp.rel === 'replies') {
+                    item.topics = tmp.href;
+                    item.replies = tmp.href.replace('/topics?', '/entries?')
+                }
+            }
+            if (record.contributor) {
+                item.contributors = [];
+                for (let k=0; k < record.contributor.length; k++) {
+                    let tmp = {};
+                    tmp.userid = record.contributor[k]['snx:userid'][0];
+                    tmp.name = record.contributor[k]['name'][0];
+                    tmp.mail = record.contributor[k]['email'][0];
+                    item.contributors.push(tmp);
+                }
+                if (item.contributors.length === 0) delete item.contributors;
             }
             return item;
         }
@@ -156,16 +241,15 @@ module.exports = function (RED) {
                     headers: {"Content-Type": "application/atom+xml"}
                 },
                 function (error, response, body) {
-                    console.log('_goSearch: executing on ' + theURL + '&page=' + pageNumber);
+                    ICX.__log(__moduleName, __isDebug, '_goSearch: executing on ' + theURL + '&page=' + pageNumber);
                     if (error) {
                         console.log("_goSearch: error getting simple Search : " + theURL + '&page=' + pageNumber);
                         node.status({fill: "red", shape: "dot", text: error});
                         node.error(error.toString(), theMsg);
                     } else {
                         if (response.statusCode >= 200 && response.statusCode < 300) {
-                            console.log("SimpleSearch OK (" + response.statusCode + ")");
-                            console.log(theURL + '&page=' + pageNumber);
-                            //console.log(body);
+                            ICX.__log(__moduleName, __isDebug, "SimpleSearch OK (" + response.statusCode + ")");
+                            ICX.__log(__moduleName, __isDebug, theURL + '&page=' + pageNumber);
                             //
                             //	Have the node to emit the URL of the newly created event
                             //
@@ -188,7 +272,7 @@ module.exports = function (RED) {
                                             if ((myDate >= sinceDate) && (myDate <= untilDate)) {
                                                 myData.push(myItem);
                                             } else {
-                                                console.log('Simple Search : Date ' + myDate + ' discarded......');
+                                                ICX.__log(__moduleName, __isDebug, 'Simple Search : Date ' + myDate + ' discarded......');
                                             }
                                         }
                                         //
@@ -222,9 +306,12 @@ module.exports = function (RED) {
                                         //
                                         //  no results
                                         //
-                                        node.error('Missing <ENTRY> element', theMsg);
-                                        node.status({fill: "red", shape: "dot", text: "No Entry"});
-                                    }
+                                        console.log('Missing <ENTRY> element');
+                                        node.status({fill: "yellow", shape: "dot", text: "No Result"});
+                                        theMsg.totalResults = 0;
+                                        theMsg.payload = [];
+                                        node.send(theMsg);
+                                     }
                                 }
                             });
                         } else {
@@ -242,104 +329,110 @@ module.exports = function (RED) {
             'input',
             function (msg) {
                 node.status({});
-                var serverConfig = RED.nodes.getNode(config.server);
-                var myURL = "";
                 //
                 //  Server is a GLOBAL variable
                 //
-                var server = serverConfig.getServer;
-
-                myURL = server + '/search/atom/mysearch';
-                if ((config.query == '') && 
-                    ((msg.query == undefined) || (msg.query == ''))) {
-                    //
-                    //  There is an issue
-                    //
-                    console.log("Missing Query Information");
-                    node.status({fill: "red", shape: "dot", text: "Missing Query"});
-                    node.error('Missing Query', msg);
-                } else {
-                    //
-                    //  Get the Max number of results
-                    //
-                    if (config.limitCB) {                       
-                        if ((config.maxResults == '') && 
-                            ((msg.maxResults == undefined) || (msg.maxResults == ''))) {
-                            //
-                            //  There is an issue
-                            //
-                            console.log("Missing maxResults");
-                            node.status({fill: "red", shape: "dot", text: "Missing maxResults"});
-                            node.error("Missing maxResults", msg);
-                            maxResults = 1000000;
-                        } else {
-                            if (config.maxResults != '') {
-                                maxResults = config.maxResults.trim();
-                            } else {
-                                maxResults = msg.maxResults.trim();
-                            }
-                            if (maxResults != parseInt(maxResults, 10)) {
-                                console.log('bad conversion of maxResults ' + maxResults);
-                                maxResults = 1000000;
-                            } else {
-                                maxResults = parseInt(maxResults, 10);
-                            }
-                            console.log('SimpleSearch : maxResults set to ' + maxResults);
-                        }
+                var myURL  = node.login.getServer + "/search/atom/mysearch";
+                //
+                //  Get the Query
+                //
+                let query = ICX.__getMandatoryInputString(__moduleName, config.query, msg.IC_query, '', 'Query', msg, node);
+                if (!query) return;
+                //
+                //  Get the Tags Constraint
+                //
+                let theTags = ICX.__getOptionalInputString(__moduleName, config.myTags, msg.IC_tags, 'Tag', node);
+                if (theTags) {
+                    let tagString = '';
+                    let tmpTags = theTags.split(',');
+                    for (let k=0; k < tmpTags.length; k++) {
+                        tagString += '&social={"type":"tag","id":"' + tmpTags[k].trim() + '"}';
                     }
-                    //
-                    //  Get the Dates if present
-                    //
-                    var sinceDate = new Date('01/01/1970');
-                    var untilDate = new Date();
-                    var constraints = '';
-                    if (config.sinceCB) {
-                        sinceDate = _getDate(config.sinceDate, msg.sinceDate, 'Since', msg);
-                        if (config.untilCB) {
-                            untilDate = _getDate(config.untilDate, msg.untilDate, 'Until', msg);
-                        } else {
-                            //
-                            //  No Until DAte .
-                            //  So, we consider up to NOW
-                            //
-                            untilDate = new Date();
-                            console.log('Simple Search : no UNTIL date');
-                        }
-                        constraints = _getDateConstraints(sinceDate, untilDate);
-                    } else {
-                        console.log('Simple Search : no SINCE date');
-                    }
-                    console.log('Simple Search - since ' + sinceDate);
-                    console.log('Simple Search - until ' + untilDate);
-                    var query = '';
-                    if (config.query != '') {
-                        query = config.query;
-                    } else {
-                        query = msg.query;
-                    }
-                    myURL += '?query="' + encodeURIComponent(query) + '"';
-                    //
-                    // Add the scope
-                    //
-                    myURL += "&scope=" + config.theScope;
-                    //
-                    //  Add the Sort
-                    //
-                    myURL += "&sortKey=" + config.sortKey + "&sortOrder=" + config.sortOrder;
-                    //
-                    //  Add the Constraints
-                    //
-                    myURL += constraints;
-                    //
-                    //  Force PageSize and PersonalContentBoost
-                    //
-                    myURL += '&ps=' + pageSize + '&personalization={"type":"personalContentBoost","value":"on"}';
-                    //
-                    //  Now we have the query and we can deliver it
-                    //
-                    var myData = new Array();
-                    _goSearch(msg, myURL, 1, myData, sinceDate, untilDate);
+                    theTags = tagString;
+                    ICX.__log(__moduleName, __isDebug, 'SimpleSearch : tag constraint set to : ' + theTags);
                 }
+                //
+                //  Get the CommmunityId Constraint
+                //
+                let communityId = ICX.__getOptionalInputString(__moduleName, config.communityId, msg.IC_communityId, 'CommunityId', node);
+                if (communityId) {
+                    communityId = '&social={"type":"communityId","id":"' + communityId.trim() + '"}';
+                    ICX.__log(__moduleName, __isDebug, 'SimpleSearch : CommunityId constraint set to : ' + communityId);
+                }
+                //
+                //  Get the personId Constraint
+                //
+                let personId = ICX.__getOptionalInputString(__moduleName, config.personId, msg.IC_userId, 'userId', node);
+                if (personId) {
+                    personId = personId.trim();
+                    if (ICX.__isEmail(personId)) {
+                        personId = '&social={"type":"personEmail","id":"' + personId + '"}';
+                    } else {
+                        personId = '&social={"type":"personUserId","id":"' + personId + '"}';
+                    }
+                    ICX.__log(__moduleName, __isDebug, 'SimpleSearch : userId constraint set to : ' + personId);
+                }
+                //
+                //  Get the Max number of results
+                //
+                maxResults = 1000000;
+                if (config.limitCB) {      
+                    maxResults = __getOptionalInputInteger(__moduleName, config.maxResults, msg.IC_maxResults, 'MaxResults', node);
+                    if (maxResults === 0) maxResults =  1000000;
+                    ICX.__log(__moduleName, __isDebug, 'SimpleSearch : maxResults set to ' + maxResults);
+                }
+                //
+                //  Get Date Constraints
+                //
+                let sinceDate = new Date('01/01/1970');
+                let untilDate = new Date();
+                let dateConstraints = '';
+                if (config.sinceCB) {
+                    sinceDate = ICX.__getOptionalInputDate(__moduleName, config.sinceDate, msg.sinceDate, msg.IC_sinceDate, true, node);
+                    ICX.__log(__moduleName, __isDebug, 'Simple Search - since ' + sinceDate);
+                    if (config.untilCB) {
+                        untilDate = ICX.__getOptionalInputDate(__moduleName, config.untilDate, msg.untilDate, msg.IC_untilDate, false, node);
+                        ICX.__log(__moduleName, __isDebug, 'Simple Search - until ' + untilDate);
+                    }
+                    dateConstraints = _getDateConstraints(sinceDate, untilDate);
+                }
+                //
+                //  Build the Request
+                //
+                myURL += '?query=' + encodeURIComponent(query);
+                //
+                // Add the scope
+                //
+                myURL += "&scope=" + config.theScope;
+                //
+                //  Add the dateConstraints
+                //
+                myURL += dateConstraints;
+                //
+                //  Add the tag Constraints
+                //
+                myURL += theTags;
+                //
+                //  Add the  people Constraints
+                //
+                myURL += personId;
+                //
+                //  Add the  Community Constraints
+                //
+                myURL += communityId;
+                //
+                //  Add the Sort
+                //
+                myURL += "&sortKey=" + config.sortKey + "&sortOrder=" + config.sortOrder;
+                //
+                //  Force PageSize and PersonalContentBoost
+                //
+                myURL += '&ps=' + pageSize + '&personalization={"type":"personalContentBoost","value":"on"}';
+                //
+                //  Now we have the query and we can deliver it
+                //
+                var myData = new Array();
+                _goSearch(msg, myURL, 1, myData, sinceDate, untilDate);
             }
         );
     }

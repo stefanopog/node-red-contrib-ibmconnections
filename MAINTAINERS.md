@@ -1,3 +1,3 @@
 # MAINTAINERS
 
-Stefano Pogliani - stefano@pogliani.net / stefano.pogliani@fr.ibm.com
+Stefano Pogliani - stefano@pogliani.net / stefano.pogliani@hcl.com

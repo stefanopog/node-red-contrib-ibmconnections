@@ -1172,7 +1172,8 @@ module.exports = function(RED) {
             }
             return {displayName: displayName, userId : userId};
         } catch (error) {
-            error.message = '{{' + __msgStatus + '}}\n' + error.message;
+            let tmpMsg = '{{' + __msgStatus + '}}\n' + error.message;
+            error.message = tmpMsg;
             ICX.__logJson(__moduleName, true, "whoAmI : " + __msgText, error);
             throw error;
         }
@@ -1375,6 +1376,8 @@ module.exports = function(RED) {
             theServerType: req.query.serverType,
             server: server
         };
+        var __msgText = 'error validating BASIC credentials';
+        var __msgStatus = 'No httpAdmin.get(BASIC)';
         RED.nodes.addCredentials(node_id, credentials);
         
         whoAmI(credentials, server, 'basic').then(async userDetails => {
@@ -1384,9 +1387,10 @@ module.exports = function(RED) {
             return res.send(RED._("ic.error.authorized"));
         })
         .catch(error => {
-            ICX.__logJson(__moduleName, true, "ERROR getting whoAmI", error);
-            return res.status(error.statusCode).send(ICX.__getInfoFromError(error, "ERROR INSIDE WHOAMI"));    
-        });       
+            ICX.__logJson(__moduleName, true, "ERROR getting whoAmI for BASIC AUTH", error);
+            let ss = ICX.__getInfoFromError(error, "ERROR getting whoAmI for BASIC AUTH");    
+            return res.status(400).send("ERROR getting whoAmI for BASIC AUTH : " + error.message);    
+        });    
     });
     //
     //  Node-RED Configuration function

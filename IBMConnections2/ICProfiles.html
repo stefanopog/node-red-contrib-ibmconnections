@@ -10,7 +10,7 @@ SPDX-License-Identifier: Apache-2.0
             category: "IBMsocial",
             inputs: 1,
             outputs:1,
-            icon: "ibmconnections.png",
+            icon: "HCL_Connection_Master.png",
             color: "#FFFFFF",
             label: function() {
                     return this.name ||'Get Profiles';
@@ -204,7 +204,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <script type="text/x-red" data-help-name="ICProfilesGet">
     <p>
-        A node that allows you to retrieve the information about one or more IBM Connections Profiles. 
+        A node that allows you to retrieve the information about one or more HCL Connections Profiles. 
         <br />
         The following functionalities are available:
         <ul>
@@ -212,10 +212,10 @@ SPDX-License-Identifier: Apache-2.0
                 Retrieves the details of the profile of the user associated with the <b>Login node</b>
             </li>
             <li>
-                Retrieves the details of the profile of one or more users identified by their mail address or their IBM Connections's userid  (you can use both interchangeably)
+                Retrieves the details of the profile of one or more users identified by their mail address or their HCL Connections's userid  (you can use both interchangeably)
             </li>
             <li>
-                Retrieves the details of multiple profiles, associated with a combination of <b>Tags</b> or <b>Keywords</b> or by an IBM Connections's <b>Search string</b>
+                Retrieves the details of multiple profiles, associated with a combination of <b>Tags</b> or <b>Keywords</b> or by an HCL Connections's <b>Search string</b>
             </li>
         </ul>
         <br />
@@ -228,7 +228,7 @@ SPDX-License-Identifier: Apache-2.0
             <span class="property-type">comma-separated string</span>
         </dt>
         <dd>
-            In case you choose to get the profile information for <b style="color:red">someone else</b>, you need to specify a comma-separated list of <code>IBM Connections's userId</code> or <code>email address</code> for
+            In case you choose to get the profile information for <b style="color:red">someone else</b>, you need to specify a comma-separated list of <code>HCL Connections's userId</code> or <code>email address</code> for
             the people you want to retrieve. The node is able to automatically distinguish between userIds and email addresses and you can mix them.
             <br />
             If only one user is specified, the <code>msg.payload</code> output will be a single object (or <b>null</b> if the user is not found); otherwise, <code>msg.payload</code> 
@@ -263,7 +263,7 @@ SPDX-License-Identifier: Apache-2.0
             <span class="property-type">string</span>
         </dt>
         <dd>
-            In case you choose to get the profile information matching an <b style="color:red">IBM Connections's search criteria</b>, you need to specify a string defining the <code>search criteria</code>. 
+            In case you choose to get the profile information matching an <b style="color:red">HCL Connections's search criteria</b>, you need to specify a string defining the <code>search criteria</code>. 
             <br />
             the <code>msg.payload</code> result is always an array of objects (or an <b>empty array</b> if no users are found).
             <br />
@@ -323,19 +323,19 @@ SPDX-License-Identifier: Apache-2.0
                     <span class="property-type">string</span>
                 </dt>
                 <dd>
-                    The IBM connections's userId for the user
+                    The HCL Connections's userId for the user
                 </dd>
                 <dt>key
                     <span class="property-type">string</span>
                 </dt>
                 <dd>
-                    The IBM Connections's Key for the user
+                    The HCL Connections's Key for the user
                 </dd>
                 <dt>mail
                     <span class="property-type">string</span>
                 </dt>
                 <dd>
-                    The IBM Connections's email address for the user
+                    The HCL Connections's email address for the user
                 </dd>
                 <dt>name
                     <span class="property-type">string</span>
@@ -376,9 +376,9 @@ SPDX-License-Identifier: Apache-2.0
                             <img src="icons/node-red-contrib-ibmconnections/getProfiles-allAttributesAdmin.png" />
                         </li>
                         <li>
-                            if <strong>Admin Output is NOT checked</strong>, the attributes are in the exact same format as they appear from the IBM Connections's <b>vcard</b>
+                            if <strong>Admin Output is NOT checked</strong>, the attributes are in the exact same format as they appear from the HCL Connections's <b>vcard</b>
                             associated to the user (only some logical grouping have been proposed).<br />
-                            Note the <code>x-extension-property</code> array which references all the IBM Connections extension attributes.
+                            Note the <code>x-extension-property</code> array which references all the HCL Connections extension attributes.
                             <img src="icons/node-red-contrib-ibmconnections/getProfiles-allAttributes.png" />
                         </li>
                     </ul>
@@ -643,7 +643,7 @@ SPDX-License-Identifier: Apache-2.0
                     <br />
                     This means that node will add the given tag (for instance <i>tag1</i>) to ALL selected users <strong>on behalf</strong> of <strong>user1</strong>>.
                     <br />
-                    The user can be specified either as an email address or by it IBM Connections Uuid.
+                    The user can be specified either as an email address or by it HCL Connections Uuid.
                     <br />
                     When checking the <strong>Reset</strong> checkbox, the tags will not be <strong>added</strong> but will <strong>replace</strong> any previously existing tags 
                     from the tagging user and, obviously, the <strong>Tags to Remove</strong> input will not be available.
@@ -654,7 +654,7 @@ SPDX-License-Identifier: Apache-2.0
                     <br />
                     This means that node will remove the given tag (for instance <i>tag1</i>) to ALL selected users and <strong>on behalf</strong> of <strong>user1</strong>>.
                     <br />
-                    The user can be specified either as an email address or by it IBM Connections Uuid.
+                    The user can be specified either as an email address or by it HCL Connections Uuid.
                 </li>
             </ul>
         </div>
@@ -776,7 +776,7 @@ SPDX-License-Identifier: Apache-2.0
             </dt>
             <dd>
                 In case you choose to change the values of some attribute (and/or tags) for <b style="color:red">someone else</b>, you need to specify a comma-separated list of 
-                <code>IBM Connections's userId</code> or <code>email address</code> for
+                <code>HCL Connections's userId</code> or <code>email address</code> for
                 the users whose profile you want to modify. The node is able to automatically distinguish between userIds and email addresses and you can mix them.
                 <ul>
                     <li>
@@ -832,7 +832,7 @@ SPDX-License-Identifier: Apache-2.0
                 <br />
                 <strong>No Error</strong> will be generated if the tag to be added is already present.
                 <br />
-                The user can be specified either as an email address or by it IBM Connections Uuid.
+                The user can be specified either as an email address or by it HCL Connections Uuid.
                 <br />
                 The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_profileTagsToAdd</code> attribute.
             </dd>
@@ -856,7 +856,7 @@ SPDX-License-Identifier: Apache-2.0
                 <br />
                 <strong>No Error</strong> will be generated if the tag to be added is already present.
                 <br />
-                The user can be specified either as an email address or by it IBM Connections Uuid.
+                The user can be specified either as an email address or by it HCL Connections Uuid.
                 <br />
                 The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_profileTagsToAdd</code> attribute.
             </dd>         

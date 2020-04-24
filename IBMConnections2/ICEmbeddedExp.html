@@ -10,7 +10,7 @@ SPDX-License-Identifier: Apache-2.0
             category: "IBMsocial",
             inputs: 1,
             outputs:1,
-            icon: "ibmconnections.png",
+            icon: "HCL_Connection_Master.png",
             color: "#FFFFFF",
             label: function() {
                     return this.name ||'Get AS';
@@ -243,6 +243,9 @@ SPDX-License-Identifier: Apache-2.0
     }
 
     function updateFormASGet() {
+        $( "#node-input-sinceDate" ).datepicker();
+        $( "#node-input-untilDate" ).datepicker();
+        /*
         $( "#node-input-sinceDate" ).datepicker({
                             showOn: "button",
                             buttonImage: "./icons/node-red-contrib-ibmconnections/calendar.gif",
@@ -263,6 +266,7 @@ SPDX-License-Identifier: Apache-2.0
                             changeYear: true,
                             buttonText: "Select date"
         });
+        */
         $("#node-input-server").on('change', switchContextRoot2);
 
 
@@ -413,7 +417,7 @@ SPDX-License-Identifier: Apache-2.0
                 </td>
                 <td style="width:70%">
                     <div class="form-row" id="sinceDate">
-                        <input type="date" id="node-input-sinceDate" style="width:90%"></input>
+                        <input type="text" id="node-input-sinceDate" style="width:90%"></input>
                     </div>
                     <div class="form-row" id="sinceDefault">
                         <label style="font-weight:bold; color: red">ALWAYS</label>
@@ -433,7 +437,7 @@ SPDX-License-Identifier: Apache-2.0
                 </td>
                 <td style="width:70%">
                     <div class="form-row" id="untilDate">
-                        <input type="date" id="node-input-untilDate" style="width:90%"></input>
+                        <input type="text" id="node-input-untilDate" style="width:90%"></input>
                     </div>
                     <div class="form-row" id="untilDefault">
                         <label style="font-weight:bold; color: red">NOW</label>
@@ -524,7 +528,7 @@ SPDX-License-Identifier: Apache-2.0
             category: "IBMsocial",
             inputs: 1,
             outputs:1,
-            icon: "ibmconnections.png",
+            icon: "HCL_Connection_Master.png",
             color: "#FFFFFF",
             align: "right",
             label: "Post to AS",
@@ -708,9 +712,9 @@ SPDX-License-Identifier: Apache-2.0
    In case a comment needs to be posted, the <b>ID</b> of the item for which the comment needs to be provided can be either specified in the configuration panel or via the <code>msg.postId</code> input.
    </li>
    <li>
-   Sends an event with an Embedded Experience to the IBM Connections (Cloud or On Premises) Activity Stream of the selected user or Community.
+   Sends an event with an Embedded Experience to the HCL Connections (Cloud or On Premises) Activity Stream of the selected user or Community.
    <br>
-   It accepts, in input as <code>msg.payload</code>, a JSON object containing the Payload to be sent to the IBM Connections Server. It substitues the string "<i>$$$server$$$</i>" with the actual URL of the IBM Connections Server selected as target.
+   It accepts, in input as <code>msg.payload</code>, a JSON object containing the Payload to be sent to the HCL Connections Server. It substitues the string "<i>$$$server$$$</i>" with the actual URL of the HCL Connections Server selected as target.
    </li>
    </ul>
    <p>
@@ -720,6 +724,6 @@ SPDX-License-Identifier: Apache-2.0
    <p><b>Returns:</b></p>
    <ul>
        <li><code>msg.status_url</code> containing the URL of the posted event</li>
-       <li><code>msg.payload</code> containing the actual payload received from the IBM Connections server.</li>
+       <li><code>msg.payload</code> containing the actual payload received from the HCL Connections server.</li>
    </ul>
 </script>

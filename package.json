@@ -1,7 +1,7 @@
 {
     "name": "node-red-contrib-ibmconnections",
-    "version": "1.6.0",
-    "description": "IBM Connections NodeRed nodes",
+    "version": "1.7.0",
+    "description": "HCL Connections NodeRed nodes",
     "keywords": [
         "ibmconnections",
         "node-red"

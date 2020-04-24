@@ -1,14 +1,14 @@
 {
     "ic": {
         "label": {
-            "ic": "IBM Connections",
+            "ic": "HCL Connections",
             "name": "Name",
             "filename": "Filename",
-            "create": "Create your own IBM Connections app",
+            "create": "Create your own HCL Connections app",
             "copy": "Copy the project credentials here",
             "oauthId": "Client Id",
             "oauthSecret": "Secret",
-            "authenticate": "Authenticate with IBM Connections",
+            "authenticate": "Authenticate with HCL Connections",
             "username": "User",
             "password": "Password"
         },

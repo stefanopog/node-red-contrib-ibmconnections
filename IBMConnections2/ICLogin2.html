@@ -9,7 +9,7 @@ SPDX-License-Identifier: Apache-2.0
             category: "config",
             inputs: 1,
             outputs: 1,
-            icon: "ibmconnections.png",
+            icon: "HCL_Connection_Master.png",
             color: "#FFFFFF",
             label: function () {
                 var name = "";
@@ -78,9 +78,9 @@ SPDX-License-Identifier: Apache-2.0
             pathname += "/";
         }
         const callback = location.protocol + "//" +
-            location.hostname +
-            (location.port ? ":" + location.port : "") +
-            pathname + "ic-credentials/auth/callback";
+                         location.hostname +
+                         (location.port ? ":" + location.port : "") +
+                         pathname + "ic-credentials/auth/callback";
         //
         //  service functions
         //
@@ -108,6 +108,9 @@ SPDX-License-Identifier: Apache-2.0
             $("#node-config-input-displayName").val(displayName);
             //$("#node-config-ic-displayName").html(displayName);
         }
+        function _updateIC_dialogOkButton(e) {
+            $("#node-config-dialog-ok").button("enable");
+        }
         function _updateIC_startOauthButton() {
             var v1 = $("#node-config-input-oauthId").val();
             var v2 = $("#node-config-input-oauthSecret").val();
@@ -116,7 +119,12 @@ SPDX-License-Identifier: Apache-2.0
         function _updateIC_startBasicButton(e) {
             var v1 = $("#node-config-input-username").val();
             var v2 = $("#node-config-input-password").val();
-            $("#node-config-start-basic").toggleClass("disabled", ((v1.length === 0) || (v2.length === 0) || (v2 === '__PWRD__')));
+            if ((v2.length === 0) || (v2 === '__PWRD__')) {
+                $("#node-config-start-basic").hide();
+            } else {
+                $("#node-config-start-basic").show();
+            }
+            //$("#node-config-start-basic").toggleClass("disabled", ((v1.length === 0) || (v2.length === 0) || (v2 === '__PWRD__')));
         }
         function _updateIC_pollCredentials() {
             $.getJSON('credentials/ICLogin2/' + id, function (data) {
@@ -156,21 +164,21 @@ SPDX-License-Identifier: Apache-2.0
         $("#node-config-start-oauth").mousedown(function () {
             const oauthId = $("#node-config-input-oauthId").val();
             const oauthSecret = $("#node-config-input-oauthSecret").val();
-            let myServer = '';
-            if (document.querySelector("#node-config-input-serverType").value  === 'cloud') {
-                myServer = $("#node-config-input-cloudServer").val();
-            } else {
-                myServer = $("#node-config-input-server").val()
-            }
-            const url = 'ic-credentials/oauth?' +
-                'id=' + id + '&clientId=' + oauthId +
-                '&serverType=' + document.querySelector("#node-config-input-serverType").value  +
-                '&server=' + myServer +
-                "&clientSecret=" + oauthSecret +
-                "&callback=" + encodeURIComponent(callback);
             if (oauthId === "" || oauthSecret === "" || oauthSecret === "__PWRD__") {
                 $(this).attr("href", "#");
             } else {
+                let myServer = '';
+                if (document.querySelector("#node-config-input-serverType").value  === 'cloud') {
+                    myServer = $("#node-config-input-cloudServer").val();
+                } else {
+                    myServer = $("#node-config-input-server").val()
+                }
+                const url = 'ic-credentials/oauth?' +
+                            'id=' + id + '&clientId=' + oauthId +
+                            '&serverType=' + document.querySelector("#node-config-input-serverType").value  +
+                            '&server=' + myServer +
+                            "&clientSecret=" + oauthSecret +
+                            "&callback=" + encodeURIComponent(callback);
                 $(this).attr("href", url);
                 window.icConfigNodeIntervalId = window.setTimeout(_updateIC_pollCredentials, 2000);
             }
@@ -188,20 +196,22 @@ SPDX-License-Identifier: Apache-2.0
         $("#node-config-start-basic").mousedown(function () {
             const username = $("#node-config-input-username").val();
             const password = $("#node-config-input-password").val();
-            let myServer = '';
-            if (document.querySelector("#node-config-input-serverType").value  === 'cloud') {
-                myServer = $("#node-config-input-cloudServer").val();
+            //if ((username === "") || (password === "") || (password === '__PWRD__')) { 
+            //    $(this).attr("href", "#");
+            if ((password === "") || (password === '__PWRD__')) { 
+                alert('this situation should not happen');
             } else {
-                myServer = $("#node-config-input-server").val();
-            }
-            const url = 'ic-credentials/basic?' +
-                        'id=' + id + '&username=' + username +
-                        '&serverType=' + document.querySelector("#node-config-input-serverType").value +
-                        '&server=' + myServer +
-                        "&password=" + password;
-            if (username === "" || password === "" || password === '__PWRD__') { 
-                $(this).attr("href", "#");
-            } else {
+                let myServer = '';
+                if (document.querySelector("#node-config-input-serverType").value  === 'cloud') {
+                    myServer = $("#node-config-input-cloudServer").val();
+                } else {
+                    myServer = $("#node-config-input-server").val();
+                }
+                const url = 'ic-credentials/basic?' +
+                            'id=' + id + '&username=' + username +
+                            '&serverType=' + document.querySelector("#node-config-input-serverType").value +
+                            '&server=' + myServer +
+                            "&password=" + password;
                 $(this).attr("href", url);
                 window.icConfigNodeIntervalId = window.setTimeout(_updateIC_pollCredentials, 2000);
             }
@@ -209,7 +219,8 @@ SPDX-License-Identifier: Apache-2.0
         $("#node-config-start-basic").click(function (e) {
             const username = $("#node-config-input-username").val();
             const password = $("#node-config-input-password").val();
-            if (username === "" || password === "" || password === '__PWRD__') {
+            //if ((username === "") || (password === "") || (password === '__PWRD__')) {
+            if ((password === "") || (password === '__PWRD__')) { 
                 e.preventDefault();
             }
         });
@@ -223,6 +234,10 @@ SPDX-License-Identifier: Apache-2.0
             //  The credentials have been validated
             //
             _updateIC_loginDisplayName(this.displayName, this.authType);
+            //
+            //  When you change the name of the Config Node, enable the UPDATE button
+            //
+            $('#node-config-input-displayName').on('paste input', _updateIC_dialogOkButton);
         } else {
             //
             //  The Credentials have not yet been validated
@@ -230,11 +245,11 @@ SPDX-License-Identifier: Apache-2.0
             //  We hide the DIV where the name of the Credentials Node is displayed
             //
             $("#node-config-login").hide();
-            //
-            //  We prevent from SAVING this node as the credentials have not yet been validated
-            //
-            $("#node-config-dialog-ok").button("disable");
         }
+        //
+        //  We prevent from SAVING this node as the credentials have not yet been validated
+        //
+        $("#node-config-dialog-ok").button("disable");
     };
 
     function _ICLogin2_updateServerType() {
@@ -304,10 +319,10 @@ SPDX-License-Identifier: Apache-2.0
 <div class="form-row" id="authType">
     <label for="node-config-input-authType"><i class="fa fa-address-card"></i> Auth.</label>
     <select id="node-config-input-authType" onchange="_ICLogin2_updateAuthType()">
-               <option value="basic">Basic Authentication</option>
-               <option value="oauth">OAuth 2.0</option>
-               <!-- <option value="app">Application Password</option> -->
-           </select>
+        <option value="basic">Basic Authentication</option>
+        <option value="oauth">OAuth 2.0</option>
+        <!-- <option value="app">Application Password</option> -->
+    </select>
 </div>
 </div>
 
@@ -328,7 +343,7 @@ SPDX-License-Identifier: Apache-2.0
     </div>
     <div class="form-row">
         <label>&nbsp;</label>
-        <a class="btn" id="node-config-start-basic" href="#" target="_blank"><span data-i18n="ic.label.authenticate"></span></a>
+        <a class="ui-button" id="node-config-start-basic" href="#" target="_blank"><span data-i18n="ic.label.authenticate"></span></a>
     </div>
 </div>
 
@@ -357,23 +372,24 @@ SPDX-License-Identifier: Apache-2.0
     </div>
     <div class="form-row">
         <label>&nbsp;</label>
-        <a class="btn" id="node-config-start-oauth" href="#" target="_blank"><span data-i18n="ic.label.authenticate"></span></a>
+        <a class="ui-button" id="node-config-start-oauth" href="#" target="_blank"><span data-i18n="ic.label.authenticate"></span></a>
     </div>
 </div>
 
 <div id="node-config-login">
     <div class="form-row">
         <label style="margin-left: 10px; margin-right: -10px;" for="node-config-input-displayName">
-            <i class="fa fa-user"></i>
-            <span data-i18n="ic.label.username"></span>
+            <i class="fa fa-tag"></i>
+            Name: 
         </label>
         <input type="text" id="node-config-input-displayName">
     </div>
-</div> </script>
+</div>
+</script>
 
 <script type="text/x-red" data-help-name="ICLogin2">
-<p>Log into IBM Connections.</p>
-<p>The node supports logging into IBM Connections Cloud and IBM Connections On Premises.</p>
+<p>Log into HCL Connections.</p>
+<p>The node supports logging into HCL Connections Cloud and HCL Connections On Premises.</p>
 <p>It supports:
     <ul>
         <li><b>Basic Authentication</b> : standard username/password pair</li>

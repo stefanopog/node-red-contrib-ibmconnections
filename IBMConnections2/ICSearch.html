@@ -10,7 +10,7 @@ SPDX-License-Identifier: Apache-2.0
             category: "IBMsocial",
             inputs: 1,
             outputs:1,
-            icon: "ibmconnections.png",
+            icon: "HCL_Connection_Master.png",
             color: "#FFFFFF",
             label: function() {
                     return this.name ||'Simple Search';
@@ -44,6 +44,7 @@ SPDX-License-Identifier: Apache-2.0
                 },
                 maxResults: {
                     value : "",
+                    validate : RED.validators.number(),
                     required: false
                 },
                 limitCB: {
@@ -66,7 +67,15 @@ SPDX-License-Identifier: Apache-2.0
                     value: false,
                     required: false
                 },
-                mytags: {
+                myTags: {
+                    value : "",
+                    required: false
+                },
+                personId: {
+                    value : "",
+                    required: false
+                },
+                communityId: {
                     value : "",
                     required: false
                 }
@@ -75,33 +84,41 @@ SPDX-License-Identifier: Apache-2.0
         });
 
     function updateFormSearch() {
+        /*
         $( "#node-input-sinceDate" ).datepicker({
                             showOn: "button",
                             buttonImage: "icons/node-red-contrib-ibmconnections/calendar.gif",
                             buttonImageOnly: true,
-                            dateFormat: "dd/mm/yy",
+                            dateFormat: "dd/mm/yyyy",
                             showButtonPanel: true,
                             changeMonth: true,
                             changeYear: true,
                             buttonText: "Select date"
         });
-        //$( "#node-input-sinceDate" ).datepicker("option", "dateFormat", "dd/mm/yyyy");
+        $( "#node-input-sinceDate" ).datepicker("option", "dateFormat", "yyyy-mm-dd");
+        */
+        $( "#node-input-sinceDate" ).datepicker();
+        //$( "#node-input-sinceDate" ).datepicker("option", "dateFormat", "yy-mm-dd");
+        /*
         $( "#node-input-untilDate" ).datepicker({
                             showOn: "button",
                             buttonImage: "icons/node-red-contrib-ibmconnections/calendar.gif",
                             buttonImageOnly: true,
-                            dateFormat: "dd/mm/yy",
+                            dateFormat: "dd/mm/yyyy",
                             showButtonPanel: true,
                             changeMonth: true,
                             changeYear: true,
                             buttonText: "Select date"
         });
-        //$( "#node-input-untilDate" ).datepicker("option", "dateFormat", "dd/mm/yyyy");
+        $( "#node-input-untilDate" ).datepicker("option", "dateFormat", "dd/mm/yyyy");
+        */
+        $( "#node-input-untilDate" ).datepicker();
         updateSinceCB();
         updateLimitCB();
     }
 
     function updateSinceCB() {
+        debugger;
 	   if (document.querySelector("#node-input-sinceCB").checked){
 	       document.querySelector("#sinceDate").style.display = "inline";
 	       document.querySelector("#untilBlock").style.display = "inline";
@@ -155,9 +172,28 @@ SPDX-License-Identifier: Apache-2.0
 	       <option value="status_updates">Status Updates</option>
 	       <option value="personalOnly">Personal Only</option>
 	       <option value="personalOnlyByACL">Personal Only By ACL</option>
-	       <option value="stand-alone">StandAlonex</option>
+	       <option value="stand-alone">StandAlone</option>
         </select>
     </div>
+
+
+    <fieldset style="border-width:2px; border-style:groove; border-color:threedface; padding:0.65em; margin-top:-10px; margin-bottom:20px">
+        <legend style="font-size: small; margin-bottom: 0px; margin-left: auto; border-bottom: 0px; color: black; width: 10%; padding-left: 10px;">Filters</legend>
+        <div class="form-row" id="tagRow">
+            <label for="node-input-myTags"><i class="fa fa-tag"></i> Tags</label>
+            <input type="text" id="node-input-myTags" placeholder="comma-separated list of tags"></input>
+        </div>
+
+        <div class="form-row" id="personRow">
+            <label for="node-input-personId"><i class="fa fa-tag"></i> Person</label>
+            <input type="text" id="node-input-personId" placeholder="person ID or mail"></input>
+        </div>
+
+        <div class="form-row" id="communityRow">
+            <label for="node-input-communityId"><i class="fa fa-tag"></i> Community</label>
+            <input type="text" id="node-input-communityId" placeholder="Community ID"></input>
+        </div>
+    </fieldset>
 
     <div class="form-row">
         <label for="node-input-sortKey"><i class="fa fa-arrow-circle-right"></i> Sort Key</label>
@@ -188,15 +224,13 @@ SPDX-License-Identifier: Apache-2.0
         <br />
     </div>
 
-
-
     <div class="form-row">
         <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="sinceCB" id="node-input-sinceCB" onchange="updateSinceCB()"></input>
-        <label for="node-input-sinceCB"><i class="fa fa-check-square-o"></i> Since ?</label>
+        <label for="node-input-sinceCB"></i> Since ?</label>
     </div>
     <div class="form-row" id="sinceDate">
         <label for="node-input-sinceDate"><i class="fa fa-calendar"></i> Date</label>
-        <input type="date" id="node-input-sinceDate"></input>
+        <input type="text" id="node-input-sinceDate"></input>
         <br />
         <br />
     </div>
@@ -204,19 +238,14 @@ SPDX-License-Identifier: Apache-2.0
     <div class="from-row" id="untilBlock">
     <div class="form-row" id="untilCB">
         <input style="display: inline-block; width: auto; vertical-align: top;" type="checkbox" name="sinceCB" id="node-input-untilCB" onchange="updateUntilCB()"></input>
-        <label for="node-input-untilCB"><i class="fa fa-check-square-o"></i> Until ?</label>
+        <label for="node-input-untilCB"></i> Until ?</label>
     </div>
     <div class="form-row" id="untilDate">
         <label for="node-input-untilDate"><i class="fa fa-calendar"></i> Date</label>
-        <input type="date" id="node-input-untilDate"></input>
+        <input type="text" id="node-input-untilDate"></input>
         <br />
         <br />
     </div>
-    </div>
-
-    <div class="form-row" id="tagRow">
-        <label for="node-input-mytags"><i class="fa fa-tag"></i> Tags</label>
-        <input type="text" id="node-input-mytags" placeholder="tags"></input>
     </div>
 
     <br/>
@@ -228,27 +257,173 @@ SPDX-License-Identifier: Apache-2.0
 </script>
 
 <script type="text/x-red" data-help-name="ICSimpleSearch">
-   <p>Performs an IBM Connection SEARCH operation.</p>
-   <p>The <b>query</b> can either be passed in the configuration panel or via the <code>msg.query</code> input.
+   <p>
+       Performs an IBM Connections SEARCH operation.
     </p>
-<p>It is possible to limit the number of results returned by the query. This can be accomplished using the relevant configuration option in the Configuration Panel or by means of the <code>msg.maxResults</code> input. <br />
-<b>Note : </b><code>msg.maxResults</code> (and the equivalent value from the Configuration Panel) must be numeric. Otherwise a default of "one million" will be applied.<br />
-<b>Note : </b>the <i>pageSize</i> value is set to be 100. So, anything less than 100 for the <code>maxResults</code> parameter would not have any effect.
-</p>
-<p>It is also possible to define <b>from</b> and <b>to</b> values to limit the query to an interval of time. This can be achieved using the relevant configuration options in the Configuration Panel or by means of the <code>msg.sinceDate</code> and <code>msg.untilDate</code> inputs. <br />
-<b>Note : </b>the date values must be formatted as <i>dd/mm/yyyy</i>
-</p>
-    <br />
-   <p><b>Returns:</b>
-   It returns an array of objects, each with the following inform
-   <ul>
-        <li><code>id</code> : the IBM Connections unique ID for the retrievd item </li>
-        <li><code>date</code> : the Update Date for the item </li>
-        <li><code>title</code> : the title of the item </li>
-        <li><code>userid</code> : the IBM Connections User Id of the author </li>
-        <li><code>name</code> : the name of the user </li>
-        <li><code>userState</code> : <i>active</i> or <i>inactive</i> </li>
-        <li><code>mail</code> : the mail address of the user (set to a default in case the user is <i>inactive</i></li>
-    </ul>
+    <p>
+        The query is <b>always</b> perfomrmed using the <code>personalContentBoost</code> flag set to <b style="color:red">ON</b>.
+        <br />
+        It can be constrained using several parameters (a subset of the available options from the APIs)
+        <ul>
+            <li>the <b>tags</b> that will be used to perform the query</li>
+            <li>the <b>communityId</b> that the query must limit the search scope to</li>
+            <li>the <b>person</b> (id or mail) that the query must limit the search scope to</li>
+            <li>the b>time interval</b> that will be searched for</li>
+        </ul>
     </p>
+    <p>
+        The <b>scope</b> can also be defined. You can chose among the following values:
+        <ul>
+            <li>All Connections</li>
+            <li>All Except Profiles</li>
+            <li>Activities</li>
+            <li>Blogs</li>
+            <li>Communities</li>
+            <li>Bookmarks</li>
+            <li>Files</li>
+            <li>Forums</li>
+            <li>Profilesx</li>
+            <li>Wikisx</li>
+            <li>Status Updates</li>
+            <li>Personal Only</li>
+            <li>Personal Only By ACL</li>
+            <li>StandAlone</li>
+        </ul>
+    </p>
+    <p>
+        The <b>sort Key</b> and the <b>sort order</b> can also be specified
+    </p>
+    <p>
+        It is possible to limit the number of results returned by the query. This can be accomplished using the relevant configuration option in the 
+        Configuration Panel or by means of the <code>msg.IC_maxResults</code> input. 
+    </p>
+
+    <h3>Inputs</h3>
+        <dl class="message-properties">
+            <dt class="mandatory">msg.IC_query
+                <span class="property-type">string</span>
+            </dt>
+            <dd>
+                This is the HCL Connections query string that you would use in the standard User Interface.
+                <br />
+                The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_query</code> attribute.
+            </dd>
+
+            <dt class="optional">msg.IC_userId
+                <span class="property-type">string</span>
+            </dt>
+            <dd>
+                You can use this parameter to scope the search. 
+                <br />
+                The node will automatically understands if an <code>id</code> or an <code>email address</code> are entered. No validation is done on this value until
+                the operation is executed.
+                <br />
+                The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_userId</code> attribute.
+            </dd>
+
+            <dt class="optional">msg.IC_communityId
+                <span class="property-type">string</span>
+            </dt>
+            <dd>
+                You can use this parameter to scope the search. 
+                <br />
+                The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_communityId</code> attribute.
+            </dd>
+
+            <dt class="optional">msg.IC_tags
+                <span class="property-type">comma-separated list</span>
+            </dt>
+            <dd>
+                You can use this parameter to scope the search. 
+                <br />
+                The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_tags</code> attribute.
+            </dd>
+
+            <dt class="optional">msg.IC_maxResults
+                <span class="property-type">number</span>
+            </dt>
+            <dd>
+                This value can be used to limit the number of results returned by the query. 
+                <br />
+                This value must be <b>numeric</b>, otherwise a default of "one million" will be applied.
+                <br />
+                The <i>pageSize</i> value is set to be 100. So, anything less than 100 for the <code>IC_maxResults</code> parameter would 
+                not have any effect.
+                <br />
+                The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_maxResults</code> attribute.
+                <br />
+                The <code>msg.IC_maxResults</code> attribute will <b style="color:red">ONLY</b> be considered when the <i><b>"Limit Results ?"</b></i> checkbox 
+                on the configuration panel is set.
+            </dd>
+
+            <dt class="optional">msg.IC_sinceDate
+                <span class="property-type">Date</span>
+            </dt>
+            <dd>
+                This value can be used to define the date from which results will be collected.  
+                <br />
+                The format must be <b>mm/dd/yyyy</b>
+                <br />
+                If not specified or not correctly specified, its value is <b>01/01/1970</b>.
+                <br />
+                The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_sinceDate</code> attribute.
+                <br />
+                The <code>msg.IC_sinceDate</code> attribute will <b style="color:red">ONLY</b> be considered when the <i><b>"Since ?"</b></i> checkbox 
+                on the configuration panel is set.
+            </dd>
+
+            <dt class="optional">msg.IC_untilDate
+                <span class="property-type">Date</span>
+            </dt>
+            <dd>
+                This value can be used to define the date until which results will be collected.  
+                <br />
+                The format must be <b>mm/dd/yyyy</b>
+                <br />
+                If not specified or not correctly specified, its value is <b>today</b>.
+                <br />
+                The value from the <b>node's Configuration Panel</b> takes precedence on the <code>msg.IC_untilDate</code> attribute.
+                <br />
+                The <code>msg.IC_untilDate</code> attribute will <b style="color:red">ONLY</b> be considered when <b>BOTH</b> the <i><b>"Since ?"</b></i> 
+                and <i><b>"Until ?"</b></i> checkboxs on the configuration panel are set.
+            </dd>
+        </dl>
+
+        <h3>Outputs</h3>
+        <dl class="message-properties">
+            <dt>msg.payload
+                <span class="property-type">Array of Objects</span>
+            </dt>
+            <dd>
+                An example of the returned payload is shown here:
+                <br />
+                <img src="icons/node-red-contrib-ibmconnections/searchResults.png" />
+                <br />
+                Most of the informations returned from the APIs are provided. We have also tried to categorize better those information and to promote 
+                some of them to be more visible in order to reflect the same behavior you have when using the HCL Connections user interface. Among them:
+                <ul>
+                    <li>
+                        <code>primaryComponent</code> 
+                    </li>
+                    <li>
+                        <code>DocType</code> 
+                    </li>
+                    <li>
+                        <code>accessControl</code> 
+                    </li>
+                    <li>
+                        <code>tags</code> 
+                    </li>
+                </ul>
+            </dd>
+        </dl>
+
+        <h3>Note</h3>
+            If the processing fails or if mandatory inputs are missing, the node terminates with an error. 
+            <br />
+            The error object is the <strong>incoming msg object</strong> with the additional <code>msg.ICX_fatal</code> attribute which represents the reason for the error. 
+            The <code>msg.error</code> output attribute may also be present depending on the processing at the moment of the error.
+            <br />
+            You may want to catch errors using the <b style="color:red">standard NodeRed CATCH Node</b> as show in the example here below:
+            <img src="icons/node-red-contrib-ibmconnections/communityErrorCatching.png" />
 </script>

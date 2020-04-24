@@ -11,7 +11,6 @@ module.exports = function (RED) {
     const imageSize = require('image-size');
     const __isDebug = ICX.__getDebugFlag();
     const __moduleName = 'IC_Communities';
-    const __mailExp = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
     const __urlExp = /^(https?|chrome|localhost):\/\/[^\s$.?#].[^\s]*$/;
     const __winFilePathExp = /^([a-zA-Z]\:|\\\\[^\/\\:*?"<>|]+\\[^\/\\:*?"<>|]+)(\\[^\/\\:*?"<>|]+)+(\.[^\/\\:*?"<>|]+)$/;
     const __unixFilePathExp = /^(\/)?([^\/\0]+(\/)?)+$/;
@@ -741,7 +740,7 @@ module.exports = function (RED) {
                             myURL += __urlQualifier;
                             myURL += theTag;
                             myURL += theSearch;
-                            if (__mailExp.test(theMail)) {
+                            if (ICX.__isEmail(theMail)) {
                                 myURL += "&email=" + theMail;
                             } else {
                                 myURL += "&userId=" + theMail;
@@ -1443,7 +1442,7 @@ module.exports = function (RED) {
                                 for (let i=0; i < theMembers.length; i++) {
                                     let userDetails = null;
                                     node.status({fill: "blue", shape: "dot", text: "User Details for " + theMembers[i].user});
-                                    if (theMembers[i].user.match(__mailExp)) {
+                                    if (ICX.__isEmail(theMembers[i].user)) {
                                         userDetails = await node.login.getUserInfosFromMail(theMembers[i].user, false, false, false, false);
                                     } else {
                                         userDetails = await node.login.getUserInfosFromId(theMembers[i].user, false, false, false, false);
